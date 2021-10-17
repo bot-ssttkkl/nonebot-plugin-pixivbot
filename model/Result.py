@@ -19,4 +19,4 @@ class IllustListResult(PixivResult):
 
 
 class PagedIllustListResult(IllustListResult):
-    next_url: str
+    next_url: typing.Optional[str] = None

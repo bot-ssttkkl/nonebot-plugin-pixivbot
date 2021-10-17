@@ -1,17 +1,15 @@
 # import nonebot
-from io import BytesIO
 
 from nonebot import on_regex
 from nonebot.adapters import Bot, Event
-from nonebot.adapters.cqhttp.message import MessageSegment, Message
 from nonebot.log import logger
 from nonebot.matcher import Matcher
 from nonebot.rule import to_me
 from nonebot.typing import T_State
 
-from .. import pixiv_api
-from ..pixiv_api import api as papi
-from ..random_illust import random_illust
+from ..illust_msg_maker import make_illust_msg
+from ..pixiv import api as papi
+from ..utils import random_illust, flat_page
 
 random_illust_query = on_regex("来张(.*)图", rule=to_me(), priority=5)
 
@@ -21,16 +19,17 @@ async def handle_random_illust_query(bot: Bot, event: Event, state: T_State, mat
     try:
         keyword = state["_matched_groups"][0]
 
-        result = await pixiv_api.flat_page(papi().search_illust, None, 500, 20, word=keyword)
+        result = await flat_page(papi(), papi().search_illust, None, 500, 20, word=keyword)
         if result.error is not None:
             # error occurred
             logger.warning(result.error)
-            await matcher.send("错误：" + result.error.user_message + result.error.message + result.error.reason)
-        else:
+
+        if len(result.illusts) > 0:
             illust = random_illust(result.illusts, "bookmark_proportion")
-            with BytesIO() as bio:
-                await papi().download(illust.meta_single_page.original_image_url, fname=bio)
-                msg = Message(MessageSegment.image(bio))
+            logger.debug(f"{len(result.illusts)} illusts with keyword \"{keyword}\" found, select {illust.title} ({illust.id}).")
+            msg = await make_illust_msg(illust)
             await matcher.send(msg)
+        else:
+            await matcher.send("找不到相关图片")
     except Exception as e:
         logger.exception(e)
