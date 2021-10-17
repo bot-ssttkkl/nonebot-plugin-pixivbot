@@ -3,67 +3,7 @@ import random
 import typing
 from datetime import datetime
 
-from nonebot.log import logger
-from pixivpy3 import AppPixivAPI
-
 from .model.Illust import Illust
-from .model.Result import IllustListResult, PagedIllustListResult
-
-
-async def flat_page(api: AppPixivAPI,
-                    search_func: typing.Callable,
-                    illust_filter: typing.Optional[typing.Callable[[Illust], bool]],
-                    max_item: int = 2 ** 31,
-                    max_page: int = 2 ** 31,
-                    *args, **kwargs) -> IllustListResult:
-    cur_page = 0
-    ans = IllustListResult(illusts=[])
-
-    # logger.debug("loading page " + str(cur_page + 1))
-    raw_result = await search_func(*args, **kwargs)
-    result: PagedIllustListResult = PagedIllustListResult.parse_obj(raw_result)
-    if result.error is not None:
-        ans.error = result.error
-        return ans
-
-    while len(ans.illusts) < max_item and cur_page < max_page:
-        for x in result.illusts:
-            if illust_filter is None or illust_filter(x):
-                ans.illusts.append(x)
-                if len(ans.illusts) >= max_item:
-                    break
-        else:
-            next_qs = api.parse_qs(next_url=result.next_url)
-            if next_qs is None:
-                break
-            cur_page = cur_page + 1
-            # logger.debug("loading page " + str(cur_page + 1))
-            raw_result = await search_func(**next_qs)
-            result: PagedIllustListResult = PagedIllustListResult.parse_obj(raw_result)
-            if result.error is not None:
-                ans.error = result.error
-                return ans
-
-    return ans
-
-
-def make_illust_filter(block_tags: typing.List[str],
-                       min_bookmark: int = 2 ** 31,
-                       min_view: int = 2 ** 31):
-    def illust_filter(illust: Illust) -> bool:
-        # 标签过滤
-        for tag in block_tags:
-            if illust.has_tag(tag):
-                return False
-        # 书签下限过滤
-        if illust.total_bookmarks < min_bookmark:
-            return False
-        # 浏览量下限过滤
-        if illust.total_view < min_view:
-            return False
-        return True
-
-    return illust_filter
 
 
 def random_illust(illusts: typing.List[Illust], random_method: str) -> Illust:

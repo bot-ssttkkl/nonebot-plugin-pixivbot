@@ -3,7 +3,7 @@ from io import BytesIO
 from nonebot.adapters.cqhttp import Message, MessageSegment
 
 from .model.Illust import Illust
-from .pixiv import api as papi
+from .data_source import data_source
 
 
 async def make_illust_msg(illust: Illust) -> Message:
@@ -12,7 +12,7 @@ async def make_illust_msg(illust: Illust) -> Message:
             url = illust.meta_pages[0].image_urls.original
         else:
             url = illust.meta_single_page.original_image_url
-        await papi().download(url, fname=bio)
+        bio.write(await data_source.download(illust.id, url))
 
         msg = Message.template("{} \n「{}」{}\n{}").format(
             MessageSegment.image(bio),

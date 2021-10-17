@@ -1,7 +1,7 @@
 from pydantic import *
 
 
-class PixivError(BaseModel):
+class Error(BaseModel):
     user_message: str
     message: str
     reason: str

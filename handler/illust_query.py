@@ -9,7 +9,7 @@ from nonebot.typing import T_State
 
 from ..illust_msg_maker import make_illust_msg
 from ..model.Result import IllustResult
-from ..pixiv import api as papi
+from ..data_source import data_source
 
 illust_query = on_regex(r"^看看图\s*([1-9][0-9]*)", rule=to_me(), priority=5)
 
@@ -24,8 +24,7 @@ async def handle_illust_query(bot: Bot, event: Event, state: T_State, matcher: M
             await matcher.reject(raw_illust_id + "不是合法的插画ID")
             return
 
-        raw_result = await papi().illust_detail(illust_id)
-        result: IllustResult = IllustResult.parse_obj(raw_result)
+        result = await data_source.illust_detail(illust_id)
         if result.error is not None:
             # error occurred
             logger.warning(result.error)

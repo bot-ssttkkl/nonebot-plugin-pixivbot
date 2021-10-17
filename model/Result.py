@@ -3,11 +3,11 @@ import typing
 from pydantic import *
 
 from .Illust import Illust
-from .PixivError import PixivError
+from .Error import Error
 
 
 class PixivResult(BaseModel):
-    error: typing.Optional[PixivError] = None
+    error: typing.Optional[Error] = None
 
 
 class IllustResult(PixivResult):
