@@ -8,15 +8,15 @@ from nonebot import logger
 from pixivpy_async import *
 from pixivpy_async.error import TokenError
 
+from .query_error import QueryError
 from .model.Illust import Illust
-from .model.Result import IllustResult, PagedIllustListResult, IllustListResult
-
-mongodb_name = ""
+from .model.User import User
 
 
 class PixivDataSource:
     _client: PixivClient = None
     _api: AppPixivAPI = None
+    cache_database_name = ""
 
     async def initialize(self):
         self._client = PixivClient(proxy="socks5://127.0.0.1:7890")
@@ -55,37 +55,33 @@ class PixivDataSource:
 
     @staticmethod
     async def _flat_page(search_func: typing.Callable,
-                         illust_filter: typing.Optional[typing.Callable[[Illust], bool]] = None,
+                         element_list_name: str,
+                         element_filter: typing.Optional[typing.Callable[[typing.Any], bool]] = None,
                          max_item: int = 2 ** 31,
-                         max_page: int = 2 ** 31,
-                         *args, **kwargs) -> IllustListResult:
+                         max_page: int = 2 ** 31, **kwargs) -> typing.List[typing.Any]:
         cur_page = 0
-        flatten = IllustListResult(illusts=[])
+        flatten = []
 
         # logger.debug("loading page " + str(cur_page + 1))
-        raw_result = await search_func(*args, **kwargs)
-        result: PagedIllustListResult = PagedIllustListResult.parse_obj(raw_result)
-        if result.error is not None:
-            flatten.error = result.error
-            return flatten
+        raw_result = await search_func(**kwargs)
+        if "error" in raw_result:
+            raise QueryError(**raw_result["error"])
 
-        while len(flatten.illusts) < max_item and cur_page < max_page:
-            for x in result.illusts:
-                if illust_filter is None or illust_filter(x):
-                    flatten.illusts.append(x)
-                    if len(flatten.illusts) >= max_item:
+        while len(flatten) < max_item and cur_page < max_page:
+            for x in raw_result[element_list_name]:
+                if element_filter is None or element_filter(x):
+                    flatten.append(x)
+                    if len(flatten) >= max_item:
                         break
             else:
-                next_qs = AppPixivAPI.parse_qs(next_url=result.next_url)
+                next_qs = AppPixivAPI.parse_qs(next_url=raw_result["next_url"])
                 if next_qs is None:
                     break
                 cur_page = cur_page + 1
                 # logger.debug("loading page " + str(cur_page + 1))
                 raw_result = await search_func(**next_qs)
-                result: PagedIllustListResult = PagedIllustListResult.parse_obj(raw_result)
-                if result.error is not None:
-                    flatten.error = result.error
-                    return flatten
+                if "error" in raw_result:
+                    raise QueryError(**raw_result["error"])
 
         return flatten
 
@@ -108,57 +104,140 @@ class PixivDataSource:
 
         return illust_filter
 
-    @staticmethod
-    def _db():
+    def _db(self):
         db_conn = nonebot.require("nonebot_plugin_navicat").mongodb_client
-        return db_conn[mongodb_name]
+        return db_conn[self.cache_database_name]
 
     async def search_illust(self, word: str,
                             illust_filter: typing.Optional[typing.Callable[[Illust], bool]] = None,
                             max_item: int = 2 ** 31,
-                            max_page: int = 2 ** 31, **kwargs) -> IllustListResult:
+                            max_page: int = 2 ** 31,
+                            cache_valid_time: int = 7200, **kwargs) -> typing.List[Illust]:
         cache = await self._db().search_illust_cache.find_one({"word": word})
         if cache is not None:
-            if (datetime.now() - cache["update_time"]).total_seconds() < 86400:
-                return IllustListResult.parse_obj(cache)
+            if cache_valid_time == 0 or (datetime.now() - cache["update_time"]).total_seconds() <= cache_valid_time:
+                return [Illust.parse_obj(x) for x in cache["illusts"]]
 
         logger.debug("cache not found or out of date, search illust from remote")
-        result = await self._flat_page(self._api.search_illust, illust_filter, max_item, max_page, word=word,
-                                       **kwargs)
-        if result.error is None:
-            await self._db().download_cache.update_one(
-                {"word": word},
-                {"$set": {
-                    "illusts": result.dict()["illusts"],
-                    "update_time": datetime.now()
-                }},
-                upsert=True
-            )
-        return result
 
-    async def illust_detail(self, illust_id) -> IllustResult:
+        result = await self._flat_page(self._api.search_illust, "illusts", illust_filter, max_item, max_page, word=word,
+                                       **kwargs)
+        await self._db().search_illust_cache.update_one(
+            {"word": word},
+            {"$set": {
+                "illusts": result,
+                "update_time": datetime.now()
+            }},
+            upsert=True
+        )
+        return [Illust.parse_obj(x) for x in result]
+
+    async def user_bookmarks(self, user_id: int = 0,
+                             illust_filter: typing.Optional[typing.Callable[[Illust], bool]] = None,
+                             max_item: int = 2 ** 31,
+                             max_page: int = 2 ** 31,
+                             cache_valid_time: int = 86400, **kwargs) -> typing.List[Illust]:
+        if user_id == 0:
+            user_id = self._api.user_id
+
+        cache = await self._db().user_bookmarks_cache.find_one({"user_id": user_id})
+        if cache is not None:
+            if cache_valid_time == 0 or (datetime.now() - cache["update_time"]).total_seconds() <= cache_valid_time:
+                return [Illust.parse_obj(x) for x in cache["illusts"]]
+
+        logger.debug("cache not found or out of date, get user bookmarks from remote")
+
+        result = await self._flat_page(self._api.user_bookmarks_illust, "illusts", illust_filter, max_item, max_page,
+                                       user_id=user_id, **kwargs)
+        await self._db().user_bookmarks_cache.update_one(
+            {"user_id": user_id},
+            {"$set": {
+                "illusts": result,
+                "update_time": datetime.now()
+            }},
+            upsert=True
+        )
+        return [Illust.parse_obj(x) for x in result]
+
+    async def search_user(self, word: str,
+                          max_item: int = 2 ** 31,
+                          max_page: int = 2 ** 31,
+                          cache_valid_time: int = 86400, **kwargs) -> typing.List[User]:
+        cache = await self._db().search_user_cache.find_one({"word": word})
+        if cache is not None:
+            if cache_valid_time == 0 or (datetime.now() - cache["update_time"]).total_seconds() <= cache_valid_time:
+                return [User.parse_obj(x) for x in cache["users"]]
+
+        logger.debug("cache not found or out of date, get users from remote")
+
+        result = await self._flat_page(self._api.search_user, "user_previews", None, max_item, max_page,
+                                       word=word, **kwargs)
+        await self._db().search_user_cache.update_one(
+            {"word": word},
+            {"$set": {
+                "users": [x["user"] for x in result],
+                "update_time": datetime.now()
+            }},
+            upsert=True
+        )
+        return [User.parse_obj(x["user"]) for x in result]
+
+    async def user_illusts(self, user_id: int = 0,
+                           illust_filter: typing.Optional[typing.Callable[[Illust], bool]] = None,
+                           max_item: int = 2 ** 31,
+                           max_page: int = 2 ** 31,
+                           cache_valid_time: int = 86400, **kwargs) -> typing.List[Illust]:
+        if user_id == 0:
+            user_id = self._api.user_id
+
+        cache = await self._db().user_illusts_cache.find_one({"user_id": user_id})
+        if cache is not None:
+            if cache_valid_time == 0 or (datetime.now() - cache["update_time"]).total_seconds() <= cache_valid_time:
+                return [Illust.parse_obj(x) for x in cache["illusts"]]
+
+        logger.debug("cache not found or out of date, get user illusts from remote")
+
+        result = await self._flat_page(self._api.user_illusts, "illusts", illust_filter, max_item, max_page,
+                                       user_id=user_id, **kwargs)
+        await self._db().user_illusts_cache.update_one(
+            {"user_id": user_id},
+            {"$set": {
+                "illusts": result,
+                "update_time": datetime.now()
+            }},
+            upsert=True
+        )
+        return [Illust.parse_obj(x) for x in result]
+
+    async def illust_detail(self, illust_id: int,
+                            cache_valid_time: int = 0, **kwargs) -> Illust:
         cache = await self._db().illust_detail_cache.find_one({"illust_id": illust_id})
         if cache is not None:
-            return IllustResult.parse_obj(cache)
+            if cache_valid_time == 0 or (datetime.now() - cache["update_time"]).total_seconds() <= cache_valid_time:
+                return Illust.parse_obj(cache["illust"])
 
         logger.debug("cache not found or out of date, get illust detail from remote")
-        raw_result = await self._api.illust_detail(illust_id)
-        result = IllustResult.parse_obj(raw_result)
-        if result.error is None:
-            await self._db().download_cache.update_one(
-                {"illust_id": illust_id},
-                {"$set": {
-                    "illust": result.dict()["illust"],
-                    "update_time": datetime.now()
-                }},
-                upsert=True
-            )
-        return result
+        result = await self._api.illust_detail(illust_id)
+        if "error" in result:
+            raise QueryError(**result["error"])
 
-    async def download(self, illust_id, url) -> bytes:
+        await self._db().illust_detail_cache.update_one(
+            {"illust_id": illust_id},
+            {"$set": {
+                "illust": result["illust"],
+                "update_time": datetime.now()
+            }},
+            upsert=True
+        )
+        return Illust.parse_obj(result["illust"])
+
+    async def download(self, illust_id: int,
+                       url: str,
+                       cache_valid_time: int = 0, **kwargs) -> bytes:
         cache = await self._db().download_cache.find_one({"illust_id": illust_id})
         if cache is not None:
-            return cache["content"]
+            if cache_valid_time == 0 or (datetime.now() - cache["update_time"]).total_seconds() <= cache_valid_time:
+                return cache["content"]
 
         logger.debug("cache not found or out of date, download from remote")
         with BytesIO() as bio:

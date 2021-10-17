@@ -13,7 +13,7 @@ from .data_source import data_source
 global_config = get_driver().config
 config = Config(**global_config.dict())
 
-data_source.mongodb_name = config.pixiv_mongodb_name
+data_source.cache_database_name = config.pixiv_mongodb_name
 
 get_driver().on_startup(data_source.initialize)
 get_driver().on_shutdown(data_source.shutdown)
@@ -24,6 +24,8 @@ async def do_refresh():
     try:
         result = await data_source.refresh(config.pixiv_refresh_token)
         logger.info(f"refresh access token successfully. new token expires in {result.expires_in} seconds.")
+        logger.debug(f"access_token: {result.access_token}")
+        logger.debug(f"refresh_token: {result.refresh_token}")
         if result.refresh_token != config.pixiv_refresh_token:
             logger.warning(f"refresh token has been changed: {result.refresh_token}")
 

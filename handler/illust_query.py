@@ -7,9 +7,9 @@ from nonebot.matcher import Matcher
 from nonebot.rule import to_me
 from nonebot.typing import T_State
 
-from ..illust_msg_maker import make_illust_msg
-from ..model.Result import IllustResult
+from ..query_error import QueryError
 from ..data_source import data_source
+from ..illust_msg_maker import make_illust_msg
 
 illust_query = on_regex(r"^看看图\s*([1-9][0-9]*)", rule=to_me(), priority=5)
 
@@ -24,13 +24,11 @@ async def handle_illust_query(bot: Bot, event: Event, state: T_State, matcher: M
             await matcher.reject(raw_illust_id + "不是合法的插画ID")
             return
 
-        result = await data_source.illust_detail(illust_id)
-        if result.error is not None:
-            # error occurred
-            logger.warning(result.error)
-            await matcher.send("错误：" + result.error.user_message + result.error.message + result.error.reason)
-        else:
-            msg = await make_illust_msg(result.illust)
-            await matcher.send(msg)
+        illust = await data_source.illust_detail(illust_id)
+        msg = await make_illust_msg(illust)
+        await matcher.send(msg)
+    except QueryError as e:
+        await matcher.send(e.reason)
+        logger.warning(e)
     except Exception as e:
         logger.exception(e)
