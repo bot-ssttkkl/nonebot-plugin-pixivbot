@@ -13,7 +13,7 @@ from ..data_source import data_source
 from ..model.User import User
 from ..utils import random_illust
 
-random_user_illust_query = on_regex("来张(.*)老师的图", rule=to_me(), priority=4, block=True)
+random_user_illust_query = on_regex("来张(.+)老师的图", rule=to_me(), priority=4, block=True)
 
 
 @random_user_illust_query.handle()

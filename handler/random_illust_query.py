@@ -12,7 +12,7 @@ from ..illust_msg_maker import make_illust_msg
 from ..data_source import data_source
 from ..utils import random_illust
 
-random_illust_query = on_regex("来张(.*)图", rule=to_me(), priority=5)
+random_illust_query = on_regex("来张(.+)图", rule=to_me(), priority=5)
 
 
 @random_illust_query.handle()
