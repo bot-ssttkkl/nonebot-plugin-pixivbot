@@ -1,9 +1,13 @@
+import asyncio
+import functools
 import typing
+from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime
 from io import BytesIO
 
 import bson
 import nonebot
+from PIL import Image, ImageFile
 from nonebot import logger
 from pixivpy_async import *
 from pixivpy_async.error import TokenError
@@ -17,14 +21,16 @@ from .query_error import QueryError
 class PixivDataSource:
     _client: PixivClient = None
     _api: AppPixivAPI = None
-    cache_database_name = ""
     _cache_manager: CacheManager = None
+    _compress_executor: ThreadPoolExecutor = None
+    cache_database_name = ""
 
     async def initialize(self):
         self._client = PixivClient(proxy="socks5://127.0.0.1:7890")
         self._api = AppPixivAPI(client=self._client.start())
         self._cache_manager = CacheManager()
         self._cache_manager.start()
+        self._compress_executor = ThreadPoolExecutor(max_workers=2)
 
     async def shutdown(self):
         await self._client.close()
@@ -253,6 +259,24 @@ class PixivDataSource:
             timeout=3600
         )
 
+    async def illust_ranking(self, mode: str = 'day',
+                             illust_filter: typing.Optional[typing.Callable[[Illust], bool]] = None) -> typing.List[
+        Illust]:
+        async def remote_fetcher():
+            logger.debug("cache not found or out of date, get illust ranking from remote")
+            content = await self._flat_page(self._api.illust_ranking, "illusts", illust_filter, 150, 5, mode=mode)
+            return [Illust.parse_obj(x) for x in content]
+
+        return await self._cache_manager.get(
+            identifier=(5,),
+            cache_loader=self._cache_loader_factory("illust_ranking_cache", "mode", mode, "illusts",
+                                                    lambda content: [Illust.parse_obj(x) for x in content]),
+            remote_fetcher=remote_fetcher,
+            cache_updater=self._cache_updater_factory("illust_ranking_cache", "mode", mode, "illusts",
+                                                      lambda content: [x.dict() for x in content]),
+            timeout=3600
+        )
+
     async def illust_detail(self, illust_id: int) -> Illust:
         async def remote_fetcher():
             logger.debug("cache not found or out of date, get illust detail from remote")
@@ -262,7 +286,7 @@ class PixivDataSource:
             return Illust.parse_obj(content["illust"])
 
         return await self._cache_manager.get(
-            identifier=(5, illust_id),
+            identifier=(6, illust_id),
             cache_loader=self._cache_loader_factory("illust_detail_cache", "illust.id", illust_id, "illust",
                                                     lambda content: Illust.parse_obj(content)),
             remote_fetcher=remote_fetcher,
@@ -278,16 +302,39 @@ class PixivDataSource:
             with BytesIO() as bio:
                 await self._api.download(url, fname=bio)
                 content = bio.getvalue()
-                return content
+
+                loop = asyncio.get_running_loop()
+                task = loop.run_in_executor(self._compress_executor, functools.partial(self._compress, content))
+                return await task
 
         return await self._cache_manager.get(
-            identifier=(6, illust_id),
+            identifier=(7, illust_id),
             cache_loader=self._cache_loader_factory("download_cache", "illust_id", illust_id, "content", None),
             remote_fetcher=remote_fetcher,
             cache_updater=self._cache_updater_factory("download_cache", "illust_id", illust_id, "content",
                                                       lambda content: bson.binary.Binary(content)),
             timeout=60
         )
+
+    @staticmethod
+    def _compress(content: bytes,
+                  max_size: int = 1200,
+                  quantity: float = 0.8) -> bytes:
+        p = ImageFile.Parser()
+        p.feed(content)
+        img = p.close()
+
+        w, h = img.size
+        if w > max_size or h > max_size:
+            ratio = min(max_size / w, max_size / h)
+            img_cp = img.resize((int(ratio * w), int(ratio * h)), Image.ANTIALIAS)
+        else:
+            img_cp = img.copy()
+        img_cp = img_cp.convert("RGB")
+
+        with BytesIO() as bio:
+            img_cp.save(bio, format="JPEG", optimize=True, quantity=quantity)
+            return bio.getvalue()
 
 
 data_source = PixivDataSource()

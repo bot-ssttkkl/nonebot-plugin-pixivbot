@@ -8,7 +8,7 @@ from nonebot.rule import to_me
 from nonebot.typing import T_State
 
 from ..query_error import QueryError
-from ..illust_msg_maker import make_illust_msg
+from ..msg_maker import make_illust_msg
 from ..data_source import data_source
 from ..utils import random_illust
 

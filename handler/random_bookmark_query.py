@@ -9,7 +9,7 @@ from nonebot.typing import T_State
 
 from ..query_error import QueryError
 from ..data_source import data_source
-from ..illust_msg_maker import make_illust_msg
+from ..msg_maker import make_illust_msg
 from ..utils import random_illust
 
 random_bookmark_query = on_regex("来张私家车", rule=to_me(), priority=5)
