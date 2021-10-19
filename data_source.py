@@ -24,6 +24,7 @@ class PixivDataSource:
     compression_enabled: bool
     compression_max_size: int
     compression_quantity: int
+    _user_id: int
 
     _client: PixivClient
     _api: AppPixivAPI
@@ -73,6 +74,7 @@ class PixivDataSource:
             raise TokenError(None, result)
         else:
             self._api.set_auth(result.access_token, result.refresh_token)
+            self._user_id = result["user"]["id"]
             return result
 
     T = typing.TypeVar("T")
@@ -225,7 +227,7 @@ class PixivDataSource:
                            min_bookmark: int = 0,
                            min_view: int = 0) -> typing.List[Illust]:
         if user_id == 0:
-            user_id = self._api.user_id
+            user_id = self._user_id
 
         async def remote_fetcher():
             logger.debug("cache not found or out of date, get user illusts from remote")
@@ -253,7 +255,7 @@ class PixivDataSource:
                              min_bookmark: int = 0,
                              min_view: int = 0) -> typing.List[Illust]:
         if user_id == 0:
-            user_id = self._api.user_id
+            user_id = self._user_id
 
         async def remote_fetcher():
             logger.debug("cache not found or out of date, get user bookmarks from remote")
