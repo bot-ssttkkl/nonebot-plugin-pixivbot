@@ -5,6 +5,8 @@ import typing
 
 from .model.Illust import Illust
 
+RANDOM_METHODS = ['bookmark_proportion', 'view_proportion', 'timedelta_proportion', 'uniform']
+
 
 def random_illust(illusts: typing.List[Illust], random_method: str) -> Illust:
     if random_method == "bookmark_proportion":
@@ -19,7 +21,7 @@ def random_illust(illusts: typing.List[Illust], random_method: str) -> Illust:
         for x in illusts:
             sum_view += x.total_view + 10  # 加10平滑
         probability = [(x.total_view + 10) / sum_view for x in illusts]
-    elif random_method == "time_proportion":
+    elif random_method == "timedelta_proportion":
         # 概率正比于 exp((当前时间戳 - 画像发布时间戳) / 3e7)
         now = time.time()
         delta_time = [now - x.create_date.timestamp() for x in illusts]

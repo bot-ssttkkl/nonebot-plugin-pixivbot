@@ -7,9 +7,10 @@ from nonebot.matcher import Matcher
 from nonebot.rule import to_me
 from nonebot.typing import T_State
 
+from ..config import conf
 from ..data_source import data_source
 from ..msg_maker import make_illusts_msg
-from ..query_error import QueryError
+from ..errors import QueryError, NoReplyError
 
 ranking_query = on_regex(r"看看(日|周|月|男性|女性|原创|新人|漫画)?榜\s*(([1-9][0-9]*)[-~]([1-9][0-9]*))?",
                          rule=to_me(), priority=4, block=True)
@@ -23,7 +24,7 @@ async def handle_ranking_query(bot: Bot, event: Event, state: T_State, matcher: 
         end = state["_matched_groups"][3]
 
         if mode is None:
-            mode = "day"
+            mode = conf.pixiv_ranking_default_mode
         elif mode == "日":
             mode = "day"
         elif mode == "周":
@@ -41,28 +42,29 @@ async def handle_ranking_query(bot: Bot, event: Event, state: T_State, matcher: 
         elif mode == "漫画":
             mode = "day_manga"
 
-        if start is None:
-            start = 1
+        if start is None or end is None:
+            start, end = conf.pixiv_ranking_default_range
         else:
             start = int(start)
-
-        if end is None:
-            end = start + 2
-        else:
             end = int(end)
 
-        if end - start + 1 > 5:
-            await matcher.send("仅支持一次查询5张以下插画")
+        if end - start + 1 > conf.pixiv_ranking_max_item_per_msg:
+            await matcher.send(f"仅支持一次查询{conf.pixiv_ranking_max_item_per_msg}张以下插画")
         elif start > end:
             await matcher.send("范围不合法")
-        elif end > 150:
-            await matcher.send('仅支持查询150名以内插画')
+        elif end > conf.pixiv_ranking_fetch_item:
+            await matcher.send(f'仅支持查询{conf.pixiv_ranking_fetch_item}名以内的插画')
         else:
             illusts = await data_source.illust_ranking(mode)
             msg = await make_illusts_msg(illusts[start - 1:end], start)
             await matcher.send(msg)
+    except NoReplyError:
+        pass
     except QueryError as e:
         await matcher.send(e.reason)
+        logger.warning(e)
+    except TimeoutError as e:
+        await matcher.send("下载超时")
         logger.warning(e)
     except Exception as e:
         logger.exception(e)

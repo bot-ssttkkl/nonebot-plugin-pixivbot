@@ -53,3 +53,9 @@ class Illust(BaseModel):
                 if x.name == tag or x.translated_name == tag:
                     return True
             return False
+
+    def has_tags(self, tags: typing.List[typing.Union[str, Tag]]) -> bool:
+        for tag in tags:
+            if self.has_tag(tag):
+                return True
+        return False

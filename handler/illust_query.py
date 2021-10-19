@@ -7,7 +7,7 @@ from nonebot.matcher import Matcher
 from nonebot.rule import to_me
 from nonebot.typing import T_State
 
-from ..query_error import QueryError
+from ..errors import QueryError, NoReplyError
 from ..data_source import data_source
 from ..msg_maker import make_illust_msg
 
@@ -27,8 +27,13 @@ async def handle_illust_query(bot: Bot, event: Event, state: T_State, matcher: M
         illust = await data_source.illust_detail(illust_id)
         msg = await make_illust_msg(illust)
         await matcher.send(msg)
+    except NoReplyError:
+        pass
     except QueryError as e:
         await matcher.send(e.reason)
+        logger.warning(e)
+    except TimeoutError as e:
+        await matcher.send("下载超时")
         logger.warning(e)
     except Exception as e:
         logger.exception(e)
