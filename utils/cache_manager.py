@@ -114,3 +114,6 @@ class CacheManager:
             fut.set_result(cache)
         except Exception as e:
             fut.set_exception(e)
+
+
+__all__ = ("CacheManager",)

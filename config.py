@@ -121,12 +121,19 @@ class Config(BaseSettings):
             raise ValueError(f'illegal {field.name} value: {v}')
         return v
 
+    pixiv_poke_action = "random_recommended_illust"
+
+    @validator('pixiv_poke_action')
+    def pixiv_poke_action_validator(cls, v, field: ModelField):
+        if v not in ["ranking", "random_recommended_illust", "random_bookmark"]:
+            raise ValueError(f'illegal {field.name} value: {v}')
+        return v
+
     class Config:
         extra = "ignore"
 
 
 _global_config = get_driver().config
 conf = Config(**_global_config.dict())
-# print(conf)
 
 __all__ = ("Config", "conf")

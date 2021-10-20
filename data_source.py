@@ -2,50 +2,55 @@ import asyncio
 import functools
 import typing
 from concurrent.futures.thread import ThreadPoolExecutor
-from datetime import datetime
+from datetime import datetime, timedelta
 from io import BytesIO
 
 import bson
 import nonebot
 from PIL import Image, ImageFile
-from nonebot import logger
+from apscheduler.triggers.date import DateTrigger
+from nonebot import logger, get_driver, require
 from pixivpy_async import *
 from pixivpy_async.error import TokenError
 
-from .cache_manager import CacheManager
+from .utils.cache_manager import CacheManager
+from .config import conf
+from .utils.errors import QueryError
 from .model.Illust import Illust
 from .model.User import User
-from .errors import QueryError
 
 
 class PixivDataSource:
     db_name: str
+    proxy: str
     timeout: int
     compression_enabled: bool
     compression_max_size: int
     compression_quantity: int
-    _user_id: int
+    user_id: int
 
     _client: PixivClient
     _api: AppPixivAPI
     _cache_manager: CacheManager
     _compress_executor: ThreadPoolExecutor
 
-    async def initialize(self, db_name, proxy, timeout=60,
-                         compression_enabled=False, compression_max_size=None,
-                         compression_quantity=None):
-        self._client = PixivClient(proxy=proxy)
-        self._api = AppPixivAPI(client=self._client.start())
-        self._cache_manager = CacheManager()
-        self._cache_manager.start()
-
+    def __init__(self, db_name, proxy, timeout=60,
+                 compression_enabled=False, compression_max_size=None,
+                 compression_quantity=None):
         self.db_name = db_name
+        self.proxy = proxy
         self.timeout = timeout
         self.compression_enabled = compression_enabled
         self.compression_max_size = compression_max_size
         self.compression_quantity = compression_quantity
         if compression_enabled:
             self._compress_executor = ThreadPoolExecutor(max_workers=2)
+
+    def start(self):
+        self._client = PixivClient(proxy=self.proxy)
+        self._api = AppPixivAPI(client=self._client.start())
+        self._cache_manager = CacheManager()
+        self._cache_manager.start()
 
     async def shutdown(self):
         await self._client.close()
@@ -74,7 +79,7 @@ class PixivDataSource:
             raise TokenError(None, result)
         else:
             self._api.set_auth(result.access_token, result.refresh_token)
-            self._user_id = result["user"]["id"]
+            self.user_id = result["user"]["id"]
             return result
 
     T = typing.TypeVar("T")
@@ -108,8 +113,8 @@ class PixivDataSource:
                 if next_qs is None:
                     break
 
-                if 'viewed' in next_qs:
-                    del next_qs['viewed']  # 由于pixivpy-async的illust_recommended的bug，需要删掉这个参数
+                # if 'viewed' in next_qs:
+                #     del next_qs['viewed']  # 由于pixivpy-async的illust_recommended的bug，需要删掉这个参数
 
                 cur_page = cur_page + 1
                 # logger.debug("loading page " + str(cur_page + 1))
@@ -227,7 +232,7 @@ class PixivDataSource:
                            min_bookmark: int = 0,
                            min_view: int = 0) -> typing.List[Illust]:
         if user_id == 0:
-            user_id = self._user_id
+            user_id = self.user_id
 
         async def remote_fetcher():
             logger.debug("cache not found or out of date, get user illusts from remote")
@@ -255,7 +260,7 @@ class PixivDataSource:
                              min_bookmark: int = 0,
                              min_view: int = 0) -> typing.List[Illust]:
         if user_id == 0:
-            user_id = self._user_id
+            user_id = self.user_id
 
         async def remote_fetcher():
             logger.debug("cache not found or out of date, get user bookmarks from remote")
@@ -394,6 +399,33 @@ class PixivDataSource:
             return bio.getvalue()
 
 
-data_source = PixivDataSource()
+data_source = PixivDataSource(db_name=conf.pixiv_mongo_database_name,
+                              proxy=conf.pixiv_proxy,
+                              timeout=conf.pixiv_query_timeout,
+                              compression_enabled=conf.pixiv_compression_enabled,
+                              compression_max_size=conf.pixiv_compression_max_size,
+                              compression_quantity=conf.pixiv_compression_quantity)
 
-__all__ = ('data_source', 'PixivDataSource')
+get_driver().on_startup(data_source.start)
+get_driver().on_shutdown(data_source.shutdown)
+
+
+@get_driver().on_startup
+async def do_refresh():
+    try:
+        result = await data_source.refresh(conf.pixiv_refresh_token)
+        logger.success(f"refresh access token successfully. new token expires in {result.expires_in} seconds.")
+        logger.debug(f"access_token: {result.access_token}")
+        logger.debug(f"refresh_token: {result.refresh_token}")
+        if result.refresh_token != conf.pixiv_refresh_token:
+            logger.warning(f"refresh token has been changed: {result.refresh_token}")
+
+        next_time = datetime.now() + timedelta(seconds=result.expires_in * 0.8)
+
+        scheduler = require("nonebot_plugin_apscheduler").scheduler
+        scheduler.add_job(do_refresh, trigger=DateTrigger(next_time))
+    except Exception as e:
+        logger.exception(e)
+
+
+__all__ = ('PixivDataSource', "data_source")

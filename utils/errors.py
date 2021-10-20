@@ -16,3 +16,6 @@ class NoReplyError(Exception):
 
     def __str__(self):
         return self.reason
+
+
+__all__ = ("QueryError", "NoReplyError")
