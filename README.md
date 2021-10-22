@@ -3,10 +3,13 @@ nonebot_plugin_pixivbot
 
 ## 环境配置
 
-记得`pip install -r requirement.txt`安装依赖包。
-
-需要安装MongoDB用于保存缓存，在.env文件中配置连接参数。（参考：https://github.com/synodriver/nonebot_plugin_navicat）
-
+1. 参考[安装 | NoneBot](https://v2.nonebot.dev/guide/installation.html)安装NoneBot和go-cqhttp适配器；
+2. 参考[创建一个完整的项目 | NoneBot](https://v2.nonebot.dev/guide/creating-a-project.html)创建一个Bot实例；
+3. 将本插件clone到插件目录；
+4. 别忘了`pip install -r requirement.txt`安装依赖包；
+5. 运行`nb plugin install nonebot_plugin_navicat`安装通用数据库连接插件；
+6. 安装MongoDB（用于保存缓存），并在.env文件中配置连接参数；（参考：[synodriver/nonebot_plugin_navicat](https://github.com/synodriver/nonebot_plugin_navicat)）
+7. 在.env中修改配置。（至少需要下述的最小配置项才能工作）
 
 ## 触发语句
 
@@ -21,7 +24,7 @@ nonebot_plugin_pixivbot
 - **看看图*114514***：查看id为*114514*的插画
 - **来张私家车**：从书签中随机抽选一张插画
 
-订阅语句：
+订阅语句（只有SUPERUSER才能触发）：
 
 - **/pixivbot subscribe \<type\> \<schedule\>**：为本群（本用户）订阅类型为<type>的定时推送功能，时间满足<schedule>时进行推送
     - \<type\>：可选值有ranking, random_bookmark, random_recommended_illust
@@ -37,51 +40,73 @@ nonebot_plugin_pixivbot
 
 ## .env
 
+最小配置：
+```
+MONGODB_HOST=127.0.0.1
+MONGODB_PORT=27017
+MONGODB_USER=pixiv_bot
+MONGODB_PASSWORD=pixiv_bot
+PIXIV_MONGO_DATABASE_NAME=pixiv_bot
+PIXIV_REFRESH_TOKEN=
+SUPERUSERS=[]
+```
+
+这里给出配置文件模型的python代码定义：
+
 ```python
-    pixiv_refresh_token: str
-    pixiv_mongo_database_name: str
-    pixiv_proxy: typing.Optional[str]
-    pixiv_query_timeout: int = 60
+pixiv_refresh_token: str
+pixiv_mongo_database_name: str
+pixiv_proxy: typing.Optional[str]
+pixiv_query_timeout: int = 60
 
-    pixiv_block_tags: typing.List[str] = []
-    pixiv_block_action: str = "no_image"  # ['no_image', 'completely_block', 'no_reply']
+pixiv_block_tags: typing.List[str] = []
+pixiv_block_action: str = "no_image"  # ['no_image', 'completely_block', 'no_reply']
 
-    pixiv_download_quantity: str = "original"  # ['original', 'square_medium', 'medium', 'large']
-    pixiv_download_custom_domain: typing.Optional[str]
+pixiv_download_quantity: str = "original"  # ['original', 'square_medium', 'medium', 'large']
+pixiv_download_custom_domain: typing.Optional[str]
 
-    pixiv_compression_enabled: bool = False
-    pixiv_compression_max_size: typing.Optional[int]
-    pixiv_compression_quantity: typing.Optional[float]
+pixiv_compression_enabled: bool = False
+pixiv_compression_max_size: typing.Optional[int]
+pixiv_compression_quantity: typing.Optional[float]
 
-    pixiv_ranking_default_mode: str = "day"  # ['day', 'week', 'month', 'day_male', 'day_female', 'week_original', 'week_rookie', 'day_manga']
-    pixiv_ranking_default_range = [1, 3]
-    pixiv_ranking_fetch_item = 150
-    pixiv_ranking_max_item_per_msg = 5
+pixiv_illust_query_enabled = True
 
-    pixiv_random_illust_method = "bookmark_proportion"  # ['bookmark_proportion', 'view_proportion', 'timedelta_proportion', 'uniform']
-    pixiv_random_illust_min_bookmark = 0
-    pixiv_random_illust_min_view = 0
-    pixiv_random_illust_max_page = 20
-    pixiv_random_illust_max_item = 500
+pixiv_ranking_query_enabled = True
+pixiv_ranking_default_mode: str = "day"  # ['day', 'week', 'month', 'day_male', 'day_female', 'week_original', 'week_rookie', 'day_manga']
+pixiv_ranking_default_range = [1, 3]
+pixiv_ranking_fetch_item = 150
+pixiv_ranking_max_item_per_msg = 5
 
-    pixiv_random_recommended_illust_method = "uniform"  # ['bookmark_proportion', 'view_proportion', 'timedelta_proportion', 'uniform']
-    pixiv_random_recommended_illust_min_bookmark = 0
-    pixiv_random_recommended_illust_min_view = 0
-    pixiv_random_recommended_illust_max_page = 40
-    pixiv_random_recommended_illust_max_item = 1000
+pixiv_random_illust_query_enabled = True
+pixiv_random_illust_method = "bookmark_proportion"  # ['bookmark_proportion', 'view_proportion', 'timedelta_proportion', 'uniform']
+pixiv_random_illust_min_bookmark = 0
+pixiv_random_illust_min_view = 0
+pixiv_random_illust_max_page = 20
+pixiv_random_illust_max_item = 500
 
-    pixiv_random_user_illust_method = "timedelta_proportion"  # ['bookmark_proportion', 'view_proportion', 'timedelta_proportion', 'uniform']
-    pixiv_random_user_illust_min_bookmark = 0
-    pixiv_random_user_illust_min_view = 0
-    pixiv_random_user_illust_max_page = 2 ** 31
-    pixiv_random_user_illust_max_item = 2 ** 31
+pixiv_random_recommended_illust_query_enabled = True
+pixiv_random_recommended_illust_method = "uniform"  # ['bookmark_proportion', 'view_proportion', 'timedelta_proportion', 'uniform']
+pixiv_random_recommended_illust_min_bookmark = 0
+pixiv_random_recommended_illust_min_view = 0
+pixiv_random_recommended_illust_max_page = 40
+pixiv_random_recommended_illust_max_item = 1000
 
-    pixiv_random_bookmark_user_id = 0
-    pixiv_random_bookmark_method = "uniform"  # ['bookmark_proportion', 'view_proportion', 'timedelta_proportion', 'uniform']
-    pixiv_random_bookmark_min_bookmark = 0
-    pixiv_random_bookmark_min_view = 0
-    pixiv_random_bookmark_max_page = 2 ** 31
-    pixiv_random_bookmark_max_item = 2 ** 31
+pixiv_random_user_illust_query_enabled = True
+pixiv_random_user_illust_method = "timedelta_proportion"  # ['bookmark_proportion', 'view_proportion', 'timedelta_proportion', 'uniform']
+pixiv_random_user_illust_min_bookmark = 0
+pixiv_random_user_illust_min_view = 0
+pixiv_random_user_illust_max_page = 2 ** 31
+pixiv_random_user_illust_max_item = 2 ** 31
+
+pixiv_random_bookmark_query_enabled = True
+pixiv_random_bookmark_user_id = 0
+pixiv_random_bookmark_method = "uniform"  # ['bookmark_proportion', 'view_proportion', 'timedelta_proportion', 'uniform']
+pixiv_random_bookmark_min_bookmark = 0
+pixiv_random_bookmark_min_view = 0
+pixiv_random_bookmark_max_page = 2 ** 31
+pixiv_random_bookmark_max_item = 2 ** 31
+
+pixiv_poke_action: typing.Optional[str] = "random_recommended_illust"
 ```
 
 ## Special Thanks
