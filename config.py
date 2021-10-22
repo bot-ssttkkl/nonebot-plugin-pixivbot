@@ -4,8 +4,6 @@ from nonebot import get_driver
 from pydantic import BaseSettings, validator
 from pydantic.fields import ModelField
 
-from .utils import RANDOM_METHODS
-
 
 class Config(BaseSettings):
     pixiv_refresh_token: str
@@ -117,15 +115,15 @@ class Config(BaseSettings):
     @validator('pixiv_random_illust_method', 'pixiv_random_recommended_illust_method',
                'pixiv_random_user_illust_method', 'pixiv_random_bookmark_method')
     def random_method_validator(cls, v, field: ModelField):
-        if v not in RANDOM_METHODS:
+        if v not in ['bookmark_proportion', 'view_proportion', 'timedelta_proportion', 'uniform']:
             raise ValueError(f'illegal {field.name} value: {v}')
         return v
 
-    pixiv_poke_action = "random_recommended_illust"
+    pixiv_poke_action: typing.Optional[str] = "random_recommended_illust"
 
     @validator('pixiv_poke_action')
     def pixiv_poke_action_validator(cls, v, field: ModelField):
-        if v not in ["ranking", "random_recommended_illust", "random_bookmark"]:
+        if v not in [None, "", "ranking", "random_recommended_illust", "random_bookmark"]:
             raise ValueError(f'illegal {field.name} value: {v}')
         return v
 

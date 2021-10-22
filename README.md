@@ -1,4 +1,4 @@
-nonebot_plugin_pixiv
+nonebot_plugin_pixivbot
 =====
 
 ## 环境配置
@@ -10,6 +10,8 @@ nonebot_plugin_pixiv
 
 ## 触发语句
 
+普通语句：
+
 - **看看榜**：查看pixiv榜单的第1到第3名（榜单类型和默认查询范围可以在设置文件更改）
 - **看看榜*21-25***：查看pixiv榜单的第21到第25名
 - **看看榜*50***：查看pixiv榜单的第50名
@@ -19,6 +21,12 @@ nonebot_plugin_pixiv
 - **看看图*114514***：查看id为*114514*的插画
 - **来张私家车**：从书签中随机抽选一张插画
 
+订阅语句：
+
+- **/pixivbot subscribe \<type\> \<schedule\>**：为本群（本用户）订阅类型为<type>的定时推送功能，时间满足<schedule>时进行推送
+    - \<type\>：可选值有ranking, random_bookmark, random_recommended_illust
+    - \<schedule\>：有三种格式，*00:30\*x*为每隔30分钟进行一次推送，*12:00*为每天12:00进行一次推送，*00:10+00:30\*x*为从今天00:10开始每隔30分钟进行一次推送（开始时间若是一个过去的时间点，则从下一个开始推送的时间点进行推送）
+- **/pixivbot unsubscribe <type>**：取消本群（本用户）的订阅
 
 ## 注意事项
 

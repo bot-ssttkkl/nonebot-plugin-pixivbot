@@ -1,3 +1,6 @@
+import math
+import random
+import time
 import typing
 from io import BytesIO
 
@@ -7,14 +10,14 @@ from nonebot.adapters.cqhttp import Message, MessageSegment
 
 from .config import Config, conf
 from .data_source import PixivDataSource, data_source
+from .model.Illust import Illust
 from .utils.errors import NoReplyError
 from .utils.errors import QueryError
-from .model.Illust import Illust
-from .utils import random_illust
 
 
 class Distributor:
-    TYPES = ["ranking", "illust", "random_illust", "random_user_illust", "random_recommended_illust", "random_bookmark"]
+    TYPES = ["ranking", "illust", "self.random_illust", "random_user_illust", "random_recommended_illust",
+             "random_bookmark"]
 
     def __init__(self, conf: Config, data_source: PixivDataSource):
         self.conf = conf
@@ -22,7 +25,7 @@ class Distributor:
         self._distribute_func = {
             "ranking": self.distribute_ranking,
             "illust": self.distribute_illust,
-            "random_illust": self.distribute_random_illust,
+            "self.random_illust": self.distribute_random_illust,
             "random_user_illust": self.distribute_random_user_illust,
             "random_recommended_illust": self.distribute_random_recommended_illust,
             "random_bookmark": self.distribute_random_bookmark,
@@ -74,17 +77,61 @@ class Distributor:
                                f"https://www.pixiv.net/artworks/{illust.id}")
         return msg
 
-    async def distribute(self, type: str, bot: Bot,
-                         member_id: typing.Optional[int] = None,
-                         group_id: typing.Optional[int] = None,
-                         no_error_msg: bool = False, *args, **kwargs):
-        self._distribute_func[type](bot=bot, member_id=member_id, group_id=group_id,
-                                    no_error_msg=no_error_msg, *args, **kwargs)
+    @staticmethod
+    def random_illust(illusts: typing.List[Illust], random_method: str) -> Illust:
+        if random_method == "bookmark_proportion":
+            # 概率正比于书签数
+            sum_bm = 0
+            for x in illusts:
+                sum_bm += x.total_bookmarks + 10  # 加10平滑
+            probability = [(x.total_bookmarks + 10) / sum_bm for x in illusts]
+        elif random_method == "view_proportion":
+            # 概率正比于查看人数
+            sum_view = 0
+            for x in illusts:
+                sum_view += x.total_view + 10  # 加10平滑
+            probability = [(x.total_view + 10) / sum_view for x in illusts]
+        elif random_method == "timedelta_proportion":
+            # 概率正比于 exp((当前时间戳 - 画像发布时间戳) / 3e7)
+            now = time.time()
+            delta_time = [now - x.create_date.timestamp() for x in illusts]
+            probability = [math.exp(-x * 3e-7) for x in delta_time]
+            sum_poss = sum(probability)
+            for i in range(len(probability)):
+                probability[i] = probability[i] / sum_poss
+        elif random_method == "uniform":
+            # 概率相等
+            probability = [1 / len(illusts)] * len(illusts)
+        else:
+            raise ValueError(f"illegal random_method value: {random_method}")
 
-    async def distribute_ranking(self, mode: typing.Optional[str],
-                                 range: typing.Optional[typing.Union[typing.Sequence[int], int]],
-                                 bot: Bot,
-                                 member_id: typing.Optional[int] = None,
+        for i in range(1, len(probability)):
+            probability[i] = probability[i] + probability[i - 1]
+
+        ran = random.random()
+
+        # 二分查找
+        first, last = 0, len(probability) - 1
+        while first < last:
+            mid = (first + last) // 2
+            if probability[mid] > ran:
+                last = mid
+            else:
+                first = mid + 1
+        return illusts[first]
+
+    async def distribute(self, type: str,
+                         *, bot: Bot,
+                         user_id: typing.Optional[int] = None,
+                         group_id: typing.Optional[int] = None,
+                         no_error_msg: bool = False, **kwargs):
+        await self._distribute_func[type](bot=bot, user_id=user_id, group_id=group_id,
+                                          no_error_msg=no_error_msg, **kwargs)
+
+    async def distribute_ranking(self, mode: typing.Optional[str] = None,
+                                 range: typing.Optional[typing.Union[typing.Sequence[int], int]] = None,
+                                 *, bot: Bot,
+                                 user_id: typing.Optional[int] = None,
                                  group_id: typing.Optional[int] = None,
                                  no_error_msg: bool = False):
         try:
@@ -97,67 +144,67 @@ class Distributor:
             if isinstance(range, int):
                 num = range
                 if num > self.conf.pixiv_ranking_fetch_item:
-                    await bot.send_msg(user_id=member_id, group_id=group_id,
+                    await bot.send_msg(user_id=user_id, group_id=group_id,
                                        message=f'仅支持查询{self.conf.pixiv_ranking_fetch_item}名以内的插画')
                 else:
                     illusts = await self.data_source.illust_ranking(mode, self.conf.pixiv_ranking_fetch_item,
                                                                     block_tags=self.conf.pixiv_block_tags)
                     msg = await self.make_illust_msg(illusts[num - 1])
-                    await bot.send_msg(user_id=member_id, group_id=group_id, message=msg)
+                    await bot.send_msg(user_id=user_id, group_id=group_id, message=msg)
             else:
                 start, end = range
                 if end - start + 1 > self.conf.pixiv_ranking_max_item_per_msg:
-                    await bot.send_msg(user_id=member_id, group_id=group_id,
+                    await bot.send_msg(user_id=user_id, group_id=group_id,
                                        message=f"仅支持一次查询{self.conf.pixiv_ranking_max_item_per_msg}张以下插画")
                 elif start > end:
-                    await bot.send_msg(user_id=member_id, group_id=group_id,
+                    await bot.send_msg(user_id=user_id, group_id=group_id,
                                        message="范围不合法")
                 elif end > self.conf.pixiv_ranking_fetch_item:
-                    await bot.send_msg(user_id=member_id, group_id=group_id,
+                    await bot.send_msg(user_id=user_id, group_id=group_id,
                                        message=f'仅支持查询{self.conf.pixiv_ranking_fetch_item}名以内的插画')
                 else:
                     illusts = await self.data_source.illust_ranking(mode)
                     msg = await self.make_illusts_msg(illusts[start - 1:end], start)
-                    await bot.send_msg(user_id=member_id, group_id=group_id, message=msg)
+                    await bot.send_msg(user_id=user_id, group_id=group_id, message=msg)
         except NoReplyError:
             pass
         except QueryError as e:
             if not no_error_msg:
-                await bot.send_msg(user_id=member_id, group_id=group_id, message=e.reason)
+                await bot.send_msg(user_id=user_id, group_id=group_id, message=e.reason)
             logger.warning(e)
         except TimeoutError as e:
             if not no_error_msg:
-                await bot.send_msg(user_id=member_id, group_id=group_id, message="下载超时")
+                await bot.send_msg(user_id=user_id, group_id=group_id, message="下载超时")
             logger.warning(e)
         except Exception as e:
             logger.exception(e)
 
     async def distribute_illust(self, illust: typing.Union[int, Illust],
-                                bot: Bot,
-                                member_id: typing.Optional[int] = None,
+                                *, bot: Bot,
+                                user_id: typing.Optional[int] = None,
                                 group_id: typing.Optional[int] = None,
                                 no_error_msg: bool = False):
         try:
             if isinstance(illust, int):
                 illust = await self.data_source.illust_detail(illust)
             msg = await self.make_illust_msg(illust)
-            await bot.send_msg(user_id=member_id, group_id=group_id, message=msg)
+            await bot.send_msg(user_id=user_id, group_id=group_id, message=msg)
         except NoReplyError:
             pass
         except QueryError as e:
             if not no_error_msg:
-                await bot.send_msg(user_id=member_id, group_id=group_id, message=e.reason)
+                await bot.send_msg(user_id=user_id, group_id=group_id, message=e.reason)
             logger.warning(e)
         except TimeoutError as e:
             if not no_error_msg:
-                await bot.send_msg(user_id=member_id, group_id=group_id, message="下载超时")
+                await bot.send_msg(user_id=user_id, group_id=group_id, message="下载超时")
             logger.warning(e)
         except Exception as e:
             logger.exception(e)
 
     async def distribute_random_illust(self, word: str,
-                                       bot: Bot,
-                                       member_id: typing.Optional[int] = None,
+                                       *, bot: Bot,
+                                       user_id: typing.Optional[int] = None,
                                        group_id: typing.Optional[int] = None,
                                        no_error_msg: bool = False):
         try:
@@ -169,36 +216,36 @@ class Distributor:
                                                            self.conf.pixiv_random_illust_min_view)
 
             if len(illusts) > 0:
-                illust = random_illust(illusts, self.conf.pixiv_random_illust_method)
+                illust = self.random_illust(illusts, self.conf.pixiv_random_illust_method)
                 logger.debug(f"{len(illusts)} illusts found, select {illust.title} ({illust.id}).")
                 msg = await self.make_illust_msg(illust)
-                await bot.send_msg(user_id=member_id, group_id=group_id, message=msg)
+                await bot.send_msg(user_id=user_id, group_id=group_id, message=msg)
             else:
                 if not no_error_msg:
-                    await bot.send_msg(user_id=member_id, group_id=group_id, message="别看了，没有的。")
+                    await bot.send_msg(user_id=user_id, group_id=group_id, message="别看了，没有的。")
         except NoReplyError:
             pass
         except QueryError as e:
             if not no_error_msg:
-                await bot.send_msg(user_id=member_id, group_id=group_id, message=e.reason)
+                await bot.send_msg(user_id=user_id, group_id=group_id, message=e.reason)
             logger.warning(e)
         except TimeoutError as e:
             if not no_error_msg:
-                await bot.send_msg(user_id=member_id, group_id=group_id, message="下载超时")
+                await bot.send_msg(user_id=user_id, group_id=group_id, message="下载超时")
             logger.warning(e)
         except Exception as e:
             logger.exception(e)
 
     async def distribute_random_user_illust(self, user: typing.Union[str, int],
-                                            bot: Bot,
-                                            member_id: typing.Optional[int] = None,
+                                            *, bot: Bot,
+                                            user_id: typing.Optional[int] = None,
                                             group_id: typing.Optional[int] = None,
                                             no_error_msg: bool = False):
         try:
             if isinstance(user, str):
                 users = await self.data_source.search_user(user)
                 if len(users) == 0:
-                    await bot.send_msg(user_id=member_id, group_id=group_id, message="找不到相关用户")
+                    await bot.send_msg(user_id=user_id, group_id=group_id, message="找不到相关用户")
                 else:
                     user = users[0].id
             illusts = await self.data_source.user_illusts(user,
@@ -209,28 +256,28 @@ class Distributor:
                                                           self.conf.pixiv_random_user_illust_min_view)
 
             if len(illusts) > 0:
-                illust = random_illust(illusts, self.conf.pixiv_random_illust_method)
+                illust = self.random_illust(illusts, self.conf.pixiv_random_illust_method)
                 logger.debug(f"{len(illusts)} illusts found, select {illust.title} ({illust.id}).")
                 msg = await self.make_illust_msg(illust)
-                await bot.send_msg(user_id=member_id, group_id=group_id, message=msg)
+                await bot.send_msg(user_id=user_id, group_id=group_id, message=msg)
             else:
                 if not no_error_msg:
-                    await bot.send_msg(user_id=member_id, group_id=group_id, message="别看了，没有的。")
+                    await bot.send_msg(user_id=user_id, group_id=group_id, message="别看了，没有的。")
         except NoReplyError:
             pass
         except QueryError as e:
             if not no_error_msg:
-                await bot.send_msg(user_id=member_id, group_id=group_id, message=e.reason)
+                await bot.send_msg(user_id=user_id, group_id=group_id, message=e.reason)
             logger.warning(e)
         except TimeoutError as e:
             if not no_error_msg:
-                await bot.send_msg(user_id=member_id, group_id=group_id, message="下载超时")
+                await bot.send_msg(user_id=user_id, group_id=group_id, message="下载超时")
             logger.warning(e)
         except Exception as e:
             logger.exception(e)
 
-    async def distribute_random_recommended_illust(self, bot: Bot,
-                                                   member_id: typing.Optional[int] = None,
+    async def distribute_random_recommended_illust(self, *, bot: Bot,
+                                                   user_id: typing.Optional[int] = None,
                                                    group_id: typing.Optional[int] = None,
                                                    no_error_msg: bool = False):
         try:
@@ -241,28 +288,28 @@ class Distributor:
                                                                  self.conf.pixiv_random_recommended_illust_min_view)
 
             if len(illusts) > 0:
-                illust = random_illust(illusts, self.conf.pixiv_random_recommended_illust_method)
+                illust = self.random_illust(illusts, self.conf.pixiv_random_recommended_illust_method)
                 logger.debug(f"{len(illusts)} illusts found, select {illust.title} ({illust.id}).")
                 msg = await self.make_illust_msg(illust)
-                await bot.send_msg(user_id=member_id, group_id=group_id, message=msg)
+                await bot.send_msg(user_id=user_id, group_id=group_id, message=msg)
             else:
                 if not no_error_msg:
-                    await bot.send_msg(user_id=member_id, group_id=group_id, message="别看了，没有的。")
+                    await bot.send_msg(user_id=user_id, group_id=group_id, message="别看了，没有的。")
         except NoReplyError:
             pass
         except QueryError as e:
             if not no_error_msg:
-                await bot.send_msg(user_id=member_id, group_id=group_id, message=e.reason)
+                await bot.send_msg(user_id=user_id, group_id=group_id, message=e.reason)
             logger.warning(e)
         except TimeoutError as e:
             if not no_error_msg:
-                await bot.send_msg(user_id=member_id, group_id=group_id, message="下载超时")
+                await bot.send_msg(user_id=user_id, group_id=group_id, message="下载超时")
             logger.warning(e)
         except Exception as e:
             logger.exception(e)
 
-    async def distribute_random_bookmark(self, bot: Bot,
-                                         member_id: typing.Optional[int] = None,
+    async def distribute_random_bookmark(self, *, bot: Bot,
+                                         user_id: typing.Optional[int] = None,
                                          group_id: typing.Optional[int] = None,
                                          no_error_msg: bool = False):
         try:
@@ -274,22 +321,22 @@ class Distributor:
                                                             self.conf.pixiv_random_bookmark_min_view)
 
             if len(illusts) > 0:
-                illust = random_illust(illusts, self.conf.pixiv_random_bookmark_method)
+                illust = self.random_illust(illusts, self.conf.pixiv_random_bookmark_method)
                 logger.debug(f"{len(illusts)} illusts found, select {illust.title} ({illust.id}).")
                 msg = await self.make_illust_msg(illust)
-                await bot.send_msg(user_id=member_id, group_id=group_id, message=msg)
+                await bot.send_msg(user_id=user_id, group_id=group_id, message=msg)
             else:
                 if not no_error_msg:
-                    await bot.send_msg(user_id=member_id, group_id=group_id, message="别看了，没有的。")
+                    await bot.send_msg(user_id=user_id, group_id=group_id, message="别看了，没有的。")
         except NoReplyError:
             pass
         except QueryError as e:
             if not no_error_msg:
-                await bot.send_msg(user_id=member_id, group_id=group_id, message=e.reason)
+                await bot.send_msg(user_id=user_id, group_id=group_id, message=e.reason)
             logger.warning(e)
         except TimeoutError as e:
             if not no_error_msg:
-                await bot.send_msg(user_id=member_id, group_id=group_id, message="下载超时")
+                await bot.send_msg(user_id=user_id, group_id=group_id, message="下载超时")
             logger.warning(e)
         except Exception as e:
             logger.exception(e)
