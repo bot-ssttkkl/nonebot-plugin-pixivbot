@@ -6,18 +6,18 @@ from datetime import datetime, timedelta
 from io import BytesIO
 
 import bson
-import nonebot
 from PIL import Image, ImageFile
 from apscheduler.triggers.date import DateTrigger
 from nonebot import logger, get_driver, require
 from pixivpy_async import *
 from pixivpy_async.error import TokenError
 
-from .utils.cache_manager import CacheManager
+from .mongo_conn import mongo_client
 from .config import conf
-from .utils.errors import QueryError
 from .model.Illust import Illust
 from .model.User import User
+from .utils.cache_manager import CacheManager
+from .utils.errors import QueryError
 
 
 class PixivDataSource:
@@ -29,12 +29,12 @@ class PixivDataSource:
     compression_quantity: int
     user_id: int
 
-    _client: PixivClient
-    _api: AppPixivAPI
+    _pclient: PixivClient
+    _papi: AppPixivAPI
     _cache_manager: CacheManager
     _compress_executor: ThreadPoolExecutor
 
-    def __init__(self, db_name, proxy, timeout=60,
+    def __init__(self, db_name, proxy=None, timeout=60,
                  compression_enabled=False, compression_max_size=None,
                  compression_quantity=None):
         self.db_name = db_name
@@ -47,13 +47,13 @@ class PixivDataSource:
             self._compress_executor = ThreadPoolExecutor(max_workers=2)
 
     def start(self):
-        self._client = PixivClient(proxy=self.proxy)
-        self._api = AppPixivAPI(client=self._client.start())
+        self._pclient = PixivClient(proxy=self.proxy)
+        self._papi = AppPixivAPI(client=self._pclient.start())
         self._cache_manager = CacheManager()
         self._cache_manager.start()
 
     async def shutdown(self):
-        await self._client.close()
+        await self._pclient.close()
         self._cache_manager.stop()
 
     async def refresh(self, refresh_token: str):
@@ -72,13 +72,13 @@ class PixivDataSource:
             "include_policy": "true",
             "refresh_token": refresh_token,
         }
-        result = await self._api.requests_(method="POST", url=AUTH_TOKEN_URL, data=data,
-                                           headers={"User-Agent": USER_AGENT},
-                                           auth=False)
+        result = await self._papi.requests_(method="POST", url=AUTH_TOKEN_URL, data=data,
+                                            headers={"User-Agent": USER_AGENT},
+                                            auth=False)
         if result.has_error:
             raise TokenError(None, result)
         else:
-            self._api.set_auth(result.access_token, result.refresh_token)
+            self._papi.set_auth(result.access_token, result.refresh_token)
             self.user_id = result["user"]["id"]
             return result
 
@@ -146,8 +146,7 @@ class PixivDataSource:
 
     @property
     def _db(self):
-        db_conn = nonebot.require("nonebot_plugin_navicat").mongodb_client
-        return db_conn[self.db_name]
+        return mongo_client()[self.db_name]
 
     def _cache_loader_factory(self, collection_name: str,
                               arg_name: str,
@@ -188,7 +187,7 @@ class PixivDataSource:
                             min_view: int = 0) -> typing.List[Illust]:
         async def remote_fetcher():
             logger.debug("cache not found or out of date, search illust from remote")
-            content = await self._flat_page(self._api.search_illust, "illusts",
+            content = await self._flat_page(self._papi.search_illust, "illusts",
                                             lambda x: Illust.parse_obj(x),
                                             self._illust_filter_factory(block_tags, min_bookmark, min_view),
                                             max_item, max_page,
@@ -210,7 +209,7 @@ class PixivDataSource:
                           max_page: int = 2 ** 31) -> typing.List[User]:
         async def remote_fetcher():
             logger.debug("cache not found or out of date, search user from remote")
-            content = await self._flat_page(self._api.search_user, "user_previews",
+            content = await self._flat_page(self._papi.search_user, "user_previews",
                                             lambda x: User.parse_obj(x["user"]),
                                             max_item=max_item, max_page=max_page, word=word)
             return content
@@ -236,7 +235,7 @@ class PixivDataSource:
 
         async def remote_fetcher():
             logger.debug("cache not found or out of date, get user illusts from remote")
-            content = await self._flat_page(self._api.user_illusts, "illusts",
+            content = await self._flat_page(self._papi.user_illusts, "illusts",
                                             lambda x: Illust.parse_obj(x),
                                             self._illust_filter_factory(block_tags, min_bookmark, min_view),
                                             max_item, max_page,
@@ -264,7 +263,7 @@ class PixivDataSource:
 
         async def remote_fetcher():
             logger.debug("cache not found or out of date, get user bookmarks from remote")
-            content = await self._flat_page(self._api.user_bookmarks_illust, "illusts",
+            content = await self._flat_page(self._papi.user_bookmarks_illust, "illusts",
                                             lambda x: Illust.parse_obj(x),
                                             self._illust_filter_factory(block_tags, min_bookmark, min_view),
                                             max_item, max_page, user_id=user_id)
@@ -287,7 +286,7 @@ class PixivDataSource:
                                   min_view: int = 0) -> typing.List[Illust]:
         async def remote_fetcher():
             logger.debug("cache not found or out of date, get recommended illusts from remote")
-            content = await self._flat_page(self._api.illust_recommended, "illusts",
+            content = await self._flat_page(self._papi.illust_recommended, "illusts",
                                             lambda x: Illust.parse_obj(x),
                                             self._illust_filter_factory(block_tags, min_bookmark, min_view),
                                             max_item, max_page)
@@ -311,7 +310,7 @@ class PixivDataSource:
                              min_view: int = 0) -> typing.List[Illust]:
         async def remote_fetcher():
             logger.debug("cache not found or out of date, get illust ranking from remote")
-            content = await self._flat_page(self._api.illust_ranking, "illusts",
+            content = await self._flat_page(self._papi.illust_ranking, "illusts",
                                             lambda x: Illust.parse_obj(x),
                                             self._illust_filter_factory(block_tags, min_bookmark, min_view),
                                             max_item, max_page, mode=mode)
@@ -330,7 +329,7 @@ class PixivDataSource:
     async def illust_detail(self, illust_id: int) -> Illust:
         async def remote_fetcher():
             logger.debug("cache not found or out of date, get illust detail from remote")
-            content = await self._api.illust_detail(illust_id)
+            content = await self._papi.illust_detail(illust_id)
             if "error" in content:
                 raise QueryError(**content["error"])
             return Illust.parse_obj(content["illust"])
@@ -363,7 +362,7 @@ class PixivDataSource:
                 url = url.replace("i.pximg.net", custom_domain)
 
             with BytesIO() as bio:
-                await self._api.download(url, fname=bio)
+                await self._papi.download(url, fname=bio)
                 content = bio.getvalue()
                 if self.compression_enabled:
                     loop = asyncio.get_running_loop()

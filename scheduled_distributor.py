@@ -9,6 +9,7 @@ from pymongo import MongoClient, ReturnDocument
 
 from .config import conf
 from .distributor import distributor, Distributor
+from .mongo_conn import mongo_client
 
 
 class ScheduledDistributor:
@@ -47,8 +48,7 @@ class ScheduledDistributor:
 
     @property
     def _db(self) -> MongoClient:
-        db_conn = require("nonebot_plugin_navicat").mongodb_client
-        return db_conn[self.db_name]
+        return mongo_client()[self.db_name]
 
     @staticmethod
     def _parse_schedule(raw_schedule: str) -> typing.Sequence[int]:

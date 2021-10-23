@@ -7,6 +7,7 @@ from pydantic.fields import ModelField
 
 class Config(BaseSettings):
     pixiv_refresh_token: str
+    pixiv_mongo_conn_url: str
     pixiv_mongo_database_name: str
     pixiv_proxy: typing.Optional[str]
     pixiv_query_timeout: int = 60

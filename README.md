@@ -7,7 +7,7 @@ nonebot_plugin_pixivbot
 2. 参考[创建一个完整的项目 | NoneBot](https://v2.nonebot.dev/guide/creating-a-project.html)创建一个Bot实例；
 3. 将本插件clone到插件目录；
 4. 别忘了`pip install -r requirement.txt`安装依赖包；
-5. 运行`nb plugin install nonebot_plugin_navicat`安装通用数据库连接插件；
+5. 运行`nb plugin install nonebot_plugin_apscheduler`安装定时任务插件；
 6. 安装MongoDB（用于保存缓存）；
 7. 在.env中修改配置（至少需要下述的最小配置项才能工作）；
 8. 运行`python mongo_helper.py`配置索引（本插件依赖MongoDB的TTL索引自动清理过期缓存）。
