@@ -2,7 +2,7 @@
 from datetime import datetime
 
 from nonebot import Bot, on_regex, on_notice
-from nonebot.adapters.cqhttp import GroupMessageEvent, Event, PokeNotifyEvent, MessageEvent
+from nonebot.adapters.cqhttp import Event, PokeNotifyEvent, MessageEvent
 from nonebot.log import logger
 from nonebot.matcher import Matcher
 from nonebot.typing import T_State
@@ -13,10 +13,12 @@ from .utils import decode_integer
 
 
 def _get_user_or_group_id(event: Event):
-    if isinstance(event, GroupMessageEvent):
+    if "group_id" in event.__fields__ and event.group_id:
         return {"group_id": event.group_id}
+    elif "user_id" in event.__fields__ and event.user_id:
+        return {"user_id": event.user_id}
     else:
-        return {"user_id": event.get_user_id()}
+        return {}
 
 
 def _parse_ranking_mode(mode):

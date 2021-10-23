@@ -1,5 +1,5 @@
 from nonebot import on_command
-from nonebot.adapters.cqhttp import Bot, Event, GroupMessageEvent
+from nonebot.adapters.cqhttp import Bot, Event
 from nonebot.matcher import Matcher
 from nonebot.permission import SUPERUSER
 from nonebot.rule import to_me
@@ -9,10 +9,12 @@ from .scheduled_distributor import sch_distributor
 
 
 def _get_user_or_group_id(event: Event):
-    if isinstance(event, GroupMessageEvent):
+    if "group_id" in event.__fields__ and event.group_id:
         return {"group_id": event.group_id}
+    elif "user_id" in event.__fields__ and event.user_id:
+        return {"user_id": event.user_id}
     else:
-        return {"user_id": event.get_user_id()}
+        return {}
 
 
 superuser_command = on_command("pixivbot", rule=to_me(), permission=SUPERUSER, priority=5)
