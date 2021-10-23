@@ -14,6 +14,8 @@ from .distributor import distributor, Distributor
 class ScheduledDistributor:
     db_name: str
 
+    TYPES = ["ranking", "random_recommended_illust", "random_bookmark"]
+
     def __init__(self, db_name: str, distributor: Distributor):
         self.db_name = db_name
         self.distributor = distributor
@@ -119,7 +121,7 @@ class ScheduledDistributor:
                         group_id: typing.Optional[int] = None,
                         before_distribute: typing.Optional[typing.Callable] = None,
                         **kwargs):
-        if type not in self.distributor.TYPES:
+        if type not in self.TYPES:
             raise ValueError(f"Illegal type: {type}")
 
         if isinstance(schedule, str):
@@ -145,7 +147,7 @@ class ScheduledDistributor:
     async def unsubscribe(self, type: str, *,
                           user_id: typing.Optional[int] = None,
                           group_id: typing.Optional[int] = None):
-        if type not in self.distributor.TYPES:
+        if type != "all" and type not in self.TYPES:
             raise ValueError(f"Illegal type: {type}")
 
         if user_id is None and group_id is not None:
@@ -155,8 +157,29 @@ class ScheduledDistributor:
         else:
             raise ValueError("Both user_id and group_id are not None.")
 
-        await self._db.subscription.delete_one(query)
-        self._unschedule(type, user_id=user_id, group_id=group_id)
+        if type != "all":
+            await self._db.subscription.delete_one(query)
+            self._unschedule(type, user_id=user_id, group_id=group_id)
+        else:
+            del query["type"]
+            async for x in self._db.subscription.find(query):
+                self._unschedule(x["type"], user_id=user_id, group_id=group_id)
+            await self._db.subscription.delete_many(query)
+
+    async def all_subscription(self, *,
+                               user_id: typing.Optional[int] = None,
+                               group_id: typing.Optional[int] = None) -> typing.List[dict]:
+        if user_id is None and group_id is not None:
+            query = {"user_id": user_id}
+        elif user_id is not None and group_id is None:
+            query = {"group_id": group_id}
+        else:
+            raise ValueError("Both user_id and group_id are not None.")
+
+        ans = []
+        async for x in self._db.subscription.find(query):
+            ans.append({"type": x["type"], "schedule": x["schedule"], **query, **x["kwargs"]})
+        return ans
 
 
 # async def before_distribute(bot: Bot,

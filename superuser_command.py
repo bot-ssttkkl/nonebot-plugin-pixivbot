@@ -32,6 +32,14 @@ async def handle_subscribe(bot: Bot, event: Event, state: T_State, matcher: Matc
 
     # sample: /pixivbot subscribe random_bookmark 00:00+00:30*x
     if len(state["args"]) < 3:
+        subscription = await sch_distributor.all_subscription(**_get_user_or_group_id(event))
+        msg = "当前订阅：\n"
+        if len(subscription) > 0:
+            for x in subscription:
+                msg += f'{x["type"]} {x["schedule"][0]}:{x["schedule"][1]}+{x["schedule"][2]}:{x["schedule"][3]}*x\n'
+        else:
+            msg += '无'
+        await matcher.send(msg.strip('\n'))
         await matcher.finish("sample: /pixivbot subscribe random_bookmark 00:30*x\n"
                              "        /pixivbot subscribe ranking 12:00\n"
                              "        /pixivbot subscribe random_recommended_illust 00:10+00:30*x")
