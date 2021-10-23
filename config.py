@@ -63,6 +63,9 @@ class Config(BaseSettings):
     #         elif v["friend"] != "all":
     #             raise ValueError(f'{field}["friend"] expected "all" or a list, but got a {type(v["friend"])}.')
 
+    pixiv_query_cooldown = 0
+    pixiv_no_query_cooldown_users = []
+
     pixiv_illust_query_enabled = True
 
     pixiv_ranking_query_enabled = True

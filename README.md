@@ -8,8 +8,9 @@ nonebot_plugin_pixivbot
 3. 将本插件clone到插件目录；
 4. 别忘了`pip install -r requirement.txt`安装依赖包；
 5. 运行`nb plugin install nonebot_plugin_navicat`安装通用数据库连接插件；
-6. 安装MongoDB（用于保存缓存），并在.env文件中配置连接参数；（参考：[synodriver/nonebot_plugin_navicat](https://github.com/synodriver/nonebot_plugin_navicat)）
-7. 在.env中修改配置。（至少需要下述的最小配置项才能工作）
+6. 安装MongoDB（用于保存缓存）；
+7. 在.env中修改配置（至少需要下述的最小配置项才能工作）；
+8. 运行`python mongo_helper.py`配置索引（本插件依赖MongoDB的TTL索引自动清理过期缓存）。
 
 ## 触发语句
 
@@ -29,7 +30,9 @@ nonebot_plugin_pixivbot
 - **/pixivbot subscribe \<type\> \<schedule\>**：为本群（本用户）订阅类型为<type>的定时推送功能，时间满足<schedule>时进行推送
     - \<type\>：可选值有ranking, random_bookmark, random_recommended_illust
     - \<schedule\>：有三种格式，*00:30\*x*为每隔30分钟进行一次推送，*12:00*为每天12:00进行一次推送，*00:10+00:30\*x*为从今天00:10开始每隔30分钟进行一次推送（开始时间若是一个过去的时间点，则从下一个开始推送的时间点进行推送）
+- **/pixivbot subscribe：查看本群（本用户）的所有订阅
 - **/pixivbot unsubscribe <type>**：取消本群（本用户）的订阅
+    - \<type\>：可选值有all, ranking, random_bookmark, random_recommended_illust
 
 ## 注意事项
 
@@ -71,6 +74,9 @@ pixiv_compression_quantity: typing.Optional[float]
 
 pixiv_illust_query_enabled = True
 
+pixiv_query_cooldown = 0
+pixiv_no_query_cooldown_users = []
+
 pixiv_ranking_query_enabled = True
 pixiv_ranking_default_mode: str = "day"  # ['day', 'week', 'month', 'day_male', 'day_female', 'week_original', 'week_rookie', 'day_manga']
 pixiv_ranking_default_range = [1, 3]
@@ -106,7 +112,7 @@ pixiv_random_bookmark_min_view = 0
 pixiv_random_bookmark_max_page = 2 ** 31
 pixiv_random_bookmark_max_item = 2 ** 31
 
-pixiv_poke_action: typing.Optional[str] = "random_recommended_illust"
+pixiv_poke_action: typing.Optional[str] = "random_recommended_illust"  # ["", "ranking", "random_recommended_illust", "random_bookmark"]
 ```
 
 ## Special Thanks
