@@ -45,10 +45,7 @@ nonebot_plugin_pixivbot
 
 最小配置：
 ```
-MONGODB_HOST=127.0.0.1
-MONGODB_PORT=27017
-MONGODB_USER=pixiv_bot
-MONGODB_PASSWORD=pixiv_bot
+PIXIV_MONGO_CONN_URL=
 PIXIV_MONGO_DATABASE_NAME=pixiv_bot
 PIXIV_REFRESH_TOKEN=
 SUPERUSERS=[]
@@ -58,6 +55,7 @@ SUPERUSERS=[]
 
 ```python
 pixiv_refresh_token: str
+pixiv_mongo_conn_url: str
 pixiv_mongo_database_name: str
 pixiv_proxy: typing.Optional[str]
 pixiv_query_timeout: int = 60
