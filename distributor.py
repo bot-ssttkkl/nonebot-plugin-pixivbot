@@ -1,3 +1,4 @@
+import asyncio
 import math
 import random
 import time
@@ -172,7 +173,7 @@ class Distributor:
             if not no_error_msg:
                 await bot.send_msg(user_id=user_id, group_id=group_id, message=e.reason)
             logger.warning(e)
-        except TimeoutError as e:
+        except asyncio.TimeoutError as e:
             if not no_error_msg:
                 await bot.send_msg(user_id=user_id, group_id=group_id, message="下载超时")
             logger.warning(e)
@@ -195,7 +196,7 @@ class Distributor:
             if not no_error_msg:
                 await bot.send_msg(user_id=user_id, group_id=group_id, message=e.reason)
             logger.warning(e)
-        except TimeoutError as e:
+        except asyncio.TimeoutError as e:
             if not no_error_msg:
                 await bot.send_msg(user_id=user_id, group_id=group_id, message="下载超时")
             logger.warning(e)
@@ -229,7 +230,7 @@ class Distributor:
             if not no_error_msg:
                 await bot.send_msg(user_id=user_id, group_id=group_id, message=e.reason)
             logger.warning(e)
-        except TimeoutError as e:
+        except asyncio.TimeoutError as e:
             if not no_error_msg:
                 await bot.send_msg(user_id=user_id, group_id=group_id, message="下载超时")
             logger.warning(e)
@@ -269,7 +270,7 @@ class Distributor:
             if not no_error_msg:
                 await bot.send_msg(user_id=user_id, group_id=group_id, message=e.reason)
             logger.warning(e)
-        except TimeoutError as e:
+        except asyncio.TimeoutError as e:
             if not no_error_msg:
                 await bot.send_msg(user_id=user_id, group_id=group_id, message="下载超时")
             logger.warning(e)
@@ -301,7 +302,7 @@ class Distributor:
             if not no_error_msg:
                 await bot.send_msg(user_id=user_id, group_id=group_id, message=e.reason)
             logger.warning(e)
-        except TimeoutError as e:
+        except asyncio.TimeoutError as e:
             if not no_error_msg:
                 await bot.send_msg(user_id=user_id, group_id=group_id, message="下载超时")
             logger.warning(e)
@@ -334,7 +335,7 @@ class Distributor:
             if not no_error_msg:
                 await bot.send_msg(user_id=user_id, group_id=group_id, message=e.reason)
             logger.warning(e)
-        except TimeoutError as e:
+        except asyncio.TimeoutError as e:
             if not no_error_msg:
                 await bot.send_msg(user_id=user_id, group_id=group_id, message="下载超时")
             logger.warning(e)
