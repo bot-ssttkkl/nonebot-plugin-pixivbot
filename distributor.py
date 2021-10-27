@@ -26,7 +26,7 @@ class Distributor:
         self._distribute_func = {
             "ranking": self.distribute_ranking,
             "illust": self.distribute_illust,
-            "self.random_illust": self.distribute_random_illust,
+            "random_illust": self.distribute_random_illust,
             "random_user_illust": self.distribute_random_user_illust,
             "random_recommended_illust": self.distribute_random_recommended_illust,
             "random_bookmark": self.distribute_random_bookmark,

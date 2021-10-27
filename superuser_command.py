@@ -1,4 +1,4 @@
-from nonebot import on_command
+from nonebot import on_command, logger
 from nonebot.adapters.cqhttp import Bot, Event
 from nonebot.matcher import Matcher
 from nonebot.permission import SUPERUSER
@@ -46,9 +46,13 @@ async def handle_subscribe(bot: Bot, event: Event, state: T_State, matcher: Matc
                              "        /pixivbot subscribe ranking 12:00\n"
                              "        /pixivbot subscribe random_recommended_illust 00:10+00:30*x")
         return
-    await sch_distributor.subscribe(state["args"][1], state["args"][2], bot=bot,
-                                    **_get_user_or_group_id(event))
-    await matcher.finish("ok")
+    try:
+        await sch_distributor.subscribe(state["args"][1], state["args"][2], bot=bot,
+                                        **_get_user_or_group_id(event))
+        await matcher.finish("ok")
+    except Exception as e:
+        logger.exception(e)
+        await matcher.finish(str(e))
 
 
 @superuser_command.handle()
@@ -61,5 +65,9 @@ async def handle_unsubscribe(bot: Bot, event: Event, state: T_State, matcher: Ma
         await matcher.finish("sample: /pixivbot unsubscribe random_bookmark")
         return
 
-    await sch_distributor.unsubscribe(state["args"][1], **_get_user_or_group_id(event))
-    await matcher.finish("ok")
+    try:
+        await sch_distributor.unsubscribe(state["args"][1], **_get_user_or_group_id(event))
+        await matcher.finish("ok")
+    except Exception as e:
+        logger.exception(e)
+        await matcher.finish(str(e))
