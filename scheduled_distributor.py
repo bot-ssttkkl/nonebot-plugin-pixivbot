@@ -99,11 +99,11 @@ class ScheduledDistributor:
 
             scheduler.add_job(j, id=job_id, trigger=trigger,
                               kwargs={"type": type, "bot": bot, "user_id": user_id, "group_id": group_id,
-                                      "no_error_msg": True, **kwargs})
+                                      "silently": True, **kwargs})
         else:
             scheduler.add_job(self.distributor.distribute, id=job_id, trigger=trigger,
                               kwargs={"type": type, "bot": bot, "user_id": user_id, "group_id": group_id,
-                                      "no_error_msg": True, **kwargs})
+                                      "silently": True, **kwargs})
         logger.debug(f"scheduled {job_id} {trigger}")
 
     def _unschedule(self, type: str, *,

@@ -12,15 +12,6 @@ from .distributor import distributor
 from .utils import decode_integer
 
 
-def _get_user_or_group_id(event: Event):
-    if "group_id" in event.__fields__ and event.group_id:
-        return {"group_id": event.group_id}
-    elif "user_id" in event.__fields__ and event.user_id:
-        return {"user_id": event.user_id}
-    else:
-        return {}
-
-
 def _parse_ranking_mode(mode):
     if mode == "日":
         mode = "day"
@@ -61,12 +52,12 @@ async def before_handle(bot: Bot, event: Event, state: T_State, matcher: Matcher
 
 
 async def handle_random_recommended_illust_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-    await distributor.distribute_random_recommended_illust(bot=bot, **_get_user_or_group_id(event))
+    await distributor.distribute_random_recommended_illust(bot=bot, event=event)
 
 
 async def handle_random_user_illust_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
     word = state["_matched_groups"][0]
-    await distributor.distribute_random_user_illust(word, bot=bot, **_get_user_or_group_id(event))
+    await distributor.distribute_random_user_illust(word, bot=bot, event=event)
 
 
 async def handle_ranking_nth_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
@@ -80,7 +71,7 @@ async def handle_ranking_nth_query(bot: Bot, event: Event, state: T_State, match
     except ValueError:
         await matcher.send(f"{num}不是合法的数字")
 
-    await distributor.distribute_ranking(mode, num, bot=bot, **_get_user_or_group_id(event))
+    await distributor.distribute_ranking(mode, num, bot=bot, event=event)
 
 
 async def handle_illust_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
@@ -91,16 +82,16 @@ async def handle_illust_query(bot: Bot, event: Event, state: T_State, matcher: M
         await matcher.send(raw_illust_id + "不是合法的插画ID")
         return
 
-    await distributor.distribute_illust(illust_id, bot=bot, **_get_user_or_group_id(event))
+    await distributor.distribute_illust(illust_id, bot=bot, event=event)
 
 
 async def handle_random_bookmark_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-    await distributor.distribute_random_bookmark(bot=bot, **_get_user_or_group_id(event))
+    await distributor.distribute_random_bookmark(bot=bot, event=event)
 
 
 async def handle_random_illust_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
     word = state["_matched_groups"][0]
-    await distributor.distribute_random_illust(word, bot=bot, **_get_user_or_group_id(event))
+    await distributor.distribute_random_illust(word, bot=bot, event=event)
 
 
 async def handle_ranking_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
@@ -117,7 +108,7 @@ async def handle_ranking_query(bot: Bot, event: Event, state: T_State, matcher: 
     else:
         mode, range = None, None
 
-    await distributor.distribute_ranking(mode, range, bot=bot, **_get_user_or_group_id(event))
+    await distributor.distribute_ranking(mode, range, bot=bot, event=event)
 
 
 if conf.pixiv_random_recommended_illust_query_enabled:
