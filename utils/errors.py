@@ -10,7 +10,7 @@ class QueryError(PixivError):
         return self.reason
 
 
-class NoReplyError(Exception):
+class NoRetryError(Exception):
     def __init__(self, reason=""):
         self.reason = reason
 
@@ -18,4 +18,4 @@ class NoReplyError(Exception):
         return self.reason
 
 
-__all__ = ("QueryError", "NoReplyError")
+__all__ = ("QueryError", "NoRetryError")
