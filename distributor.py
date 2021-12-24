@@ -242,8 +242,13 @@ class Distributor:
         if len(illusts) > 0:
             illust = self.random_illust(
                 illusts, self.conf.pixiv_random_illust_method)
-            logger.debug(
+            logger.info(
                 f"{len(illusts)} illusts found, select {illust.title} ({illust.id}).")
+            
+            if "limit_unknown_360.png" in illust.image_urls.large:
+                logger.info(f"illust detail may be broken, loading again...")
+                illust = await self.data_source.illust_detail(illust.id)
+
             msg = await self.make_illust_msg(illust)
             await self._send(bot, msg, event=event, user_id=user_id, group_id=group_id)
         else:
@@ -272,8 +277,13 @@ class Distributor:
         if len(illusts) > 0:
             illust = self.random_illust(
                 illusts, self.conf.pixiv_random_illust_method)
-            logger.debug(
+            logger.info(
                 f"{len(illusts)} illusts found, select {illust.title} ({illust.id}).")
+            
+            if "limit_unknown_360.png" in illust.image_urls.large:
+                logger.info(f"illust detail may be broken, loading again...")
+                illust = await self.data_source.illust_detail(illust.id)
+
             msg = await self.make_illust_msg(illust)
             await self._send(bot, msg, event=event, user_id=user_id, group_id=group_id)
         else:
@@ -294,8 +304,13 @@ class Distributor:
         if len(illusts) > 0:
             illust = self.random_illust(
                 illusts, self.conf.pixiv_random_recommended_illust_method)
-            logger.debug(
+            logger.info(
                 f"{len(illusts)} illusts found, select {illust.title} ({illust.id}).")
+            
+            if "limit_unknown_360.png" in illust.image_urls.large:
+                logger.info(f"illust detail may be broken, loading again...")
+                illust = await self.data_source.illust_detail(illust.id)
+
             msg = await self.make_illust_msg(illust)
             await self._send(bot, msg, event=event, user_id=user_id, group_id=group_id)
         else:
@@ -317,8 +332,13 @@ class Distributor:
         if len(illusts) > 0:
             illust = self.random_illust(
                 illusts, self.conf.pixiv_random_bookmark_method)
-            logger.debug(
+            logger.info(
                 f"{len(illusts)} illusts found, select {illust.title} ({illust.id}).")
+            
+            if "limit_unknown_360.png" in illust.image_urls.large:
+                logger.info(f"illust detail may be broken, loading again...")
+                illust = await self.data_source.illust_detail(illust.id)
+
             msg = await self.make_illust_msg(illust)
             await self._send(bot, msg, event=event, user_id=user_id, group_id=group_id)
         else:
