@@ -12,7 +12,7 @@ from nonebot.adapters.cqhttp import Message, MessageSegment
 from nonebot.adapters.cqhttp.event import Event, MessageEvent
 
 from .config import Config, conf
-from .data_source import PixivDataSource, data_source
+from .data_source import LazyIllust, PixivDataSource, data_source
 from .model.Illust import Illust
 from .utils.errors import NoRetryError
 from .utils.errors import QueryError
@@ -70,7 +70,11 @@ class Distributor:
             "random_bookmark": self.distribute_random_bookmark,
         }
 
-    async def make_illust_msg(self, illust: Illust, number: typing.Optional[int] = None) -> Message:
+    async def make_illust_msg(self, illust: typing.Union[Illust, LazyIllust],
+                              number: typing.Optional[int] = None) -> Message:
+        if isinstance(illust, LazyIllust):
+            illust = await illust.get()
+
         msg = Message()
 
         if illust.has_tags(self.conf.pixiv_block_tags):
@@ -97,28 +101,44 @@ class Distributor:
                            f"https://www.pixiv.net/artworks/{illust.id}")
             return msg
 
-    async def make_illusts_msg(self, illusts: typing.List[Illust], num_start: int = 1) -> Message:
+    async def make_illusts_msg(self, illusts: typing.List[typing.Union[Illust, LazyIllust]],
+                               num_start: int = 1) -> Message:
         msg = Message()
         for i, illust in enumerate(illusts):
             msg.extend(await self.make_illust_msg(illust, i + num_start))
         return msg
 
     @staticmethod
-    def random_illust(illusts: typing.List[Illust], random_method: str) -> Illust:
+    async def random_illust(illusts: typing.List[LazyIllust], random_method: str) -> Illust:
         if random_method == "bookmark_proportion":
             # 概率正比于书签数
+            illusts = [await x.get(local=True) for x in illusts]
+
             sum_bm = 0
             for x in illusts:
-                sum_bm += x.total_bookmarks + 10  # 加10平滑
-            probability = [(x.total_bookmarks + 10) / sum_bm for x in illusts]
+                if x is not None:
+                    sum_bm += x.total_bookmarks + 10  # 加10平滑
+                else:
+                    sum_bm += 10
+            
+            probability = [0] * len(illusts)
+            for i, x in enumerate(illusts):
+                if x is not None:
+                    probability[i] = (x.total_bookmarks + 10) / sum_bm
+                else:
+                    probability[i] = 10 / sum_bm
         elif random_method == "view_proportion":
             # 概率正比于查看人数
+            illusts = [await x.get(local=True) for x in illusts]
+
             sum_view = 0
             for x in illusts:
                 sum_view += x.total_view + 10  # 加10平滑
             probability = [(x.total_view + 10) / sum_view for x in illusts]
         elif random_method == "timedelta_proportion":
             # 概率正比于 exp((当前时间戳 - 画像发布时间戳) / 3e7)
+            illusts = [await x.get(local=True) for x in illusts]
+
             now = time.time()
             delta_time = [now - x.create_date.timestamp() for x in illusts]
             probability = [math.exp(-x * 3e-7) for x in delta_time]
@@ -240,10 +260,9 @@ class Distributor:
                                                        self.conf.pixiv_random_illust_min_view)
 
         if len(illusts) > 0:
-            illust = self.random_illust(
+            illust = await self.random_illust(
                 illusts, self.conf.pixiv_random_illust_method)
-            logger.info(
-                f"{len(illusts)} illusts found, select {illust.title} ({illust.id}).")
+            logger.info(f"{len(illusts)} illusts found, select {illust.id}.")
 
             msg = await self.make_illust_msg(illust)
             await self._send(bot, msg, event=event, user_id=user_id, group_id=group_id)
@@ -271,10 +290,9 @@ class Distributor:
                                                       self.conf.pixiv_random_user_illust_min_view)
 
         if len(illusts) > 0:
-            illust = self.random_illust(
+            illust = await self.random_illust(
                 illusts, self.conf.pixiv_random_illust_method)
-            logger.info(
-                f"{len(illusts)} illusts found, select {illust.title} ({illust.id}).")
+            logger.info(f"{len(illusts)} illusts found, select {illust.id}.")
 
             msg = await self.make_illust_msg(illust)
             await self._send(bot, msg, event=event, user_id=user_id, group_id=group_id)
@@ -294,10 +312,9 @@ class Distributor:
                                                              self.conf.pixiv_random_recommended_illust_min_view)
 
         if len(illusts) > 0:
-            illust = self.random_illust(
+            illust = await self.random_illust(
                 illusts, self.conf.pixiv_random_recommended_illust_method)
-            logger.info(
-                f"{len(illusts)} illusts found, select {illust.title} ({illust.id}).")
+            logger.info(f"{len(illusts)} illusts found, select {illust.id}.")
 
             msg = await self.make_illust_msg(illust)
             await self._send(bot, msg, event=event, user_id=user_id, group_id=group_id)
@@ -318,10 +335,9 @@ class Distributor:
                                                         self.conf.pixiv_random_bookmark_min_view)
 
         if len(illusts) > 0:
-            illust = self.random_illust(
+            illust = await self.random_illust(
                 illusts, self.conf.pixiv_random_bookmark_method)
-            logger.info(
-                f"{len(illusts)} illusts found, select {illust.title} ({illust.id}).")
+            logger.info(f"{len(illusts)} illusts found, select {illust.id}.")
 
             msg = await self.make_illust_msg(illust)
             await self._send(bot, msg, event=event, user_id=user_id, group_id=group_id)

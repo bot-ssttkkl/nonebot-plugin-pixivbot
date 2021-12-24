@@ -20,6 +20,21 @@ from .utils.cache_manager import CacheManager
 from .utils.errors import QueryError
 
 
+class LazyIllust:
+    def __init__(self, illust_id, data_src, content=None):
+        self.id = illust_id
+        self.data_src = data_src
+        self.content = content
+
+    async def get(self, local=False) -> Illust:
+        if self.content is None:
+            if local:
+                self.content = await self.data_src.illust_detail_local(self.id)
+            else:
+                self.content = await self.data_src.illust_detail(self.id)
+        return self.content
+
+
 class PixivDataSource:
     db_name: str
     proxy: str
@@ -153,16 +168,10 @@ class PixivDataSource:
     def _illusts_cache_loader_factory(self, collection_name: str,
                                       arg_name: str,
                                       arg: typing.Any):
-        async def cache_loader() -> typing.Optional[typing.List[Illust]]:
+        async def cache_loader() -> typing.Optional[typing.List[LazyIllust]]:
             cache = await self._db[collection_name].find_one({arg_name: arg})
             if cache is not None:
-                result = []
-                for x in cache["illust_id"]:
-                    try:
-                        result.append(await self.illust_detail(x))
-                    except QueryError:
-                        pass
-                return result
+                return [LazyIllust(x, self) for x in cache["illust_id"]]
             else:
                 return None
 
@@ -171,13 +180,16 @@ class PixivDataSource:
     def _illusts_cache_updater_factory(self, collection_name: str,
                                        arg_name: str,
                                        arg: typing.Any):
-        async def cache_updater(content: typing.List[Illust]):
+        async def cache_updater(content: typing.List[LazyIllust]):
             now = datetime.now()
+
+            illusts = []
             for x in content:
                 # detail may be broken
-                if "limit_unknown_360.png" in x.image_urls.large:
-                    continue
+                if x.content is not None and "limit_unknown_360.png" not in x.content.image_urls.large:
+                    illusts.append(x.content)
 
+            for x in illusts:
                 await self._db.illust_detail_cache.update_one(
                     {"illust.id": x.id},
                     {"$set": {
@@ -186,6 +198,7 @@ class PixivDataSource:
                     }},
                     upsert=True
                 )
+
             await self._db[collection_name].update_one(
                 {arg_name: arg},
                 {"$set": {
@@ -231,12 +244,19 @@ class PixivDataSource:
             timeout=self.timeout
         )
 
+    async def illust_detail_local(self, illust_id: int) -> Illust:
+        content = await self._db.illust_detail_cache.find_one({"illust.id": illust_id})
+        if content is not None:
+            return Illust.parse_obj(content["illust"])
+        else:
+            return None
+
     async def search_illust(self, word: str,
                             max_item: int = 2 ** 31,
                             max_page: int = 2 ** 31,
                             block_tags: typing.Optional[typing.List[typing.Union[Illust.Tag, str]]] = None,
                             min_bookmark: int = 0,
-                            min_view: int = 0) -> typing.List[Illust]:
+                            min_view: int = 0) -> typing.List[LazyIllust]:
         async def remote_fetcher():
             logger.info(
                 "cache not found or out of date, search illust from remote")
@@ -246,14 +266,14 @@ class PixivDataSource:
                                                 block_tags, min_bookmark, min_view),
                                             max_item, max_page,
                                             word=word)
-            return content
+            return [LazyIllust(x.id, self, x) for x in content]
 
         return await self._cache_manager.get(
             identifier=(0, word),
             cache_loader=self._illusts_cache_loader_factory(
                 "search_illust_cache", "word", word),
             remote_fetcher=remote_fetcher,
-            cache_updater=self._illust_cache_updater_factory(
+            cache_updater=self._illusts_cache_updater_factory(
                 "search_illust_cache", "word", word),
             timeout=self.timeout
         )
@@ -261,7 +281,7 @@ class PixivDataSource:
     async def search_user(self, word: str,
                           max_item: int = 2 ** 31,
                           max_page: int = 2 ** 31) -> typing.List[User]:
-        async def cache_loader() -> typing.Optional[typing.List[Illust]]:
+        async def cache_loader() -> typing.Optional[typing.List[User]]:
             cache = await self._db.search_user_cache.find_one({"word": word})
             if cache is not None:
                 return [User.parse_obj(x) for x in cache.users]
@@ -277,7 +297,7 @@ class PixivDataSource:
                                             max_item=max_item, max_page=max_page, word=word)
             return content
 
-        async def cache_updater(content: typing.List[Illust]):
+        async def cache_updater(content: typing.List[User]):
             now = datetime.now()
             await self._db.search_user_cache.update_one(
                 {"word": word},
@@ -301,7 +321,7 @@ class PixivDataSource:
                            max_page: int = 2 ** 31,
                            block_tags: typing.Optional[typing.List[typing.Union[Illust.Tag, str]]] = None,
                            min_bookmark: int = 0,
-                           min_view: int = 0) -> typing.List[Illust]:
+                           min_view: int = 0) -> typing.List[LazyIllust]:
         if user_id == 0:
             user_id = self.user_id
 
@@ -314,7 +334,7 @@ class PixivDataSource:
                                                 block_tags, min_bookmark, min_view),
                                             max_item, max_page,
                                             user_id=user_id)
-            return content
+            return [LazyIllust(x.id, self, x) for x in content]
 
         return await self._cache_manager.get(
             identifier=(2, user_id),
@@ -331,7 +351,7 @@ class PixivDataSource:
                              max_page: int = 2 ** 31,
                              block_tags: typing.Optional[typing.List[typing.Union[Illust.Tag, str]]] = None,
                              min_bookmark: int = 0,
-                             min_view: int = 0) -> typing.List[Illust]:
+                             min_view: int = 0) -> typing.List[LazyIllust]:
         if user_id == 0:
             user_id = self.user_id
 
@@ -343,7 +363,7 @@ class PixivDataSource:
                                             self._illust_filter_factory(
                                                 block_tags, min_bookmark, min_view),
                                             max_item, max_page, user_id=user_id)
-            return content
+            return [LazyIllust(x.id, self, x) for x in content]
 
         return await self._cache_manager.get(
             identifier=(3, user_id),
@@ -359,7 +379,7 @@ class PixivDataSource:
                                   max_page: int = 2 ** 31,
                                   block_tags: typing.Optional[typing.List[typing.Union[Illust.Tag, str]]] = None,
                                   min_bookmark: int = 0,
-                                  min_view: int = 0) -> typing.List[Illust]:
+                                  min_view: int = 0) -> typing.List[LazyIllust]:
         async def remote_fetcher():
             logger.info(
                 "cache not found or out of date, get recommended illusts from remote")
@@ -368,7 +388,7 @@ class PixivDataSource:
                                             self._illust_filter_factory(
                                                 block_tags, min_bookmark, min_view),
                                             max_item, max_page)
-            return content
+            return [LazyIllust(x.id, self, x) for x in content]
 
         return await self._cache_manager.get(
             identifier=(4,),
@@ -385,7 +405,7 @@ class PixivDataSource:
                              max_page: int = 2 ** 31,
                              block_tags: typing.Optional[typing.List[typing.Union[Illust.Tag, str]]] = None,
                              min_bookmark: int = 0,
-                             min_view: int = 0) -> typing.List[Illust]:
+                             min_view: int = 0) -> typing.List[LazyIllust]:
         async def remote_fetcher():
             logger.info(
                 "cache not found or out of date, get illust ranking from remote")
@@ -394,7 +414,7 @@ class PixivDataSource:
                                             self._illust_filter_factory(
                                                 block_tags, min_bookmark, min_view),
                                             max_item, max_page, mode=mode)
-            return content
+            return [LazyIllust(x.id, self, x) for x in content]
 
         return await self._cache_manager.get(
             identifier=(5, mode),
@@ -406,18 +426,23 @@ class PixivDataSource:
             timeout=self.timeout
         )
 
-    async def download(self, illust: Illust,
+    async def download(self, illust: typing.Union[Illust, LazyIllust],
                        download_quantity: str = 'original',
                        custom_domain: str = None) -> bytes:
         async def cache_loader() -> typing.Optional[bytes]:
             cache = await self._db.download_cache.find_one({"illust_id": illust.id})
             if cache is not None:
-                return cache.content
+                return cache["content"]
             else:
                 return None
 
         async def remote_fetcher():
+            nonlocal illust
+
             logger.info("cache not found or out of date, download from remote")
+
+            if isinstance(illust, LazyIllust):
+                illust = await illust.get()
 
             if download_quantity == "original":
                 if len(illust.meta_pages) > 0:
