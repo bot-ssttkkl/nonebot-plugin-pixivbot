@@ -90,6 +90,8 @@ class Distributor:
                 bio.write(await self.data_source.download(illust))
 
                 msg.append(MessageSegment.image(bio))
+                if number is not None:
+                    msg.append(f"#{number}")
                 msg.append(f"「{illust.title}」\n"
                            f"作者：{illust.user.name}\n"
                            f"https://www.pixiv.net/artworks/{illust.id}")
@@ -195,9 +197,9 @@ class Distributor:
                 await self._send(bot, msg, event=event, user_id=user_id, group_id=group_id)
         else:
             start, end = range
-            if end - start + 1 > self.conf.pixiv_ranking_max_item_per_msg:
+            if end - start + 1 > self.conf.pixiv_ranking_max_item_per_query:
                 raise NoRetryError(
-                    f"仅支持一次查询{self.conf.pixiv_ranking_max_item_per_msg}张以下插画")
+                    f"仅支持一次查询{self.conf.pixiv_ranking_max_item_per_query}张以下插画")
             elif start > end:
                 raise NoRetryError("范围不合法")
             elif end > self.conf.pixiv_ranking_fetch_item:
@@ -205,8 +207,11 @@ class Distributor:
                     f'仅支持查询{self.conf.pixiv_ranking_fetch_item}名以内的插画')
             else:
                 illusts = await self.data_source.illust_ranking(mode)
-                msg = await self.make_illusts_msg(illusts[start - 1:end], start)
-                await self._send(bot, msg, event=event, user_id=user_id, group_id=group_id)
+
+                while start <= end:
+                    msg = await self.make_illusts_msg(illusts[start:min(end+1, start+self.conf.pixiv_ranking_max_item_per_msg)], start)
+                    await self._send(bot, msg, event=event, user_id=user_id, group_id=group_id)
+                    start += self.conf.pixiv_ranking_max_item_per_msg
 
     @__auto_retry
     async def distribute_illust(self, illust: typing.Union[int, Illust],

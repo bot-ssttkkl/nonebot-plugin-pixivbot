@@ -112,38 +112,38 @@ async def handle_ranking_query(bot: Bot, event: Event, state: T_State, matcher: 
 
 
 if conf.pixiv_random_recommended_illust_query_enabled:
-    mat = on_regex("来张图", priority=3, block=True)
+    mat = on_regex("^来张图$", priority=3, block=True)
     mat.append_handler(before_handle)
     mat.append_handler(handle_random_recommended_illust_query)
 
 if conf.pixiv_random_user_illust_query_enabled:
-    mat = on_regex("来张(.+)老师的图", priority=4, block=True)
+    mat = on_regex("^来张(.+)老师的图$", priority=4, block=True)
     mat.append_handler(before_handle)
     mat.append_handler(handle_random_user_illust_query)
 
 if conf.pixiv_ranking_query_enabled:
-    mat = on_regex(r"看看(日|周|月|男性|女性|原创|新人)?榜\s*([1-9][0-9]*|[零一两二三四五六七八九十百千万亿]+)",
+    mat = on_regex(r"^看看(日|周|月|男性|女性|原创|新人)?榜\s*([1-9][0-9]*|[零一两二三四五六七八九十百千万亿]+)$",
                    priority=4, block=True)
     mat.append_handler(before_handle)
     mat.append_handler(handle_ranking_nth_query)
 
-    mat = on_regex(r"看看(日|周|月|男性|女性|原创|新人|漫画)?榜\s*(([1-9][0-9]*)[-~]([1-9][0-9]*))?",
+    mat = on_regex(r"^看看(日|周|月|男性|女性|原创|新人|漫画)?榜\s*(([1-9][0-9]*)[-~]([1-9][0-9]*))?$",
                    priority=5)
     mat.append_handler(before_handle)
     mat.append_handler(handle_ranking_query)
 
 if conf.pixiv_illust_query_enabled:
-    mat = on_regex(r"看看图\s*([1-9][0-9]*)", priority=5)
+    mat = on_regex(r"^看看图\s*([1-9][0-9]*)$", priority=5)
     mat.append_handler(before_handle)
     mat.append_handler(handle_illust_query)
 
 if conf.pixiv_random_bookmark_query_enabled:
-    mat = on_regex("来张私家车", priority=5)
+    mat = on_regex("^来张私家车$", priority=5)
     mat.append_handler(before_handle)
     mat.append_handler(handle_random_bookmark_query)
 
 if conf.pixiv_random_illust_query_enabled:
-    mat = on_regex("来张(.+)图", priority=5)
+    mat = on_regex("^来张(.+)图$", priority=5)
     mat.append_handler(before_handle)
     mat.append_handler(handle_random_illust_query)
 
