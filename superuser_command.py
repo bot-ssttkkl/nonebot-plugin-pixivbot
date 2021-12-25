@@ -1,5 +1,6 @@
 from nonebot import on_command, logger
 from nonebot.adapters.cqhttp import Bot, Event
+from nonebot.adapters.cqhttp.event import MessageEvent
 from nonebot.matcher import Matcher
 from nonebot.permission import SUPERUSER
 from nonebot.rule import to_me
@@ -7,6 +8,7 @@ from nonebot.typing import T_State
 
 from .scheduled_distributor import sch_distributor
 from .pixiv_binding_manager import pixiv_binding_manager
+from .config import conf
 
 _help_text = """触发语句：
 - 看看榜：查看pixiv榜单
@@ -80,7 +82,7 @@ async def handle_unbind(bot: Bot, event: Event, state: T_State, matcher: Matcher
 
     # sample: /pixivbot unbind
     try:
-        if "user_id" in event.__fields__ and event.user_id:
+        if isinstance(event, MessageEvent):
             qq_id = event.user_id
         else:
             raise AttributeError("user_id")
@@ -116,8 +118,21 @@ async def handle_subscribe(bot: Bot, event: Event, state: T_State, matcher: Matc
         return
 
     try:
+        kwargs = _get_user_or_group_id(event)
+
+        if state["args"][1] == "random_bookmark":
+            if isinstance(event, MessageEvent):
+                qq_id = event.user_id
+            else:
+                raise AttributeError("user_id")
+
+            pixiv_user_id = await pixiv_binding_manager.get_binding(qq_id)
+            if pixiv_user_id is None:
+                pixiv_user_id = conf.pixiv_random_bookmark_user_id
+            kwargs["pixiv_user_id"] = pixiv_user_id
+
         await sch_distributor.subscribe(state["args"][1], state["args"][2], bot=bot,
-                                        **_get_user_or_group_id(event))
+                                        **kwargs)
         await matcher.send("ok")
     except Exception as e:
         logger.exception(e)

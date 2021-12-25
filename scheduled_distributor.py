@@ -28,15 +28,13 @@ class ScheduledDistributor:
         else:
             return f'scheduled_distribute {type} g{group_id}'
 
-    async def start(self, bot: Bot, *,
-                    before_distribute: typing.Optional[typing.Callable] = None):
+    async def start(self, bot: Bot):
         async for x in self._db.subscription.find():
             if "user_id" in x and x["user_id"] is not None:
                 user_id, group_id = x["user_id"], None
             else:
                 user_id, group_id = None, x["group_id"]
-            self._schedule(x["type"], x["schedule"], bot=bot, user_id=user_id, group_id=group_id,
-                           before_distribute=before_distribute, **x["kwargs"])
+            self._schedule(x["type"], x["schedule"], bot=bot, user_id=user_id, group_id=group_id, **x["kwargs"])
 
     @staticmethod
     async def stop():
@@ -58,13 +56,15 @@ class ScheduledDistributor:
             start_hour, start_minute = int(g[0]), int(g[1])
             interval_hour, interval_minute = 24, 0
         else:
-            interval_only_mat = re.fullmatch(r'([0-9]+):([0-9]+)\*x', raw_schedule)
+            interval_only_mat = re.fullmatch(
+                r'([0-9]+):([0-9]+)\*x', raw_schedule)
             if interval_only_mat is not None:
                 g = interval_only_mat.groups()
                 start_hour, start_minute = 0, 0
                 interval_hour, interval_minute = int(g[0]), int(g[1])
             else:
-                mat = re.fullmatch(r'([0-9]+):([0-9]+)\+([0-9]+):([0-9]+)\*x', raw_schedule)
+                mat = re.fullmatch(
+                    r'([0-9]+):([0-9]+)\+([0-9]+):([0-9]+)\*x', raw_schedule)
                 if mat is not None:
                     g = mat.groups()
                     start_hour, start_minute = int(g[0]), int(g[1])
@@ -84,26 +84,15 @@ class ScheduledDistributor:
                   bot: Bot,
                   user_id: typing.Optional[int] = None,
                   group_id: typing.Optional[int] = None,
-                  before_distribute: typing.Optional[typing.Callable] = None,
                   **kwargs):
         scheduler = require("nonebot_plugin_apscheduler").scheduler
         trigger = IntervalTrigger(hours=schedule[2], minutes=schedule[3],
                                   start_date=datetime.now().replace(hour=schedule[0], minute=schedule[1],
                                                                     second=0, microsecond=0))
         job_id = self._make_job_id(type, user_id, group_id)
-
-        if before_distribute is not None:
-            async def j(**k):
-                await before_distribute(**k)
-                await self.distributor.distribute(**k)
-
-            scheduler.add_job(j, id=job_id, trigger=trigger,
-                              kwargs={"type": type, "bot": bot, "user_id": user_id, "group_id": group_id,
-                                      "silently": True, **kwargs})
-        else:
-            scheduler.add_job(self.distributor.distribute, id=job_id, trigger=trigger,
-                              kwargs={"type": type, "bot": bot, "user_id": user_id, "group_id": group_id,
-                                      "silently": True, **kwargs})
+        scheduler.add_job(self.distributor.distribute, id=job_id, trigger=trigger,
+                          kwargs={"type": type, "bot": bot, "user_id": user_id, "group_id": group_id,
+                                  "silently": True, **kwargs})
         logger.debug(f"scheduled {job_id} {trigger}")
 
     def _unschedule(self, type: str, *,
@@ -119,7 +108,6 @@ class ScheduledDistributor:
                         bot: Bot,
                         user_id: typing.Optional[int] = None,
                         group_id: typing.Optional[int] = None,
-                        before_distribute: typing.Optional[typing.Callable] = None,
                         **kwargs):
         if type not in self.TYPES:
             raise ValueError(f"Illegal type: {type}")
@@ -141,8 +129,7 @@ class ScheduledDistributor:
                                                                    upsert=True)
         if old_sub is not None:
             self._unschedule(type, user_id=user_id, group_id=group_id)
-        self._schedule(type, schedule, bot=bot, user_id=user_id, group_id=group_id,
-                       before_distribute=before_distribute, **kwargs)
+        self._schedule(type, schedule, bot=bot, user_id=user_id, group_id=group_id, **kwargs)
 
     async def unsubscribe(self, type: str, *,
                           user_id: typing.Optional[int] = None,
@@ -178,24 +165,16 @@ class ScheduledDistributor:
 
         ans = []
         async for x in self._db.subscription.find(query):
-            ans.append({"type": x["type"], "schedule": x["schedule"], **query, **x["kwargs"]})
+            ans.append(
+                {"type": x["type"], "schedule": x["schedule"], **query, **x["kwargs"]})
         return ans
 
 
-# async def before_distribute(bot: Bot,
-#                             user_id: typing.Optional[int] = None,
-#                             group_id: typing.Optional[int] = None, **kwargs):
-#     await bot.send_msg(user_id=user_id, group_id=group_id, message="这是您点的图")
+sch_distributor = ScheduledDistributor(
+    conf.pixiv_mongo_database_name, distributor)
 
 
-sch_distributor = ScheduledDistributor(conf.pixiv_mongo_database_name, distributor)
-
-
-@get_driver().on_bot_connect
-async def start_sch_distributor(bot: Bot):
-    await sch_distributor.start(bot)
-
-
+get_driver().on_bot_connect(sch_distributor.start)
 get_driver().on_bot_disconnect(sch_distributor.stop)
 
 __all__ = ("ScheduledDistributor", "sch_distributor")
