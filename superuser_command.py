@@ -6,7 +6,8 @@ from nonebot.rule import to_me
 from nonebot.typing import T_State
 
 from .scheduled_distributor import sch_distributor
-
+from .pixiv_binding_manager import pixiv_binding_manager
+from .data_source import data_source
 
 _help_text = """触发语句：
 - 看看榜：查看pixiv榜单
@@ -37,8 +38,59 @@ superuser_command = on_command("pixivbot", rule=to_me(), priority=5)
 @superuser_command.handle()
 async def handle_superuser_command(bot: Bot, event: Event, state: T_State, matcher: Matcher):
     state["args"] = str(event.get_message()).strip().split()
+    # 未跟参数或参数为help时，输出帮助信息
     if len(state["args"]) == 0 or state["args"][0] == "help":
-        await matcher.finish(_help_text)
+        await matcher.send(_help_text)
+
+
+@superuser_command.handle()
+async def handle_bind(bot: Bot, event: Event, state: T_State, matcher: Matcher):
+    if state["args"][0] != "bind":
+        return
+
+    # sample: /pixivbot bind 114514
+    try:
+        if "user_id" in event.__fields__ and event.user_id:
+            qq_id = event.user_id
+        else:
+            raise AttributeError("user_id")
+
+        if len(state["args"]) < 2:
+            pixiv_id = await pixiv_binding_manager.get_binding(qq_id)
+
+            if pixiv_id is not None:
+                msg = f"当前绑定账号：{pixiv_id}\n"
+            else:
+                msg = "当前未绑定Pixiv账号\n"
+            msg += "命令格式: /pixivbot bind <pixiv_user_id>"
+            await matcher.send(msg)
+            return
+
+        pixiv_user_id = int(state["args"][1])
+        await pixiv_binding_manager.bind(qq_id, pixiv_user_id)
+        await matcher.send("Pixiv账号绑定成功")
+    except Exception as e:
+        logger.exception(e)
+        await matcher.send(str(e))
+
+
+@superuser_command.handle()
+async def handle_unbind(bot: Bot, event: Event, state: T_State, matcher: Matcher):
+    if state["args"][0] != "unbind":
+        return
+
+    # sample: /pixivbot unbind
+    try:
+        if "user_id" in event.__fields__ and event.user_id:
+            qq_id = event.user_id
+        else:
+            raise AttributeError("user_id")
+
+        await pixiv_binding_manager.unbind(qq_id)
+        await matcher.send("Pixiv账号解绑成功")
+    except Exception as e:
+        logger.exception(e)
+        await matcher.send(str(e))
 
 
 @superuser_command.handle()
@@ -46,7 +98,7 @@ async def handle_subscribe(bot: Bot, event: Event, state: T_State, matcher: Matc
     if state["args"][0] != "subscribe":
         return
     if not await SUPERUSER(bot, event):
-        await matcher.finish("只有超级用户可以调用该命令")
+        await matcher.send("只有超级用户可以调用该命令")
 
     # sample: /pixivbot subscribe random_bookmark 00:00+00:30*x
     if len(state["args"]) < 3:
@@ -61,16 +113,16 @@ async def handle_subscribe(bot: Bot, event: Event, state: T_State, matcher: Matc
         msg += "sample: /pixivbot subscribe random_bookmark 00:30*x\n"
         msg += "        /pixivbot subscribe ranking 12:00\n"
         msg += "        /pixivbot subscribe random_recommended_illust 00:10+00:30*x"
-        await matcher.finish(msg)
+        await matcher.send(msg)
         return
 
     try:
         await sch_distributor.subscribe(state["args"][1], state["args"][2], bot=bot,
                                         **_get_user_or_group_id(event))
-        await matcher.finish("ok")
+        await matcher.send("ok")
     except Exception as e:
         logger.exception(e)
-        await matcher.finish(str(e))
+        await matcher.send(str(e))
 
 
 @superuser_command.handle()
@@ -78,16 +130,16 @@ async def handle_unsubscribe(bot: Bot, event: Event, state: T_State, matcher: Ma
     if state["args"][0] != "unsubscribe":
         return
     if not await SUPERUSER(bot, event):
-        await matcher.finish("只有超级用户可以调用该命令")
+        await matcher.send("只有超级用户可以调用该命令")
 
     # sample: /pixivbot unsubscribe random_bookmark
     if len(state["args"]) < 2:
-        await matcher.finish("sample: /pixivbot unsubscribe random_bookmark")
+        await matcher.send("sample: /pixivbot unsubscribe random_bookmark")
         return
 
     try:
         await sch_distributor.unsubscribe(state["args"][1], **_get_user_or_group_id(event))
-        await matcher.finish("ok")
+        await matcher.send("ok")
     except Exception as e:
         logger.exception(e)
-        await matcher.finish(str(e))
+        await matcher.send(str(e))

@@ -120,7 +120,7 @@ class Distributor:
                     sum_bm += x.total_bookmarks + 10  # 加10平滑
                 else:
                     sum_bm += 10
-            
+
             probability = [0] * len(illusts)
             for i, x in enumerate(illusts):
                 if x is not None:
@@ -322,12 +322,12 @@ class Distributor:
             raise NoRetryError("别看了，没有的。")
 
     @__auto_retry
-    async def distribute_random_bookmark(self, *, bot: Bot,
+    async def distribute_random_bookmark(self, pixiv_user_id: int, *, bot: Bot,
                                          event: MessageEvent = None,
                                          user_id: typing.Optional[int] = None,
                                          group_id: typing.Optional[int] = None,
                                          silently: bool = False):
-        illusts = await self.data_source.user_bookmarks(self.conf.pixiv_random_bookmark_user_id,
+        illusts = await self.data_source.user_bookmarks(pixiv_user_id,
                                                         self.conf.pixiv_random_bookmark_max_item,
                                                         self.conf.pixiv_random_bookmark_max_page,
                                                         self.conf.pixiv_block_tags,

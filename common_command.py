@@ -10,6 +10,7 @@ from nonebot.typing import T_State
 from .config import conf
 from .distributor import distributor
 from .utils import decode_integer
+from .pixiv_binding_manager import pixiv_binding_manager
 
 
 def _parse_ranking_mode(mode):
@@ -86,7 +87,19 @@ async def handle_illust_query(bot: Bot, event: Event, state: T_State, matcher: M
 
 
 async def handle_random_bookmark_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-    await distributor.distribute_random_bookmark(bot=bot, event=event)
+    pixiv_user_id = None
+
+    if isinstance(event, MessageEvent):
+        qq_id = event.user_id
+        pixiv_user_id = await pixiv_binding_manager.get_binding(qq_id)
+
+    if pixiv_user_id is None:
+        pixiv_user_id = conf.pixiv_random_bookmark_user_id
+
+    if pixiv_user_id is None:
+        await matcher.send("未绑定Pixiv账号")
+    else:
+        await distributor.distribute_random_bookmark(pixiv_user_id, bot=bot, event=event)
 
 
 async def handle_random_illust_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
@@ -152,9 +165,10 @@ if conf.pixiv_poke_action:
         async def _group_poke(bot: Bot, event: Event, state: T_State) -> bool:
             return isinstance(event, PokeNotifyEvent) and event.is_tome()
 
-
         group_poke = on_notice(_group_poke, priority=10, block=True)
         group_poke.append_handler(before_handle)
-        group_poke.append_handler(locals()[f'handle_{conf.pixiv_poke_action}_query'])
+        group_poke.append_handler(
+            locals()[f'handle_{conf.pixiv_poke_action}_query'])
     else:
-        logger.warning(f"Bot will not respond to poke since {conf.pixiv_poke_action} is disabled.")
+        logger.warning(
+            f"Bot will not respond to poke since {conf.pixiv_poke_action} is disabled.")

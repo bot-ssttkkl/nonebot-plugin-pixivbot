@@ -18,7 +18,8 @@ class Config(BaseSettings):
     @validator('pixiv_block_action')
     def block_action_validator(cls, v, field: ModelField):
         if v not in ['no_image', 'completely_block', 'no_reply']:
-            raise ValueError(f'pixiv_compression_enabled is True but {field.name} got None.')
+            raise ValueError(
+                f'pixiv_compression_enabled is True but {field.name} got None.')
         return v
 
     pixiv_download_quantity: str = "original"
@@ -27,7 +28,8 @@ class Config(BaseSettings):
     @validator('pixiv_download_quantity')
     def download_quantity_validator(cls, v, field: ModelField):
         if v not in ['original', 'square_medium', 'medium', 'large']:
-            raise ValueError(f'pixiv_compression_enabled is True but {field.name} got None.')
+            raise ValueError(
+                f'pixiv_compression_enabled is True but {field.name} got None.')
         return v
 
     pixiv_compression_enabled: bool = False
@@ -37,7 +39,8 @@ class Config(BaseSettings):
     @validator('pixiv_compression_max_size', 'pixiv_compression_quantity')
     def compression_validator(cls, v, values, field: ModelField):
         if values['pixiv_compression_enabled'] and v is None:
-            raise ValueError(f'pixiv_compression_enabled is True but {field.name} got None.')
+            raise ValueError(
+                f'pixiv_compression_enabled is True but {field.name} got None.')
         return v
 
     # pixiv_illust_query_permission = {
@@ -110,7 +113,7 @@ class Config(BaseSettings):
     pixiv_random_user_illust_max_item = 2 ** 31
 
     pixiv_random_bookmark_query_enabled = True
-    pixiv_random_bookmark_user_id = 0
+    pixiv_random_bookmark_user_id: typing.Optional[int] = None
     pixiv_random_bookmark_method = "uniform"
     pixiv_random_bookmark_min_bookmark = 0
     pixiv_random_bookmark_min_view = 0
