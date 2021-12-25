@@ -12,13 +12,11 @@ from PIL import Image, ImageFile
 from pixivpy_async import *
 from pixivpy_async.error import TokenError
 
+from ..config import conf
+from ..model import Illust, LazyIllust, User
+from ..utils.errors import QueryError
 from .cache_data_source import CacheDataSource
-from .config import conf
-from .model import Illust, LazyIllust, User
-from .model.LazyIllust import LazyIllust
-from .mongo_conn import mongo_client
-from .utils.cache_manager import CacheManager
-from .utils.errors import QueryError
+from .cache_manager import CacheManager
 
 
 class PixivDataSource:

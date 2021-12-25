@@ -7,7 +7,6 @@ from nonebot.typing import T_State
 
 from .scheduled_distributor import sch_distributor
 from .pixiv_binding_manager import pixiv_binding_manager
-from .data_source import data_source
 
 _help_text = """触发语句：
 - 看看榜：查看pixiv榜单

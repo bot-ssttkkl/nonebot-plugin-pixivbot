@@ -3,9 +3,8 @@ from datetime import datetime
 
 import bson
 
-from .model.Illust import Illust
-from .model.User import User
-from .mongo_conn import mongo_client
+from ..model import Illust, User
+from ..mongo_conn import mongo_client
 
 
 class CacheDataSource:
