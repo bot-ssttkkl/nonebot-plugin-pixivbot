@@ -419,10 +419,10 @@ class PixivDataSource:
         return await self._cache_manager.get(
             identifier=(5, mode),
             cache_loader=self._illusts_cache_loader_factory(
-                "illust_ranking_cache", "mode", mode),
+                "other_cache", "type", mode + "_ranking"),
             remote_fetcher=remote_fetcher,
             cache_updater=self._illusts_cache_updater_factory(
-                "illust_ranking_cache", "mode", mode),
+                "other_cache", "type", mode + "_ranking"),
             timeout=self.timeout
         )
 
