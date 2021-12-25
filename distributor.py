@@ -12,8 +12,8 @@ from nonebot.adapters.cqhttp import Message, MessageSegment
 from nonebot.adapters.cqhttp.event import Event, MessageEvent
 
 from .config import Config, conf
-from .data_source import LazyIllust, PixivDataSource, data_source
-from .model.Illust import Illust
+from .data_source import PixivDataSource, data_source
+from .model import Illust, LazyIllust
 from .utils.errors import NoRetryError
 from .utils.errors import QueryError
 
