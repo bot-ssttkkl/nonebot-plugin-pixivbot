@@ -1,7 +1,7 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from nonebot import logger, get_driver
 
-from .config import conf
+from ..config import conf
 
 _mongodb_client: AsyncIOMotorClient = None
 

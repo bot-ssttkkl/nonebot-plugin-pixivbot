@@ -4,7 +4,7 @@ from datetime import datetime
 import bson
 
 from ..model import Illust, User
-from ..mongo_conn import mongo_client
+from .mongo_conn import mongo_client
 
 
 class CacheDataSource:

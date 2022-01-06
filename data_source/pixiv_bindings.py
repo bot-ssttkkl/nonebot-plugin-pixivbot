@@ -2,11 +2,11 @@ import typing
 
 from pymongo import MongoClient
 
-from .config import conf
+from ..config import conf
 from .mongo_conn import mongo_client
 
 
-class PixivBindingManager:
+class PixivBindings:
     db_name: str
 
     def __init__(self, db_name: str):
@@ -34,6 +34,6 @@ class PixivBindingManager:
             return result["pixiv_user_id"]
 
 
-pixiv_binding_manager = PixivBindingManager(db_name=conf.pixiv_mongo_database_name)
+pixiv_bindings = PixivBindings(db_name=conf.pixiv_mongo_database_name)
 
-__all__ = ("PixivBindingManager", "pixiv_binding_manager")
+__all__ = ("PixivBindings", "pixiv_bindings")

@@ -7,7 +7,7 @@ from nonebot.rule import to_me
 from nonebot.typing import T_State
 
 from .scheduled_distributor import sch_distributor
-from .pixiv_binding_manager import pixiv_binding_manager
+from .data_source import pixiv_bindings
 from .config import conf
 
 _help_text = """触发语句：
@@ -57,7 +57,7 @@ async def handle_bind(bot: Bot, event: Event, state: T_State, matcher: Matcher):
             raise AttributeError("user_id")
 
         if len(state["args"]) < 2:
-            pixiv_id = await pixiv_binding_manager.get_binding(qq_id)
+            pixiv_id = await pixiv_bindings.get_binding(qq_id)
 
             if pixiv_id is not None:
                 msg = f"当前绑定账号：{pixiv_id}\n"
@@ -68,7 +68,7 @@ async def handle_bind(bot: Bot, event: Event, state: T_State, matcher: Matcher):
             return
 
         pixiv_user_id = int(state["args"][1])
-        await pixiv_binding_manager.bind(qq_id, pixiv_user_id)
+        await pixiv_bindings.bind(qq_id, pixiv_user_id)
         await matcher.send("Pixiv账号绑定成功")
     except Exception as e:
         logger.exception(e)
@@ -87,7 +87,7 @@ async def handle_unbind(bot: Bot, event: Event, state: T_State, matcher: Matcher
         else:
             raise AttributeError("user_id")
 
-        await pixiv_binding_manager.unbind(qq_id)
+        await pixiv_bindings.unbind(qq_id)
         await matcher.send("Pixiv账号解绑成功")
     except Exception as e:
         logger.exception(e)
@@ -126,7 +126,7 @@ async def handle_subscribe(bot: Bot, event: Event, state: T_State, matcher: Matc
             else:
                 raise AttributeError("user_id")
 
-            pixiv_user_id = await pixiv_binding_manager.get_binding(qq_id)
+            pixiv_user_id = await pixiv_bindings.get_binding(qq_id)
             if pixiv_user_id is None:
                 pixiv_user_id = conf.pixiv_random_bookmark_user_id
             kwargs["pixiv_user_id"] = pixiv_user_id

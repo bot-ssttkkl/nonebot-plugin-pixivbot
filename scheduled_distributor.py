@@ -5,20 +5,17 @@ from datetime import datetime
 from apscheduler.triggers.interval import IntervalTrigger
 from nonebot import require, logger, get_driver
 from nonebot.adapters.cqhttp import Bot
-from pymongo import MongoClient, ReturnDocument
 
 from .config import conf
 from .distributor import distributor, Distributor
-from .mongo_conn import mongo_client
+from .data_source import subscriptions, Subscriptions
 
 
 class ScheduledDistributor:
-    db_name: str
-
     TYPES = ["ranking", "random_recommended_illust", "random_bookmark"]
 
-    def __init__(self, db_name: str, distributor: Distributor):
-        self.db_name = db_name
+    def __init__(self, subscriptions: Subscriptions, distributor: Distributor):
+        self.subscriptions = subscriptions
         self.distributor = distributor
 
     @staticmethod
@@ -29,12 +26,16 @@ class ScheduledDistributor:
             return f'scheduled_distribute {type} g{group_id}'
 
     async def start(self, bot: Bot):
-        async for x in self._db.subscription.find():
+        async for x in self.subscriptions.get():
             if "user_id" in x and x["user_id"] is not None:
                 user_id, group_id = x["user_id"], None
-            else:
+            elif "group_id" in x and x["group_id"] is not None:
                 user_id, group_id = None, x["group_id"]
-            self._schedule(x["type"], x["schedule"], bot=bot, user_id=user_id, group_id=group_id, **x["kwargs"])
+            else:
+                raise ValueError("Both user_id and group_id is None")
+
+            self._schedule(x["type"], x["schedule"], bot=bot,
+                           user_id=user_id, group_id=group_id, **x["kwargs"])
 
     @staticmethod
     async def stop():
@@ -43,10 +44,6 @@ class ScheduledDistributor:
         for j in jobs:
             if j.id.startswith("scheduled_distribute"):
                 j.remove()
-
-    @property
-    def _db(self) -> MongoClient:
-        return mongo_client()[self.db_name]
 
     @staticmethod
     def _parse_schedule(raw_schedule: str) -> typing.Sequence[int]:
@@ -115,21 +112,11 @@ class ScheduledDistributor:
         if isinstance(schedule, str):
             schedule = self._parse_schedule(schedule)
 
-        if user_id is None and group_id is not None:
-            query = {"type": type, "group_id": group_id}
-        elif user_id is not None and group_id is None:
-            query = {"type": type, "user_id": user_id}
-        else:
-            raise ValueError("Both user_id and group_id are not None.")
-
-        old_sub = await self._db.subscription.find_one_and_replace(query, {**query,
-                                                                           "schedule": schedule,
-                                                                           "kwargs": kwargs},
-                                                                   return_document=ReturnDocument.BEFORE,
-                                                                   upsert=True)
+        old_sub = await self.subscriptions.update(type, schedule, user_id, group_id, **kwargs)
         if old_sub is not None:
             self._unschedule(type, user_id=user_id, group_id=group_id)
-        self._schedule(type, schedule, bot=bot, user_id=user_id, group_id=group_id, **kwargs)
+        self._schedule(type, schedule, bot=bot, user_id=user_id,
+                       group_id=group_id, **kwargs)
 
     async def unsubscribe(self, type: str, *,
                           user_id: typing.Optional[int] = None,
@@ -137,41 +124,20 @@ class ScheduledDistributor:
         if type != "all" and type not in self.TYPES:
             raise ValueError(f"Illegal type: {type}")
 
-        if user_id is None and group_id is not None:
-            query = {"type": type, "user_id": user_id}
-        elif user_id is not None and group_id is None:
-            query = {"type": type, "group_id": group_id}
-        else:
-            raise ValueError("Both user_id and group_id are not None.")
-
         if type != "all":
-            await self._db.subscription.delete_one(query)
             self._unschedule(type, user_id=user_id, group_id=group_id)
         else:
-            del query["type"]
-            async for x in self._db.subscription.find(query):
+            async for x in self.subscriptions.get(user_id, group_id):
                 self._unschedule(x["type"], user_id=user_id, group_id=group_id)
-            await self._db.subscription.delete_many(query)
+        self.subscriptions.delete(type, user_id, group_id)
 
     async def all_subscription(self, *,
                                user_id: typing.Optional[int] = None,
                                group_id: typing.Optional[int] = None) -> typing.List[dict]:
-        if user_id is None and group_id is not None:
-            query = {"user_id": user_id}
-        elif user_id is not None and group_id is None:
-            query = {"group_id": group_id}
-        else:
-            raise ValueError("Both user_id and group_id are not None.")
-
-        ans = []
-        async for x in self._db.subscription.find(query):
-            ans.append(
-                {"type": x["type"], "schedule": x["schedule"], **query, **x["kwargs"]})
-        return ans
+        return [x async for x in self.subscriptions.get(user_id, group_id)]
 
 
-sch_distributor = ScheduledDistributor(
-    conf.pixiv_mongo_database_name, distributor)
+sch_distributor = ScheduledDistributor(subscriptions, distributor)
 
 
 get_driver().on_bot_connect(sch_distributor.start)

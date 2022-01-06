@@ -12,10 +12,26 @@ from nonebot.adapters.cqhttp import Message, MessageSegment
 from nonebot.adapters.cqhttp.event import Event, MessageEvent
 
 from .config import Config, conf
-from .data_source import PixivDataSource, data_source
+from .data_source import PixivDataSource, pixiv_data_source, pixiv_bindings
 from .model import Illust, LazyIllust
 from .utils.errors import NoRetryError
 from .utils.errors import QueryError
+
+
+def _Distributor__fill_id(func):
+    @functools.wraps(func)
+    def wrapped(self, *args, bot: Bot,
+                event: MessageEvent = None,
+                user_id: typing.Optional[int] = None,
+                group_id: typing.Optional[int] = None,
+                silently: bool = False, **kwargs):
+        if event is not None:
+            if "group_id" in event.__fields__ and event.group_id:
+                group_id = event.group_id
+            if "user_id" in event.__fields__ and event.user_id:
+                user_id = event.user_id
+        return func(self, *args, bot=bot, event=event, user_id=user_id, group_id=group_id, silently=silently, **kwargs)
+    return wrapped
 
 
 def _Distributor__auto_retry(func):
@@ -28,7 +44,7 @@ def _Distributor__auto_retry(func):
         err = None
         for t in range(5):
             try:
-                await func(self, *args, bot=bot, event=event, user_id=user_id, group_id=group_id, **kwargs)
+                await func(self, *args, bot=bot, event=event, user_id=user_id, group_id=group_id, silently=silently, **kwargs)
                 return
             except NoRetryError as e:
                 if e.reason and not silently:
@@ -191,6 +207,7 @@ class Distributor:
         await self._distribute_func[type](bot=bot, event=event, user_id=user_id, group_id=group_id,
                                           silently=silently, **kwargs)
 
+    @__fill_id
     @__auto_retry
     async def distribute_ranking(self, mode: typing.Optional[str] = None,
                                  range: typing.Optional[typing.Union[typing.Sequence[int], int]] = None,
@@ -233,6 +250,7 @@ class Distributor:
                     await self._send(bot, msg, event=event, user_id=user_id, group_id=group_id)
                     start += self.conf.pixiv_ranking_max_item_per_msg
 
+    @__fill_id
     @__auto_retry
     async def distribute_illust(self, illust: typing.Union[int, Illust],
                                 *, bot: Bot,
@@ -269,6 +287,7 @@ class Distributor:
         else:
             raise NoRetryError("别看了，没有的。")
 
+    @__fill_id
     @__auto_retry
     async def distribute_random_user_illust(self, user: typing.Union[str, int],
                                             *, bot: Bot,
@@ -299,6 +318,7 @@ class Distributor:
         else:
             raise NoRetryError("别看了，没有的。")
 
+    @__fill_id
     @__auto_retry
     async def distribute_random_recommended_illust(self, *, bot: Bot,
                                                    event: MessageEvent = None,
@@ -321,12 +341,22 @@ class Distributor:
         else:
             raise NoRetryError("别看了，没有的。")
 
+    @__fill_id
     @__auto_retry
-    async def distribute_random_bookmark(self, pixiv_user_id: int, *, bot: Bot,
+    async def distribute_random_bookmark(self, pixiv_user_id: int = 0, *, bot: Bot,
                                          event: MessageEvent = None,
                                          user_id: typing.Optional[int] = None,
                                          group_id: typing.Optional[int] = None,
                                          silently: bool = False):
+        if not pixiv_user_id:
+            pixiv_user_id = await pixiv_bindings.get_binding(user_id)
+
+        if not pixiv_user_id:
+            pixiv_user_id = conf.pixiv_random_bookmark_user_id
+
+        if not pixiv_user_id:
+            raise NoRetryError("未绑定Pixiv账号")
+
         illusts = await self.data_source.user_bookmarks(pixiv_user_id,
                                                         self.conf.pixiv_random_bookmark_max_item,
                                                         self.conf.pixiv_random_bookmark_max_page,
@@ -345,6 +375,6 @@ class Distributor:
             raise NoRetryError("别看了，没有的。")
 
 
-distributor = Distributor(conf, data_source)
+distributor = Distributor(conf, pixiv_data_source)
 
 __all__ = ("Distributor", "distributor")

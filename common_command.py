@@ -10,7 +10,7 @@ from nonebot.typing import T_State
 from .config import conf
 from .distributor import distributor
 from .utils import decode_integer
-from .pixiv_binding_manager import pixiv_binding_manager
+from .data_source import pixiv_bindings
 
 
 def _parse_ranking_mode(mode):
@@ -87,19 +87,7 @@ async def handle_illust_query(bot: Bot, event: Event, state: T_State, matcher: M
 
 
 async def handle_random_bookmark_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-    pixiv_user_id = None
-
-    if isinstance(event, MessageEvent):
-        qq_id = event.user_id
-        pixiv_user_id = await pixiv_binding_manager.get_binding(qq_id)
-
-    if pixiv_user_id is None:
-        pixiv_user_id = conf.pixiv_random_bookmark_user_id
-
-    if pixiv_user_id is None:
-        await matcher.send("未绑定Pixiv账号")
-    else:
-        await distributor.distribute_random_bookmark(pixiv_user_id, bot=bot, event=event)
+    await distributor.distribute_random_bookmark(bot=bot, event=event)
 
 
 async def handle_random_illust_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):

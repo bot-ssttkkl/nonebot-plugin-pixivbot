@@ -382,21 +382,21 @@ class PixivDataSource:
             return bio.getvalue()
 
 
-data_source = PixivDataSource(db_name=conf.pixiv_mongo_database_name,
+pixiv_data_source = PixivDataSource(db_name=conf.pixiv_mongo_database_name,
                               proxy=conf.pixiv_proxy,
                               timeout=conf.pixiv_query_timeout,
                               compression_enabled=conf.pixiv_compression_enabled,
                               compression_max_size=conf.pixiv_compression_max_size,
                               compression_quantity=conf.pixiv_compression_quantity)
 
-get_driver().on_startup(data_source.start)
-get_driver().on_shutdown(data_source.shutdown)
+get_driver().on_startup(pixiv_data_source.start)
+get_driver().on_shutdown(pixiv_data_source.shutdown)
 
 
 @get_driver().on_startup
 async def do_refresh():
     try:
-        result = await data_source.refresh(conf.pixiv_refresh_token)
+        result = await pixiv_data_source.refresh(conf.pixiv_refresh_token)
         logger.success(
             f"refresh access token successfully. new token expires in {result.expires_in} seconds.")
         logger.debug(f"access_token: {result.access_token}")
@@ -419,4 +419,4 @@ async def do_refresh():
         scheduler.add_job(do_refresh, trigger=DateTrigger(next_time))
 
 
-__all__ = ('PixivDataSource', "data_source", "LazyIllust")
+__all__ = ('PixivDataSource', "pixiv_data_source", "LazyIllust")
