@@ -116,8 +116,8 @@ class PixivDataSource:
                 if next_qs is None:
                     break
 
-                # if 'viewed' in next_qs:
-                #     del next_qs['viewed']  # 由于pixivpy-async的illust_recommended的bug，需要删掉这个参数
+                if 'viewed' in next_qs:
+                    del next_qs['viewed']  # 由于pixivpy-async的illust_recommended的bug，需要删掉这个参数
 
                 cur_page = cur_page + 1
                 # logger.debug("loading page " + str(cur_page + 1))
