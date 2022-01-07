@@ -33,10 +33,9 @@ class PixivDataSource:
     _cache_manager: CacheManager
     _compress_executor: ThreadPoolExecutor
 
-    def __init__(self, db_name, proxy=None, timeout=60,
+    def __init__(self, proxy=None, timeout=60,
                  compression_enabled=False, compression_max_size=None,
                  compression_quantity=None):
-        self.db_name = db_name
         self.proxy = proxy
         self.timeout = timeout
         self.compression_enabled = compression_enabled
@@ -51,7 +50,7 @@ class PixivDataSource:
         self._papi = AppPixivAPI(client=self._pclient.start())
         self._cache_manager = CacheManager()
         self._cache_manager.start()
-        self._cache_data_souce = CacheDataSource(self.db_name)
+        self._cache_data_souce = CacheDataSource()
 
     async def shutdown(self):
         await self._pclient.close()
@@ -382,8 +381,7 @@ class PixivDataSource:
             return bio.getvalue()
 
 
-pixiv_data_source = PixivDataSource(db_name=conf.pixiv_mongo_database_name,
-                              proxy=conf.pixiv_proxy,
+pixiv_data_source = PixivDataSource(proxy=conf.pixiv_proxy,
                               timeout=conf.pixiv_query_timeout,
                               compression_enabled=conf.pixiv_compression_enabled,
                               compression_max_size=conf.pixiv_compression_max_size,

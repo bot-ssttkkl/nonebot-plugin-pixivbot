@@ -1,19 +1,10 @@
 import typing
 from ..config import conf
 from pymongo import MongoClient, ReturnDocument
-from .mongo_conn import mongo_client
+from .mongo_conn import db
 
 
 class Subscriptions:
-    db_name: str
-
-    def __init__(self, db_name: str):
-        self.db_name = db_name
-
-    @property
-    def _db(self) -> MongoClient:
-        return mongo_client()[self.db_name]
-
     def get(self, user_id: typing.Optional[int] = None,
             group_id: typing.Optional[int] = None):
         if user_id is None and group_id is None:
@@ -25,7 +16,7 @@ class Subscriptions:
         else:
             raise ValueError("Both user_id and group_id are not None.")
 
-        return self._db.subscription.find(query)
+        return db().subscription.find(query)
 
     def update(self, type: str,
                schedule: typing.Sequence[int],
@@ -39,7 +30,7 @@ class Subscriptions:
         else:
             raise ValueError("Both user_id and group_id are not None.")
 
-        return self._db.subscription.find_one_and_replace(query, {**query,
+        return db().subscription.find_one_and_replace(query, {**query,
                                                                   "schedule": schedule,
                                                                   "kwargs": kwargs},
                                                           return_document=ReturnDocument.BEFORE,
@@ -56,10 +47,10 @@ class Subscriptions:
             raise ValueError("Both user_id and group_id are not None.")
 
         if type != 'all':
-            return self._db.subscription.delete_one(query)
+            return db().subscription.delete_one(query)
         else:
             del query["type"]
-            return self._db.subscription.delete_many(query)
+            return db().subscription.delete_many(query)
 
 
-subscriptions = Subscriptions(conf.pixiv_mongo_database_name)
+subscriptions = Subscriptions()
