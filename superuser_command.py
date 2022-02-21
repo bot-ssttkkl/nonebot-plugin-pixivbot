@@ -46,7 +46,8 @@ async def handle_superuser_command(bot: Bot, event: Event, state: T_State, match
 
 @superuser_command.handle()
 async def handle_bind(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-    if state["args"][0] != "bind":
+    args = state["args"]
+    if len(args) == 0 or args[0] != "bind":
         return
 
     # sample: /pixivbot bind 114514
@@ -56,7 +57,7 @@ async def handle_bind(bot: Bot, event: Event, state: T_State, matcher: Matcher):
         else:
             raise AttributeError("user_id")
 
-        if len(state["args"]) < 2:
+        if len(args) < 2:
             pixiv_id = await pixiv_bindings.get_binding(qq_id)
 
             if pixiv_id is not None:
@@ -77,7 +78,8 @@ async def handle_bind(bot: Bot, event: Event, state: T_State, matcher: Matcher):
 
 @superuser_command.handle()
 async def handle_unbind(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-    if state["args"][0] != "unbind":
+    args = state["args"]
+    if len(args) == 0 or state["args"][0] != "unbind":
         return
 
     # sample: /pixivbot unbind
@@ -96,13 +98,14 @@ async def handle_unbind(bot: Bot, event: Event, state: T_State, matcher: Matcher
 
 @superuser_command.handle()
 async def handle_subscribe(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-    if state["args"][0] != "subscribe":
+    args = state["args"]
+    if len(args) == 0 or state["args"][0] != "subscribe":
         return
     if not await SUPERUSER(bot, event):
         await matcher.send("只有超级用户可以调用该命令")
 
     # sample: /pixivbot subscribe random_bookmark 00:00+00:30*x
-    if len(state["args"]) < 3:
+    if len(args) < 3:
         subscription = await sch_distributor.all_subscription(**_get_user_or_group_id(event))
         msg = "当前订阅：\n"
         if len(subscription) > 0:
@@ -120,7 +123,7 @@ async def handle_subscribe(bot: Bot, event: Event, state: T_State, matcher: Matc
     try:
         kwargs = _get_user_or_group_id(event)
 
-        if state["args"][1] == "random_bookmark":
+        if args[1] == "random_bookmark":
             if isinstance(event, MessageEvent):
                 qq_id = event.user_id
             else:
@@ -131,8 +134,7 @@ async def handle_subscribe(bot: Bot, event: Event, state: T_State, matcher: Matc
                 pixiv_user_id = conf.pixiv_random_bookmark_user_id
             kwargs["pixiv_user_id"] = pixiv_user_id
 
-        await sch_distributor.subscribe(state["args"][1], state["args"][2], bot=bot,
-                                        **kwargs)
+        await sch_distributor.subscribe(args[1], args[2], bot=bot, **kwargs)
         await matcher.send("ok")
     except Exception as e:
         logger.exception(e)
@@ -141,18 +143,19 @@ async def handle_subscribe(bot: Bot, event: Event, state: T_State, matcher: Matc
 
 @superuser_command.handle()
 async def handle_unsubscribe(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-    if state["args"][0] != "unsubscribe":
+    args = state["args"]
+    if len(args) == 0 or state["args"][0] != "unsubscribe":
         return
     if not await SUPERUSER(bot, event):
         await matcher.send("只有超级用户可以调用该命令")
 
     # sample: /pixivbot unsubscribe random_bookmark
-    if len(state["args"]) < 2:
+    if len(args) < 2:
         await matcher.send("sample: /pixivbot unsubscribe random_bookmark")
         return
 
     try:
-        await sch_distributor.unsubscribe(state["args"][1], **_get_user_or_group_id(event))
+        await sch_distributor.unsubscribe(args[1], **_get_user_or_group_id(event))
         await matcher.send("ok")
     except Exception as e:
         logger.exception(e)

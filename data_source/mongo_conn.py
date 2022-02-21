@@ -12,7 +12,7 @@ def db():
 @get_driver().on_startup
 async def connect_to_mongodb():
     global _mongodb_client
-    _mongodb_client = AsyncIOMotorClient(conf.pixiv_mongo_conn_url)
+    _mongodb_client = AsyncIOMotorClient(f'{conf.pixiv_mongo_conn_url}/{conf.pixiv_mongo_database_name}')
     logger.opt(colors=True).info("<y>Connect to Mongodb</y>")
 
     # ensure index
