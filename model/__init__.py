@@ -1,5 +1,5 @@
 from .Illust import Illust
-# from .LazyIllust import LazyIllust
+from .LazyIllust import LazyIllust
 from .User import User
 
-__all__ = ("Illust", "User")
+__all__ = ("Illust", "LazyIllust", "User")

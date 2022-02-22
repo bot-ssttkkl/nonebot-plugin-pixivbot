@@ -11,6 +11,7 @@ class Config(BaseSettings):
     pixiv_mongo_database_name: str
     pixiv_proxy: typing.Optional[str]
     pixiv_query_timeout: int = 60
+    pixiv_simultaneous_query: int = 8
 
     pixiv_block_tags: typing.List[str] = []
     pixiv_block_action: str = "no_image"

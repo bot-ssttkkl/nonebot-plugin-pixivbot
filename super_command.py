@@ -7,7 +7,7 @@ from nonebot.rule import to_me
 from nonebot.typing import T_State
 
 from .scheduler import scheduler
-from .data_source import pixiv_bindings
+from .data_source import pixiv_bindings, pixiv_data_source
 from .config import conf
 
 _help_text = """常规语句：
@@ -40,10 +40,10 @@ def _get_user_or_group_id(event: Event):
         return {}
 
 
-superuser_command = on_command("pixivbot", rule=to_me(), priority=5)
+super_command = on_command("pixivbot", rule=to_me(), priority=5)
 
 
-@superuser_command.handle()
+@super_command.handle()
 async def handle_super_command(bot: Bot, event: Event, state: T_State, matcher: Matcher):
     state["args"] = str(event.get_message()).strip().split()
     # 未跟参数或参数为help时，输出帮助信息
@@ -52,7 +52,7 @@ async def handle_super_command(bot: Bot, event: Event, state: T_State, matcher: 
         matcher.stop_propagation()
 
 
-@superuser_command.handle()
+@super_command.handle()
 async def handle_bind(bot: Bot, event: Event, state: T_State, matcher: Matcher):
     args = state["args"]
     if len(args) == 0 or args[0] != "bind":
@@ -79,10 +79,10 @@ async def handle_bind(bot: Bot, event: Event, state: T_State, matcher: Matcher):
             await matcher.send("Pixiv账号绑定成功")
     except Exception as e:
         logger.exception(e)
-        await matcher.send(str(e))
+        await matcher.send(f"发生内部错误：{e}")
 
 
-@superuser_command.handle()
+@super_command.handle()
 async def handle_unbind(bot: Bot, event: Event, state: T_State, matcher: Matcher):
     args = state["args"]
     if len(args) == 0 or state["args"][0] != "unbind":
@@ -99,10 +99,10 @@ async def handle_unbind(bot: Bot, event: Event, state: T_State, matcher: Matcher
         await matcher.send("Pixiv账号解绑成功")
     except Exception as e:
         logger.exception(e)
-        await matcher.send(str(e))
+        await matcher.send(f"发生内部错误：{e}")
 
 
-@superuser_command.handle()
+@super_command.handle()
 async def handle_subscribe(bot: Bot, event: Event, state: T_State, matcher: Matcher):
     args = state["args"]
     if len(args) == 0 or state["args"][0] != "subscribe":
@@ -144,10 +144,10 @@ async def handle_subscribe(bot: Bot, event: Event, state: T_State, matcher: Matc
             await matcher.send("订阅成功")
     except Exception as e:
         logger.exception(e)
-        await matcher.send(str(e))
+        await matcher.send(f"发生内部错误：{e}")
 
 
-@superuser_command.handle()
+@super_command.handle()
 async def handle_unsubscribe(bot: Bot, event: Event, state: T_State, matcher: Matcher):
     args = state["args"]
     if len(args) == 0 or state["args"][0] != "unsubscribe":
@@ -173,4 +173,21 @@ async def handle_unsubscribe(bot: Bot, event: Event, state: T_State, matcher: Ma
             await matcher.send("取消订阅成功")
     except Exception as e:
         logger.exception(e)
-        await matcher.send(str(e))
+        await matcher.send(f"发生内部错误：{e}")
+
+
+@super_command.handle()
+async def handle_invalidate_cache(bot: Bot, event: Event, state: T_State, matcher: Matcher):
+    args = state["args"]
+    if len(args) == 0 or state["args"][0] != "invalidate_cache":
+        return
+    if not await SUPERUSER(bot, event):
+        await matcher.send("只有超级用户可以调用该命令")
+        return
+
+    try:
+        await pixiv_data_source.invalidate_cache()
+        await matcher.send("ok")
+    except Exception as e:
+        logger.exception(e)
+        await matcher.send(f"发生内部错误：{e}")

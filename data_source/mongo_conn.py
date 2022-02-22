@@ -33,22 +33,25 @@ async def connect_to_mongodb():
         db['illust_detail_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600*24*7)
         
         db['illust_ranking_cache'].create_index([("mode", 1)], unique=True)
-        db['illust_ranking_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600*3)
+        db['illust_ranking_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600*6)
         
         db['search_illust_cache'].create_index([("word", 1)], unique=True)
-        db['search_illust_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600*3)
+        db['search_illust_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600*24)
         
         db['search_user_cache'].create_index([("word", 1)], unique=True)
         db['search_user_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600*24)
         
         db['user_illusts_cache'].create_index([("user_id", 1)], unique=True)
-        db['user_illusts_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600*3)
+        db['user_illusts_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600*24)
+        
+        db['user_bookmarks_cache'].create_index([("user_id", 1)], unique=True)
+        db['user_bookmarks_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600*24)
         
         db['other_cache'].create_index([("type", 1)], unique=True)
-        db['other_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600*3)
+        db['other_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600*6)
     except Exception as e:
         logger.exception(e)
-        logger.warning("Error occured during ensuring indexes.")
+        logger.warning("Error occured during creating indexes.")
 
 @get_driver().on_shutdown
 async def free_conn():

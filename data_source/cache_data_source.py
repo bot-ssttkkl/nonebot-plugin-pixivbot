@@ -3,17 +3,17 @@ from datetime import datetime
 
 import bson
 
-from ..model import Illust, User
+from ..model import Illust, User, LazyIllust
 from .mongo_conn import db
 
 from pymongo import UpdateOne
-
+from nonebot import logger
 
 class CacheDataSource:
     def _make_illusts_cache_loader(self, collection_name: str,
                                    arg_name: str,
                                    arg: typing.Any):
-        async def cache_loader() -> typing.Optional[typing.List[typing.Tuple[int, typing.Optional[Illust]]]]:
+        async def cache_loader() -> typing.Optional[typing.List[LazyIllust]]:
             result = db()[collection_name].aggregate([
                 {
                     "$match": {arg_name: arg}
@@ -46,13 +46,17 @@ class CacheDataSource:
             ])
 
             cache = []
+            # broken = 0
             async for x in result:
                 if "illust" in x and x["illust"] is not None:
-                    cache.append((x["illust_id"],
-                                  Illust.parse_obj(x["illust"])))
+                    cache.append(LazyIllust(
+                        x["illust_id"], Illust.parse_obj(x["illust"])))
                 else:
-                    cache.append((x["illust_id"],
-                                  None))
+                    cache.append(LazyIllust(x["illust_id"]))
+                    # broken += 1
+
+            # logger.info(
+            #     f"{len(cache)} got, illust_detail of {broken} are missed")
 
             if len(cache) != 0:
                 return cache
@@ -64,7 +68,7 @@ class CacheDataSource:
     def _make_illusts_cache_updater(self, collection_name: str,
                                     arg_name: str,
                                     arg: typing.Any):
-        async def cache_updater(content: typing.List[Illust]):
+        async def cache_updater(content: typing.List[typing.Union[Illust, LazyIllust]]):
             now = datetime.now()
             await db()[collection_name].update_one(
                 {arg_name: arg},
@@ -77,7 +81,10 @@ class CacheDataSource:
 
             opt = []
             for illust in content:
-                if illust is not None:
+                if isinstance(illust, LazyIllust) and illust.content is not None:
+                    illust = illust.content
+
+                if isinstance(illust, Illust):
                     opt.append(UpdateOne(
                         {"illust.id": illust.id},
                         {"$set": {
@@ -86,7 +93,8 @@ class CacheDataSource:
                         }},
                         upsert=True
                     ))
-            await db().illust_detail_cache.bulk_write(opt, ordered=False)
+            if len(opt) != 0:
+                await db().illust_detail_cache.bulk_write(opt, ordered=False)
 
         return cache_updater
 
@@ -111,7 +119,7 @@ class CacheDataSource:
         return self._make_illusts_cache_loader(
             "search_illust_cache", "word", word)()
 
-    def update_search_illust(self, word: str, content: typing.List[Illust]):
+    def update_search_illust(self, word: str, content: typing.Union[Illust, LazyIllust]):
         return self._make_illusts_cache_updater(
             "search_illust_cache", "word", word)(content)
 
@@ -119,7 +127,7 @@ class CacheDataSource:
         return self._make_illusts_cache_loader(
             "user_illusts_cache", "user_id", user_id)()
 
-    def update_user_illusts(self, user_id: int, content: typing.List[Illust]):
+    def update_user_illusts(self, user_id: int, content: typing.Union[Illust, LazyIllust]):
         return self._make_illusts_cache_updater(
             "user_illusts_cache", "user_id", user_id)(content)
 
@@ -127,7 +135,7 @@ class CacheDataSource:
         return self._make_illusts_cache_loader(
             "user_bookmarks_cache", "user_id", user_id)()
 
-    def update_user_bookmarks(self, user_id: int, content: typing.List[Illust]):
+    def update_user_bookmarks(self, user_id: int, content: typing.Union[Illust, LazyIllust]):
         return self._make_illusts_cache_updater(
             "user_bookmarks_cache", "user_id", user_id)(content)
 
@@ -135,7 +143,7 @@ class CacheDataSource:
         return self._make_illusts_cache_loader(
             "other_cache", "type", "recommended_illusts")()
 
-    def update_recommended_illusts(self, content: typing.List[Illust]):
+    def update_recommended_illusts(self, content: typing.Union[Illust, LazyIllust]):
         return self._make_illusts_cache_updater(
             "other_cache", "type", "recommended_illusts")(content)
 
@@ -143,7 +151,7 @@ class CacheDataSource:
         return self._make_illusts_cache_loader(
             "other_cache", "type", mode + "_ranking")()
 
-    def update_illust_ranking(self, mode: str, content: typing.List[Illust]):
+    def update_illust_ranking(self, mode: str, content: typing.Union[Illust, LazyIllust]):
         return self._make_illusts_cache_updater(
             "other_cache", "type", mode + "_ranking")(content)
 
@@ -182,3 +190,13 @@ class CacheDataSource:
             }},
             upsert=True
         )
+
+    async def invalidate_cache(self):
+        await db().download_cache.delete_many({})
+        await db().illust_detail_cache.delete_many({})
+        await db().illust_ranking_cache.delete_many({})
+        await db().search_illust_cache.delete_many({})
+        await db().search_user_cache.delete_many({})
+        await db().user_illusts_cache.delete_many({})
+        await db().user_bookmarks_cache.delete_many({})
+        await db().other_cache.delete_many({})

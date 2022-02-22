@@ -13,7 +13,7 @@ from nonebot.adapters.cqhttp.event import Event, MessageEvent
 
 from .config import Config, conf
 from .data_source import PixivDataSource, pixiv_data_source, pixiv_bindings
-from .model import Illust
+from .model import Illust, LazyIllust
 from .utils.errors import NoRetryError, QueryError
 
 
@@ -55,7 +55,7 @@ def _Distributor__auto_retry(func):
                 return
             except asyncio.TimeoutError as e:
                 err = e
-                logger.warning(e)
+                logger.warning("Timeout")
             except Exception as e:
                 err = e
                 logger.exception(e)
@@ -64,7 +64,7 @@ def _Distributor__auto_retry(func):
             if isinstance(err, asyncio.TimeoutError):
                 await self._send(bot, "获取超时", event=event, user_id=user_id, group_id=group_id)
             else:
-                await self._send(bot, "发生内部错误：" + str(err), event=event, user_id=user_id, group_id=group_id)
+                await self._send(bot, f"发生内部错误：<{type(err)}>{err}", event=event, user_id=user_id, group_id=group_id)
 
     return wrapped
 
@@ -85,8 +85,11 @@ class Distributor:
             "random_bookmark": self.distribute_random_bookmark,
         }
 
-    async def make_illust_msg(self, illust: Illust,
+    async def make_illust_msg(self, illust: typing.Union[LazyIllust, Illust],
                               number: typing.Optional[int] = None) -> Message:
+        if isinstance(illust, LazyIllust):
+            illust = await illust.get()
+
         msg = Message()
 
         if illust.has_tags(self.conf.pixiv_block_tags):
@@ -113,53 +116,56 @@ class Distributor:
                            f"https://www.pixiv.net/artworks/{illust.id}")
             return msg
 
-    async def make_illusts_msg(self, illusts: typing.List[Illust],
+    async def make_illusts_msg(self, illusts: typing.List[typing.Union[LazyIllust, Illust]],
                                num_start: int = 1) -> Message:
-        msg = Message()
+        tasks = []
         for i, illust in enumerate(illusts):
-            msg.extend(await self.make_illust_msg(illust, i + num_start))
+            tasks.append(asyncio.create_task(self.make_illust_msg(illust, i + num_start)))
+
+        await asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED)
+
+        msg = Message()
+        for t in tasks:
+            msg.extend(await t)
         return msg
 
     @staticmethod
-    async def random_illust(illusts: typing.List[Illust], random_method: str) -> Illust:
-        if random_method == "bookmark_proportion":
-            # 概率正比于书签数
-            sum_bm = 0
-            for x in illusts:
-                if x is not None:
-                    sum_bm += x.total_bookmarks + 10  # 加10平滑
-                else:
-                    sum_bm += 10
-
-            probability = [0] * len(illusts)
-            for i, x in enumerate(illusts):
-                if x is not None:
-                    probability[i] = (x.total_bookmarks + 10) / sum_bm
-                else:
-                    probability[i] = 10 / sum_bm
-        elif random_method == "view_proportion":
-            # 概率正比于查看人数
-            illusts = [await x.get(local=True) for x in illusts]
-
-            sum_view = 0
-            for x in illusts:
-                sum_view += x.total_view + 10  # 加10平滑
-            probability = [(x.total_view + 10) / sum_view for x in illusts]
-        elif random_method == "timedelta_proportion":
-            # 概率正比于 exp((当前时间戳 - 画像发布时间戳) / 3e7)
-            illusts = [await x.get(local=True) for x in illusts]
-
-            now = time.time()
-            delta_time = [now - x.create_date.timestamp() for x in illusts]
-            probability = [math.exp(-x * 3e-7) for x in delta_time]
-            sum_poss = sum(probability)
-            for i in range(len(probability)):
-                probability[i] = probability[i] / sum_poss
-        elif random_method == "uniform":
+    async def random_illust(illusts: typing.List[LazyIllust], random_method: str) -> LazyIllust:
+        if random_method == "uniform":
             # 概率相等
             probability = [1 / len(illusts)] * len(illusts)
         else:
-            raise ValueError(f"illegal random_method value: {random_method}")
+            illusts = filter(lambda x: x.loaded, illusts)
+            illusts = list(illusts)
+            if random_method == "bookmark_proportion":
+                # 概率正比于书签数
+                sum_bm = 0
+                for x in illusts:
+                    sum_bm += x.total_bookmarks + 10  # 加10平滑
+
+                probability = [0] * len(illusts)
+                for i, x in enumerate(illusts):
+                    probability[i] = (x.total_bookmarks + 10) / sum_bm
+            elif random_method == "view_proportion":
+                # 概率正比于查看人数
+                sum_view = 0
+                for x in illusts:
+                    sum_view += x.total_view + 10  # 加10平滑
+
+                probability = [0] * len(illusts)
+                for i, x in enumerate(illusts):
+                    probability[i] = (x.total_view + 10) / sum_view
+            elif random_method == "timedelta_proportion":
+                # 概率正比于 exp((当前时间戳 - 画像发布时间戳) / 3e7)
+                now = time.time()
+                delta_time = [now - x.create_date.timestamp() for x in illusts]
+                probability = [math.exp(-x * 3e-7) for x in delta_time]
+                sum_poss = sum(probability)
+                for i in range(len(probability)):
+                    probability[i] = probability[i] / sum_poss
+            else:
+                raise ValueError(
+                    f"illegal random_method value: {random_method}")
 
         for i in range(1, len(probability)):
             probability[i] = probability[i] + probability[i - 1]
@@ -275,7 +281,7 @@ class Distributor:
         if len(illusts) > 0:
             illust = await self.random_illust(
                 illusts, self.conf.pixiv_random_illust_method)
-            logger.info(f"{len(illusts)} illusts found, select {illust.id}.")
+            logger.info(f"select {illust.id}.")
 
             msg = await self.make_illust_msg(illust)
             await self._send(bot, msg, event=event, user_id=user_id, group_id=group_id)
@@ -306,7 +312,7 @@ class Distributor:
         if len(illusts) > 0:
             illust = await self.random_illust(
                 illusts, self.conf.pixiv_random_illust_method)
-            logger.info(f"{len(illusts)} illusts found, select {illust.id}.")
+            logger.info(f"select {illust.id}.")
 
             msg = await self.make_illust_msg(illust)
             await self._send(bot, msg, event=event, user_id=user_id, group_id=group_id)
@@ -329,7 +335,7 @@ class Distributor:
         if len(illusts) > 0:
             illust = await self.random_illust(
                 illusts, self.conf.pixiv_random_recommended_illust_method)
-            logger.info(f"{len(illusts)} illusts found, select {illust.id}.")
+            logger.info(f"select {illust.id}.")
 
             msg = await self.make_illust_msg(illust)
             await self._send(bot, msg, event=event, user_id=user_id, group_id=group_id)
@@ -362,7 +368,7 @@ class Distributor:
         if len(illusts) > 0:
             illust = await self.random_illust(
                 illusts, self.conf.pixiv_random_bookmark_method)
-            logger.info(f"{len(illusts)} illusts found, select {illust.id}.")
+            logger.info(f"select {illust.id}.")
 
             msg = await self.make_illust_msg(illust)
             await self._send(bot, msg, event=event, user_id=user_id, group_id=group_id)
