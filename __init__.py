@@ -7,4 +7,4 @@ nonebot-plugin-pixivbot
 """
 
 from . import common_command
-from . import superuser_command
+from . import super_command
