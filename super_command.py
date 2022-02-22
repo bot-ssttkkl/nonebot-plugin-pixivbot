@@ -6,7 +6,7 @@ from nonebot.permission import SUPERUSER
 from nonebot.rule import to_me
 from nonebot.typing import T_State
 
-from .scheduled_distributor import sch_distributor
+from .scheduler import scheduler
 from .data_source import pixiv_bindings
 from .config import conf
 
@@ -114,7 +114,7 @@ async def handle_subscribe(bot: Bot, event: Event, state: T_State, matcher: Matc
     # sample: /pixivbot subscribe random_bookmark 00:00+00:30*x
     try:
         if len(args) < 3:
-            subscription = await sch_distributor.all_subscription(**_get_user_or_group_id(event))
+            subscription = await scheduler.all_subscription(**_get_user_or_group_id(event))
             msg = "当前订阅：\n"
             if len(subscription) > 0:
                 for x in subscription:
@@ -140,7 +140,7 @@ async def handle_subscribe(bot: Bot, event: Event, state: T_State, matcher: Matc
                     pixiv_user_id = conf.pixiv_random_bookmark_user_id
                 kwargs["pixiv_user_id"] = pixiv_user_id
 
-            await sch_distributor.subscribe(args[1], args[2], bot=bot, **kwargs)
+            await scheduler.subscribe(args[1], args[2], bot=bot, **kwargs)
             await matcher.send("订阅成功")
     except Exception as e:
         logger.exception(e)
@@ -159,7 +159,7 @@ async def handle_unsubscribe(bot: Bot, event: Event, state: T_State, matcher: Ma
     # sample: /pixivbot unsubscribe random_bookmark
     try:
         if len(args) < 2:
-            subscription = await sch_distributor.all_subscription(**_get_user_or_group_id(event))
+            subscription = await scheduler.all_subscription(**_get_user_or_group_id(event))
             msg = "当前订阅：\n"
             if len(subscription) > 0:
                 for x in subscription:
@@ -169,7 +169,7 @@ async def handle_unsubscribe(bot: Bot, event: Event, state: T_State, matcher: Ma
             msg += "\n"
             await matcher.send("命令格式：/pixivbot unsubscribe <type>")
         else:
-            await sch_distributor.unsubscribe(args[1], **_get_user_or_group_id(event))
+            await scheduler.unsubscribe(args[1], **_get_user_or_group_id(event))
             await matcher.send("取消订阅成功")
     except Exception as e:
         logger.exception(e)

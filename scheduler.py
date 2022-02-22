@@ -11,7 +11,7 @@ from .distributor import distributor, Distributor
 from .data_source import subscriptions, Subscriptions
 
 
-class ScheduledDistributor:
+class Scheduler:
     TYPES = ["ranking", "random_recommended_illust", "random_bookmark"]
 
     def __init__(self, subscriptions: Subscriptions, distributor: Distributor):
@@ -21,9 +21,9 @@ class ScheduledDistributor:
     @staticmethod
     def _make_job_id(type: str, user_id: typing.Optional[int], group_id: typing.Optional[int]):
         if user_id is not None:
-            return f'scheduled_distribute {type} u{user_id}'
+            return f'scheduler {type} u{user_id}'
         else:
-            return f'scheduled_distribute {type} g{group_id}'
+            return f'scheduler {type} g{group_id}'
 
     async def start(self, bot: Bot):
         async for x in self.subscriptions.get():
@@ -32,7 +32,7 @@ class ScheduledDistributor:
             elif "group_id" in x and x["group_id"] is not None:
                 user_id, group_id = None, x["group_id"]
             else:
-                raise ValueError("Both user_id and group_id is None")
+                raise ValueError("Both user_id and group_id are None")
 
             self._schedule(x["type"], x["schedule"], bot=bot,
                            user_id=user_id, group_id=group_id, **x["kwargs"])
@@ -42,7 +42,7 @@ class ScheduledDistributor:
         scheduler = require("nonebot_plugin_apscheduler").scheduler
         jobs = scheduler.get_jobs()
         for j in jobs:
-            if j.id.startswith("scheduled_distribute"):
+            if j.id.startswith("scheduler"):
                 j.remove()
 
     @staticmethod
@@ -137,10 +137,10 @@ class ScheduledDistributor:
         return [x async for x in self.subscriptions.get(user_id, group_id)]
 
 
-sch_distributor = ScheduledDistributor(subscriptions, distributor)
+scheduler = Scheduler(subscriptions, distributor)
 
 
-get_driver().on_bot_connect(sch_distributor.start)
-get_driver().on_bot_disconnect(sch_distributor.stop)
+get_driver().on_bot_connect(scheduler.start)
+get_driver().on_bot_disconnect(scheduler.stop)
 
-__all__ = ("ScheduledDistributor", "sch_distributor")
+__all__ = ("Scheduler", "scheduler")
