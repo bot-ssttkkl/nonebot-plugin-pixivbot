@@ -1,8 +1,9 @@
 # import nonebot
 from datetime import datetime
 
-from nonebot import Bot, on_regex, on_notice
-from nonebot.adapters.cqhttp import Event, PokeNotifyEvent, MessageEvent
+from nonebot import on_regex, on_notice
+from nonebot.adapters import Bot, Event
+from nonebot.adapters.onebot.v11 import PokeNotifyEvent, MessageEvent
 from nonebot.log import logger
 from nonebot.matcher import Matcher
 from nonebot.typing import T_State

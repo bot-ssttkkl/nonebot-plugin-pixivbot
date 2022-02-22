@@ -4,7 +4,7 @@ from datetime import datetime
 
 from apscheduler.triggers.interval import IntervalTrigger
 from nonebot import require, logger, get_driver
-from nonebot.adapters.cqhttp import Bot
+from nonebot.adapters.onebot.v11 import Bot
 
 from .config import conf
 from .distributor import distributor, Distributor

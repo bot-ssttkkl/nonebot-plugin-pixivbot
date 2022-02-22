@@ -7,9 +7,9 @@ import functools
 from io import BytesIO
 
 from nonebot import logger
-from nonebot.adapters.cqhttp import Bot
-from nonebot.adapters.cqhttp import Message, MessageSegment
-from nonebot.adapters.cqhttp.event import Event, MessageEvent
+from nonebot.adapters.onebot.v11 import Bot
+from nonebot.adapters.onebot.v11 import Message, MessageSegment
+from nonebot.adapters.onebot.v11.event import Event, MessageEvent
 
 from .config import Config, conf
 from .data_source import PixivDataSource, pixiv_data_source, pixiv_bindings

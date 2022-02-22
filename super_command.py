@@ -1,6 +1,6 @@
 from nonebot import on_command, logger
-from nonebot.adapters.cqhttp import Bot, Event
-from nonebot.adapters.cqhttp.event import GroupMessageEvent
+from nonebot.adapters import Bot, Event
+from nonebot.adapters.onebot.v11 import GroupMessageEvent
 from nonebot.matcher import Matcher
 from nonebot.permission import SUPERUSER
 from nonebot.rule import to_me
@@ -45,7 +45,7 @@ super_command = on_command("pixivbot", rule=to_me(), priority=5)
 
 @super_command.handle()
 async def handle_super_command(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-    state["args"] = str(event.get_message()).strip().split()
+    state["args"] = str(event.get_message()).strip().split()[1:]
     # 未跟参数或参数为help时，输出帮助信息
     if len(state["args"]) == 0 or state["args"][0] == "help":
         await matcher.send(_help_text)
