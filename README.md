@@ -5,7 +5,7 @@ nonebot_plugin_pixivbot
 
 事前准备：登录pixiv账号并获取refresh_token。（参考：[@ZipFile Pixiv OAuth Flow](https://gist.github.com/ZipFile/c9ebedb224406f4f11845ab700124362)）
 
-1. 参考[安装 | NoneBot](https://v2.nonebot.dev/guide/installation.html)安装NoneBot和go-cqhttp适配器；
+1. 参考[安装 | NoneBot](https://v2.nonebot.dev/guide/installation.html)安装NoneBot和OneBot V11适配器；
 2. 参考[创建一个完整的项目 | NoneBot](https://v2.nonebot.dev/guide/creating-a-project.html)创建一个Bot实例；
 3. 将本插件clone到插件目录；
 4. 别忘了`pip install -r requirement.txt`安装依赖包；
