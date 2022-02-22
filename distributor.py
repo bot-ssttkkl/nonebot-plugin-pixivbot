@@ -13,9 +13,8 @@ from nonebot.adapters.cqhttp.event import Event, MessageEvent
 
 from .config import Config, conf
 from .data_source import PixivDataSource, pixiv_data_source, pixiv_bindings
-from .model import Illust, LazyIllust
-from .utils.errors import NoRetryError
-from .utils.errors import QueryError
+from .model import Illust
+from .utils.errors import NoRetryError, QueryError
 
 
 def _Distributor__fill_id(func):
@@ -26,9 +25,9 @@ def _Distributor__fill_id(func):
                 group_id: typing.Optional[int] = None,
                 silently: bool = False, **kwargs):
         if event is not None:
-            if "group_id" in event.__fields__ and event.group_id:
+            if group_id is None and "group_id" in event.__fields__ and event.group_id:
                 group_id = event.group_id
-            if "user_id" in event.__fields__ and event.user_id:
+            if user_id is None and "user_id" in event.__fields__ and event.user_id:
                 user_id = event.user_id
         return func(self, *args, bot=bot, event=event, user_id=user_id, group_id=group_id, silently=silently, **kwargs)
     return wrapped
@@ -86,11 +85,8 @@ class Distributor:
             "random_bookmark": self.distribute_random_bookmark,
         }
 
-    async def make_illust_msg(self, illust: typing.Union[Illust, LazyIllust],
+    async def make_illust_msg(self, illust: Illust,
                               number: typing.Optional[int] = None) -> Message:
-        if isinstance(illust, LazyIllust):
-            illust = await illust.get()
-
         msg = Message()
 
         if illust.has_tags(self.conf.pixiv_block_tags):
@@ -117,7 +113,7 @@ class Distributor:
                            f"https://www.pixiv.net/artworks/{illust.id}")
             return msg
 
-    async def make_illusts_msg(self, illusts: typing.List[typing.Union[Illust, LazyIllust]],
+    async def make_illusts_msg(self, illusts: typing.List[Illust],
                                num_start: int = 1) -> Message:
         msg = Message()
         for i, illust in enumerate(illusts):
@@ -125,11 +121,9 @@ class Distributor:
         return msg
 
     @staticmethod
-    async def random_illust(illusts: typing.List[LazyIllust], random_method: str) -> Illust:
+    async def random_illust(illusts: typing.List[Illust], random_method: str) -> Illust:
         if random_method == "bookmark_proportion":
             # 概率正比于书签数
-            illusts = [await x.get(local=True) for x in illusts]
-
             sum_bm = 0
             for x in illusts:
                 if x is not None:
@@ -263,6 +257,7 @@ class Distributor:
         msg = await self.make_illust_msg(illust)
         await self._send(bot, msg, event=event, user_id=user_id, group_id=group_id)
 
+    @__fill_id
     @__auto_retry
     async def distribute_random_illust(self, word: str,
                                        *, bot: Bot,

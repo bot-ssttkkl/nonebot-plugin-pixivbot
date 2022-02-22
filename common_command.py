@@ -10,7 +10,6 @@ from nonebot.typing import T_State
 from .config import conf
 from .distributor import distributor
 from .utils import decode_integer
-from .data_source import pixiv_bindings
 
 
 def _parse_ranking_mode(mode):

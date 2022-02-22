@@ -6,32 +6,87 @@ import bson
 from ..model import Illust, User
 from .mongo_conn import db
 
+from pymongo import UpdateOne
+
 
 class CacheDataSource:
-    def _illusts_cache_loader_factory(self, collection_name: str,
-                                      arg_name: str,
-                                      arg: typing.Any):
-        async def cache_loader() -> typing.Optional[typing.List[int]]:
-            cache = await db()[collection_name].find_one({arg_name: arg})
-            if cache is not None:
-                return cache["illust_id"]
+    def _make_illusts_cache_loader(self, collection_name: str,
+                                   arg_name: str,
+                                   arg: typing.Any):
+        async def cache_loader() -> typing.Optional[typing.List[typing.Tuple[int, typing.Optional[Illust]]]]:
+            result = db()[collection_name].aggregate([
+                {
+                    "$match": {arg_name: arg}
+                },
+                {
+                    "$replaceWith": {"illust_id": "$illust_id"}
+                },
+                {
+                    "$unwind": "$illust_id"
+                },
+                {
+                    "$lookup": {
+                        "from": "illust_detail_cache",
+                        "localField": "illust_id",
+                        "foreignField": "illust.id",
+                        "as": "illusts"
+                    }
+                },
+                {
+                    "$replaceWith": {
+                        "$mergeObjects": [
+                            "$$ROOT",
+                            {"$arrayElemAt": ["$illusts", 0]}
+                        ]
+                    }
+                },
+                {
+                    "$project": {"_id": 0, "illust": 1, "illust_id": 1}
+                }
+            ])
+
+            cache = []
+            async for x in result:
+                if "illust" in x and x["illust"] is not None:
+                    cache.append((x["illust_id"],
+                                  Illust.parse_obj(x["illust"])))
+                else:
+                    cache.append((x["illust_id"],
+                                  None))
+
+            if len(cache) != 0:
+                return cache
             else:
                 return None
 
         return cache_loader
 
-    def _illusts_cache_updater_factory(self, collection_name: str,
-                                       arg_name: str,
-                                       arg: typing.Any):
-        async def cache_updater(content: typing.List[int]):
+    def _make_illusts_cache_updater(self, collection_name: str,
+                                    arg_name: str,
+                                    arg: typing.Any):
+        async def cache_updater(content: typing.List[Illust]):
+            now = datetime.now()
             await db()[collection_name].update_one(
                 {arg_name: arg},
                 {"$set": {
-                    "illust_id": content,
-                    "update_time": datetime.now()
+                    "illust_id": [illust.id for illust in content],
+                    "update_time": now
                 }},
                 upsert=True
             )
+
+            opt = []
+            for illust in content:
+                if illust is not None:
+                    opt.append(UpdateOne(
+                        {"illust.id": illust.id},
+                        {"$set": {
+                            "illust": illust.dict(),
+                            "update_time": now
+                        }},
+                        upsert=True
+                    ))
+            await db().illust_detail_cache.bulk_write(opt, ordered=False)
 
         return cache_updater
 
@@ -53,43 +108,43 @@ class CacheDataSource:
         )
 
     def search_illust(self, word: str):
-        return self._illusts_cache_loader_factory(
+        return self._make_illusts_cache_loader(
             "search_illust_cache", "word", word)()
 
-    def update_search_illust(self, word: str, content: typing.List[int]):
-        return self._illusts_cache_updater_factory(
+    def update_search_illust(self, word: str, content: typing.List[Illust]):
+        return self._make_illusts_cache_updater(
             "search_illust_cache", "word", word)(content)
 
     def user_illusts(self, user_id: int):
-        return self._illusts_cache_loader_factory(
+        return self._make_illusts_cache_loader(
             "user_illusts_cache", "user_id", user_id)()
 
-    def update_user_illusts(self, user_id: int, content: typing.List[int]):
-        return self._illusts_cache_updater_factory(
+    def update_user_illusts(self, user_id: int, content: typing.List[Illust]):
+        return self._make_illusts_cache_updater(
             "user_illusts_cache", "user_id", user_id)(content)
 
     def user_bookmarks(self, user_id: int):
-        return self._illusts_cache_loader_factory(
+        return self._make_illusts_cache_loader(
             "user_bookmarks_cache", "user_id", user_id)()
 
-    def update_user_bookmarks(self, user_id: int, content: typing.List[int]):
-        return self._illusts_cache_updater_factory(
+    def update_user_bookmarks(self, user_id: int, content: typing.List[Illust]):
+        return self._make_illusts_cache_updater(
             "user_bookmarks_cache", "user_id", user_id)(content)
 
     def recommended_illusts(self):
-        return self._illusts_cache_loader_factory(
+        return self._make_illusts_cache_loader(
             "other_cache", "type", "recommended_illusts")()
 
-    def update_recommended_illusts(self, content: typing.List[int]):
-        return self._illusts_cache_updater_factory(
+    def update_recommended_illusts(self, content: typing.List[Illust]):
+        return self._make_illusts_cache_updater(
             "other_cache", "type", "recommended_illusts")(content)
 
     def illust_ranking(self, mode: str):
-        return self._illusts_cache_loader_factory(
+        return self._make_illusts_cache_loader(
             "other_cache", "type", mode + "_ranking")()
 
-    def update_illust_ranking(self, mode: str, content: typing.List[int]):
-        return self._illusts_cache_updater_factory(
+    def update_illust_ranking(self, mode: str, content: typing.List[Illust]):
+        return self._make_illusts_cache_updater(
             "other_cache", "type", mode + "_ranking")(content)
 
     async def search_user(self, word: str) -> typing.Optional[typing.List[User]]:
