@@ -6,9 +6,8 @@ from apscheduler.triggers.interval import IntervalTrigger
 from nonebot import require, logger, get_driver
 from nonebot.adapters.onebot.v11 import Bot
 
-from .config import conf
-from .distributor import distributor, Distributor
 from .data_source import subscriptions, Subscriptions
+from .distributor import distributor, Distributor
 
 
 class Scheduler:
@@ -138,7 +137,6 @@ class Scheduler:
 
 
 scheduler = Scheduler(subscriptions, distributor)
-
 
 get_driver().on_bot_connect(scheduler.start)
 get_driver().on_bot_disconnect(scheduler.stop)

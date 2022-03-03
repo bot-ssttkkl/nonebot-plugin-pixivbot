@@ -5,6 +5,7 @@ from ..config import conf
 
 _mongodb_client: AsyncIOMotorClient = None
 
+
 def db():
     return _mongodb_client[conf.pixiv_mongo_database_name]
 
@@ -27,31 +28,32 @@ async def connect_to_mongodb():
         db['subscription'].create_index([("type", 1), ("group_id", 1)])
 
         db['download_cache'].create_index([("illust_id", 1)], unique=True)
-        db['download_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600*24*7)
-        
+        db['download_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600 * 24 * 7)
+
         db['illust_detail_cache'].create_index([("illust.id", 1)], unique=True)
-        db['illust_detail_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600*24*7)
-        
+        db['illust_detail_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600 * 24 * 7)
+
         db['illust_ranking_cache'].create_index([("mode", 1)], unique=True)
-        db['illust_ranking_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600*6)
-        
+        db['illust_ranking_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600 * 6)
+
         db['search_illust_cache'].create_index([("word", 1)], unique=True)
-        db['search_illust_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600*24)
-        
+        db['search_illust_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600 * 24)
+
         db['search_user_cache'].create_index([("word", 1)], unique=True)
-        db['search_user_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600*24)
-        
+        db['search_user_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600 * 24)
+
         db['user_illusts_cache'].create_index([("user_id", 1)], unique=True)
-        db['user_illusts_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600*24)
-        
+        db['user_illusts_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600 * 24)
+
         db['user_bookmarks_cache'].create_index([("user_id", 1)], unique=True)
-        db['user_bookmarks_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600*24)
-        
+        db['user_bookmarks_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600 * 24)
+
         db['other_cache'].create_index([("type", 1)], unique=True)
-        db['other_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600*6)
+        db['other_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600 * 6)
     except Exception as e:
         logger.exception(e)
         logger.warning("Error occured during creating indexes.")
+
 
 @get_driver().on_shutdown
 async def free_conn():

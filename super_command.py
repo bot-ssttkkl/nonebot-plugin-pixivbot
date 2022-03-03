@@ -44,7 +44,7 @@ super_command = on_command("pixivbot", rule=to_me(), priority=5)
 
 
 @super_command.handle()
-async def handle_super_command(bot: Bot, event: Event, state: T_State, matcher: Matcher):
+async def handle_super_command(event: Event, state: T_State, matcher: Matcher):
     state["args"] = str(event.get_message()).strip().split()[1:]
     # 未跟参数或参数为help时，输出帮助信息
     if len(state["args"]) == 0 or state["args"][0] == "help":
@@ -53,7 +53,7 @@ async def handle_super_command(bot: Bot, event: Event, state: T_State, matcher: 
 
 
 @super_command.handle()
-async def handle_bind(bot: Bot, event: Event, state: T_State, matcher: Matcher):
+async def handle_bind(event: Event, state: T_State, matcher: Matcher):
     args = state["args"]
     if len(args) == 0 or args[0] != "bind":
         return
@@ -83,7 +83,7 @@ async def handle_bind(bot: Bot, event: Event, state: T_State, matcher: Matcher):
 
 
 @super_command.handle()
-async def handle_unbind(bot: Bot, event: Event, state: T_State, matcher: Matcher):
+async def handle_unbind(event: Event, state: T_State, matcher: Matcher):
     args = state["args"]
     if len(args) == 0 or state["args"][0] != "unbind":
         return

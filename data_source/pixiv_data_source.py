@@ -155,7 +155,7 @@ class PixivDataSource:
             illusts = await self._flat_page(papi_search_func, element_list_name,
                                             lambda x: Illust.parse_obj(x),
                                             illust_filter, max_item, max_page,
-                                            *args, **kwargs)
+                                            **kwargs)
             content = []
             broken = 0
             for x in illusts:
@@ -382,6 +382,7 @@ get_driver().on_shutdown(pixiv_data_source.shutdown)
 
 @get_driver().on_startup
 async def do_refresh():
+    next_time = datetime.now() + timedelta(seconds=60)
     try:
         result = await pixiv_data_source.refresh(conf.pixiv_refresh_token)
         logger.success(
@@ -399,8 +400,6 @@ async def do_refresh():
     except Exception as e:
         logger.error("failed to refresh access token, will retry in 60s.")
         logger.exception(e)
-
-        next_time = datetime.now() + timedelta(seconds=60)
     finally:
         scheduler = require("nonebot_plugin_apscheduler").scheduler
         scheduler.add_job(do_refresh, trigger=DateTrigger(next_time))

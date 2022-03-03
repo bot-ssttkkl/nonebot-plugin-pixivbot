@@ -1,15 +1,15 @@
 import asyncio
+import functools
 import math
 import random
 import time
 import typing
-import functools
 from io import BytesIO
 
 from nonebot import logger
 from nonebot.adapters.onebot.v11 import Bot
 from nonebot.adapters.onebot.v11 import Message, MessageSegment
-from nonebot.adapters.onebot.v11.event import Event, MessageEvent
+from nonebot.adapters.onebot.v11.event import MessageEvent
 
 from .config import Config, conf
 from .data_source import PixivDataSource, pixiv_data_source, pixiv_bindings
@@ -30,6 +30,7 @@ def _Distributor__fill_id(func):
             if user_id is None and "user_id" in event.__fields__ and event.user_id:
                 user_id = event.user_id
         return func(self, *args, bot=bot, event=event, user_id=user_id, group_id=group_id, silently=silently, **kwargs)
+
     return wrapped
 
 
@@ -43,7 +44,8 @@ def _Distributor__auto_retry(func):
         err = None
         for t in range(5):
             try:
-                await func(self, *args, bot=bot, event=event, user_id=user_id, group_id=group_id, silently=silently, **kwargs)
+                await func(self, *args, bot=bot, event=event, user_id=user_id, group_id=group_id, silently=silently,
+                           **kwargs)
                 return
             except NoRetryError as e:
                 if e.reason and not silently:
@@ -214,8 +216,7 @@ class Distributor:
                                  *, bot: Bot,
                                  event: MessageEvent = None,
                                  user_id: typing.Optional[int] = None,
-                                 group_id: typing.Optional[int] = None,
-                                 silently: bool = False):
+                                 group_id: typing.Optional[int] = None):
         if mode is None:
             mode = self.conf.pixiv_ranking_default_mode
 
@@ -246,7 +247,8 @@ class Distributor:
                 illusts = await self.data_source.illust_ranking(mode)
 
                 while start <= end:
-                    msg = await self.make_illusts_msg(illusts[start:min(end+1, start+self.conf.pixiv_ranking_max_item_per_msg)], start)
+                    msg = await self.make_illusts_msg(
+                        illusts[start:min(end + 1, start + self.conf.pixiv_ranking_max_item_per_msg)], start)
                     await self._send(bot, msg, event=event, user_id=user_id, group_id=group_id)
                     start += self.conf.pixiv_ranking_max_item_per_msg
 
@@ -256,8 +258,7 @@ class Distributor:
                                 *, bot: Bot,
                                 event: MessageEvent = None,
                                 user_id: typing.Optional[int] = None,
-                                group_id: typing.Optional[int] = None,
-                                silently: bool = False):
+                                group_id: typing.Optional[int] = None):
         if isinstance(illust, int):
             illust = await self.data_source.illust_detail(illust)
         msg = await self.make_illust_msg(illust)
@@ -269,8 +270,7 @@ class Distributor:
                                        *, bot: Bot,
                                        event: MessageEvent = None,
                                        user_id: typing.Optional[int] = None,
-                                       group_id: typing.Optional[int] = None,
-                                       silently: bool = False):
+                                       group_id: typing.Optional[int] = None):
         illusts = await self.data_source.search_illust(word,
                                                        self.conf.pixiv_random_illust_max_item,
                                                        self.conf.pixiv_random_illust_max_page,
@@ -294,8 +294,7 @@ class Distributor:
                                             *, bot: Bot,
                                             event: MessageEvent = None,
                                             user_id: typing.Optional[int] = None,
-                                            group_id: typing.Optional[int] = None,
-                                            silently: bool = False):
+                                            group_id: typing.Optional[int] = None):
         if isinstance(user, str):
             users = await self.data_source.search_user(user)
             if len(users) == 0:
@@ -324,8 +323,7 @@ class Distributor:
     async def distribute_random_recommended_illust(self, *, bot: Bot,
                                                    event: MessageEvent = None,
                                                    user_id: typing.Optional[int] = None,
-                                                   group_id: typing.Optional[int] = None,
-                                                   silently: bool = False):
+                                                   group_id: typing.Optional[int] = None):
         illusts = await self.data_source.recommended_illusts(self.conf.pixiv_random_recommended_illust_max_item,
                                                              self.conf.pixiv_random_recommended_illust_max_page,
                                                              self.conf.pixiv_block_tags,
@@ -347,8 +345,7 @@ class Distributor:
     async def distribute_random_bookmark(self, pixiv_user_id: int = 0, *, bot: Bot,
                                          event: MessageEvent = None,
                                          user_id: typing.Optional[int] = None,
-                                         group_id: typing.Optional[int] = None,
-                                         silently: bool = False):
+                                         group_id: typing.Optional[int] = None):
         if not pixiv_user_id:
             pixiv_user_id = await pixiv_bindings.get_binding(user_id)
 

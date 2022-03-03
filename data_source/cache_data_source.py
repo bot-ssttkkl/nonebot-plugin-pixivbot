@@ -2,12 +2,11 @@ import typing
 from datetime import datetime
 
 import bson
-
-from ..model import Illust, User, LazyIllust
-from .mongo_conn import db
-
 from pymongo import UpdateOne
-from nonebot import logger
+
+from .mongo_conn import db
+from ..model import Illust, User, LazyIllust
+
 
 class CacheDataSource:
     def _make_illusts_cache_loader(self, collection_name: str,
@@ -119,7 +118,7 @@ class CacheDataSource:
         return self._make_illusts_cache_loader(
             "search_illust_cache", "word", word)()
 
-    def update_search_illust(self, word: str, content: typing.Union[Illust, LazyIllust]):
+    def update_search_illust(self, word: str, content: typing.Union[typing.List[Illust, LazyIllust]]):
         return self._make_illusts_cache_updater(
             "search_illust_cache", "word", word)(content)
 
@@ -127,7 +126,7 @@ class CacheDataSource:
         return self._make_illusts_cache_loader(
             "user_illusts_cache", "user_id", user_id)()
 
-    def update_user_illusts(self, user_id: int, content: typing.Union[Illust, LazyIllust]):
+    def update_user_illusts(self, user_id: int, content: typing.Union[typing.List[Illust, LazyIllust]]):
         return self._make_illusts_cache_updater(
             "user_illusts_cache", "user_id", user_id)(content)
 
@@ -135,7 +134,7 @@ class CacheDataSource:
         return self._make_illusts_cache_loader(
             "user_bookmarks_cache", "user_id", user_id)()
 
-    def update_user_bookmarks(self, user_id: int, content: typing.Union[Illust, LazyIllust]):
+    def update_user_bookmarks(self, user_id: int, content: typing.Union[typing.List[Illust, LazyIllust]]):
         return self._make_illusts_cache_updater(
             "user_bookmarks_cache", "user_id", user_id)(content)
 
@@ -143,7 +142,7 @@ class CacheDataSource:
         return self._make_illusts_cache_loader(
             "other_cache", "type", "recommended_illusts")()
 
-    def update_recommended_illusts(self, content: typing.Union[Illust, LazyIllust]):
+    def update_recommended_illusts(self, content: typing.Union[typing.List[Illust, LazyIllust]]):
         return self._make_illusts_cache_updater(
             "other_cache", "type", "recommended_illusts")(content)
 
@@ -151,7 +150,7 @@ class CacheDataSource:
         return self._make_illusts_cache_loader(
             "other_cache", "type", mode + "_ranking")()
 
-    def update_illust_ranking(self, mode: str, content: typing.Union[Illust, LazyIllust]):
+    def update_illust_ranking(self, mode: str, content: typing.Union[typing.List[Illust, LazyIllust]]):
         return self._make_illusts_cache_updater(
             "other_cache", "type", mode + "_ranking")(content)
 

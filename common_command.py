@@ -36,7 +36,7 @@ def _parse_ranking_mode(mode):
 last_query_time = {}
 
 
-async def before_handle(bot: Bot, event: Event, state: T_State, matcher: Matcher):
+async def before_handle(event: Event, matcher: Matcher):
     if not isinstance(event, MessageEvent) or conf.pixiv_query_cooldown == 0 \
             or event.user_id in conf.pixiv_no_query_cooldown_users:
         return
@@ -52,11 +52,11 @@ async def before_handle(bot: Bot, event: Event, state: T_State, matcher: Matcher
             await matcher.finish(f"你的CD还有{int(conf.pixiv_query_cooldown - delta.total_seconds())}s转好")
 
 
-async def handle_random_recommended_illust_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
+async def handle_random_recommended_illust_query(bot: Bot, event: Event):
     await distributor.distribute_random_recommended_illust(bot=bot, event=event)
 
 
-async def handle_random_user_illust_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
+async def handle_random_user_illust_query(bot: Bot, event: Event, state: T_State):
     word = state["_matched_groups"][0]
     await distributor.distribute_random_user_illust(word, bot=bot, event=event)
 
@@ -86,16 +86,16 @@ async def handle_illust_query(bot: Bot, event: Event, state: T_State, matcher: M
     await distributor.distribute_illust(illust_id, bot=bot, event=event)
 
 
-async def handle_random_bookmark_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
+async def handle_random_bookmark_query(bot: Bot, event: Event):
     await distributor.distribute_random_bookmark(bot=bot, event=event)
 
 
-async def handle_random_illust_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
+async def handle_random_illust_query(bot: Bot, event: Event, state: T_State):
     word = state["_matched_groups"][0]
     await distributor.distribute_random_illust(word, bot=bot, event=event)
 
 
-async def handle_ranking_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
+async def handle_ranking_query(bot: Bot, event: Event, state: T_State):
     if "_matched_groups" in state:
         mode = state["_matched_groups"][0]
         mode = _parse_ranking_mode(mode)
@@ -150,7 +150,7 @@ if conf.pixiv_random_illust_query_enabled:
 
 if conf.pixiv_poke_action:
     if conf.__getattribute__(f'pixiv_{conf.pixiv_poke_action}_query_enabled'):
-        async def _group_poke(bot: Bot, event: Event, state: T_State) -> bool:
+        async def _group_poke(event: Event) -> bool:
             return isinstance(event, PokeNotifyEvent) and event.is_tome()
 
         group_poke = on_notice(_group_poke, priority=10, block=True)

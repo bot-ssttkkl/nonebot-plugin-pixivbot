@@ -2,6 +2,7 @@ import typing
 from .Illust import Illust
 from ..data_source import pixiv_data_source
 
+
 class LazyIllust:
     id: int
     content: Illust
