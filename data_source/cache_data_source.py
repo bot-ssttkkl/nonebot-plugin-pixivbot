@@ -148,11 +148,11 @@ class CacheDataSource:
 
     def related_illusts(self, illust_id: int):
         return self._make_illusts_cache_loader(
-            "related_illusts_cache", "illust_id", illust_id)()
+            "related_illusts_cache", "original_illust_id", illust_id)()
 
     def update_related_illusts(self, illust_id: int, content: typing.List[typing.Union[Illust, LazyIllust]]):
         return self._make_illusts_cache_updater(
-            "related_illusts_cache", "illust_id", illust_id)(content)
+            "related_illusts_cache", "original_illust_id", illust_id)(content)
 
     def illust_ranking(self, mode: str):
         return self._make_illusts_cache_loader(
