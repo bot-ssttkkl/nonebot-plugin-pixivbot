@@ -25,8 +25,10 @@ nonebot_plugin_pixivbot
 - **来张*森倉円*老师的图**：搜索画师*森倉円*，从该画师的插画列表里随机抽选一张插画
 - **看看图*114514***：查看id为*114514*的插画
 - **来张私家车**：从书签中随机抽选一张插画
+- **还要**：重复上一次请求
+- **不够色**：获取上一张插画的相关推荐
 
-超级语句：
+命令语句：
 
 - **/pixivbot subscribe \<type\> \<schedule\>**：为本群（本用户）订阅类型为<type>的定时推送功能，时间满足<schedule>时进行推送
     - \<type\>：可选值有ranking, random_bookmark, random_recommended_illust
