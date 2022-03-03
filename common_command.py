@@ -112,6 +112,24 @@ async def handle_ranking_query(bot: Bot, event: Event, state: T_State):
     await distributor.distribute_ranking(mode, range, bot=bot, event=event)
 
 
+async def handle_redistribute(bot: Bot, event: Event):
+    await distributor.redistribute(bot=bot, event=event)
+
+
+async def handle_related_illust(bot: Bot, event: Event):
+    await distributor.distribute_related_illust(bot=bot, event=event)
+
+
+if conf.pixiv_more_enabled:
+    mat = on_regex("还要", priority=1, block=True)
+    mat.append_handler(before_handle)
+    mat.append_handler(handle_redistribute)
+
+if conf.pixiv_random_related_illust_query_enabled:
+    mat = on_regex("不够色", priority=1, block=True)
+    mat.append_handler(before_handle)
+    mat.append_handler(handle_related_illust)
+
 if conf.pixiv_random_recommended_illust_query_enabled:
     mat = on_regex("^来张图$", priority=3, block=True)
     mat.append_handler(before_handle)
@@ -152,6 +170,7 @@ if conf.pixiv_poke_action:
     if conf.__getattribute__(f'pixiv_{conf.pixiv_poke_action}_query_enabled'):
         async def _group_poke(event: Event) -> bool:
             return isinstance(event, PokeNotifyEvent) and event.is_tome()
+
 
         group_poke = on_notice(_group_poke, priority=10, block=True)
         group_poke.append_handler(before_handle)

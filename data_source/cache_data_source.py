@@ -118,7 +118,7 @@ class CacheDataSource:
         return self._make_illusts_cache_loader(
             "search_illust_cache", "word", word)()
 
-    def update_search_illust(self, word: str, content: typing.Union[typing.List[Illust, LazyIllust]]):
+    def update_search_illust(self, word: str, content: typing.List[typing.Union[Illust, LazyIllust]]):
         return self._make_illusts_cache_updater(
             "search_illust_cache", "word", word)(content)
 
@@ -126,7 +126,7 @@ class CacheDataSource:
         return self._make_illusts_cache_loader(
             "user_illusts_cache", "user_id", user_id)()
 
-    def update_user_illusts(self, user_id: int, content: typing.Union[typing.List[Illust, LazyIllust]]):
+    def update_user_illusts(self, user_id: int, content: typing.List[typing.Union[Illust, LazyIllust]]):
         return self._make_illusts_cache_updater(
             "user_illusts_cache", "user_id", user_id)(content)
 
@@ -134,7 +134,7 @@ class CacheDataSource:
         return self._make_illusts_cache_loader(
             "user_bookmarks_cache", "user_id", user_id)()
 
-    def update_user_bookmarks(self, user_id: int, content: typing.Union[typing.List[Illust, LazyIllust]]):
+    def update_user_bookmarks(self, user_id: int, content: typing.List[typing.Union[Illust, LazyIllust]]):
         return self._make_illusts_cache_updater(
             "user_bookmarks_cache", "user_id", user_id)(content)
 
@@ -142,15 +142,23 @@ class CacheDataSource:
         return self._make_illusts_cache_loader(
             "other_cache", "type", "recommended_illusts")()
 
-    def update_recommended_illusts(self, content: typing.Union[typing.List[Illust, LazyIllust]]):
+    def update_recommended_illusts(self, content: typing.List[typing.Union[Illust, LazyIllust]]):
         return self._make_illusts_cache_updater(
             "other_cache", "type", "recommended_illusts")(content)
+
+    def related_illusts(self, illust_id: int):
+        return self._make_illusts_cache_loader(
+            "related_illusts_cache", "illust_id", illust_id)()
+
+    def update_related_illusts(self, illust_id: int, content: typing.List[typing.Union[Illust, LazyIllust]]):
+        return self._make_illusts_cache_updater(
+            "related_illusts_cache", "illust_id", illust_id)(content)
 
     def illust_ranking(self, mode: str):
         return self._make_illusts_cache_loader(
             "other_cache", "type", mode + "_ranking")()
 
-    def update_illust_ranking(self, mode: str, content: typing.Union[typing.List[Illust, LazyIllust]]):
+    def update_illust_ranking(self, mode: str, content: typing.List[typing.Union[Illust, LazyIllust]]):
         return self._make_illusts_cache_updater(
             "other_cache", "type", mode + "_ranking")(content)
 

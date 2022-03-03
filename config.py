@@ -71,6 +71,8 @@ class Config(BaseSettings):
     pixiv_query_cooldown = 0
     pixiv_no_query_cooldown_users = []
 
+    pixiv_more_enabled = True
+
     pixiv_illust_query_enabled = True
 
     pixiv_ranking_query_enabled = True
@@ -105,6 +107,13 @@ class Config(BaseSettings):
     pixiv_random_recommended_illust_min_view = 0
     pixiv_random_recommended_illust_max_page = 40
     pixiv_random_recommended_illust_max_item = 1000
+
+    pixiv_random_related_illust_query_enabled = True
+    pixiv_random_related_illust_method = "bookmark_proportion"
+    pixiv_random_related_illust_min_bookmark = 0
+    pixiv_random_related_illust_min_view = 0
+    pixiv_random_related_illust_max_page = 4
+    pixiv_random_related_illust_max_item = 100
 
     pixiv_random_user_illust_query_enabled = True
     pixiv_random_user_illust_method = "timedelta_proportion"

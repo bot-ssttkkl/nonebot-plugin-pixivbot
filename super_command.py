@@ -19,15 +19,14 @@ _help_text = """常规语句：
 - 来张森倉円老师的图：搜索画师森倉円，从该画师的插画列表里随机抽选一张插画
 - 看看图114514：查看id为114514的插画
 - 来张私家车：从书签中随机抽选一张插画
+- 还要：重复上一次请求
+- 不够色：获取上一张插画的相关推荐
 
 命令语句：
 - /pixivbot help：查看本帮助
 - /pixivbot bind：绑定Pixiv账号
-- /pixivbot unbind：取消绑定Pixiv账号
-- /pixivbot subscribe：订阅
-- /pixivbot unsubscribe：取消订阅
 
-更多功能：参见https://github.com/ssttkkl/nonebot-plugin-pixivbot
+更多功能：参见https://github.com/ssttkkl/PixivBot
 """
 
 

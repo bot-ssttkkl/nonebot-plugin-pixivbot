@@ -5,17 +5,17 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from io import BytesIO
 
+from PIL import Image, ImageFile
 from apscheduler.triggers.date import DateTrigger
 from nonebot import get_driver, logger, require
-from PIL import Image, ImageFile
 from pixivpy_async import *
 from pixivpy_async.error import TokenError
 
+from .cache_data_source import CacheDataSource
+from .cache_manager import CacheManager
 from ..config import conf
 from ..model import Illust, User, LazyIllust
 from ..utils.errors import QueryError
-from .cache_data_source import CacheDataSource
-from .cache_manager import CacheManager
 
 
 class PixivDataSource:
@@ -89,9 +89,9 @@ class PixivDataSource:
     async def _flat_page(papi_search_func: typing.Callable,
                          element_list_name: str,
                          element_mapper: typing.Optional[typing.Callable[[
-                             typing.Any], T]] = None,
+                                                                             typing.Any], T]] = None,
                          element_filter: typing.Optional[typing.Callable[[
-                             T], bool]] = None,
+                                                                             T], bool]] = None,
                          max_item: int = 2 ** 31,
                          max_page: int = 2 ** 31, **kwargs) -> typing.List[T]:
         cur_page = 0
@@ -281,12 +281,27 @@ class PixivDataSource:
                                   min_view: int = 0) -> typing.List[LazyIllust]:
         return await self._cache_manager.get(
             identifier=(4,),
-            cache_loader=functools.partial(
-                self._cache_data_souce.recommended_illusts),
+            cache_loader=self._cache_data_souce.recommended_illusts,
             remote_fetcher=self._make_illusts_remote_fetcher(self._papi.illust_recommended, "illusts",
                                                              block_tags, min_bookmark, min_view,
                                                              max_item, max_page),
             cache_updater=self._cache_data_souce.update_recommended_illusts,
+            timeout=self.timeout
+        )
+
+    async def related_illusts(self, illust_id: int, max_item: int = 2 ** 31,
+                              max_page: int = 2 ** 31,
+                              block_tags: typing.Optional[typing.List[typing.Union[Illust.Tag, str]]] = None,
+                              min_bookmark: int = 0,
+                              min_view: int = 0) -> typing.List[LazyIllust]:
+        return await self._cache_manager.get(
+            identifier=(8, illust_id),
+            cache_loader=functools.partial(
+                self._cache_data_souce.related_illusts, illust_id=illust_id),
+            remote_fetcher=self._make_illusts_remote_fetcher(self._papi.illust_related, "illusts",
+                                                             block_tags, min_bookmark, min_view,
+                                                             max_item, max_page, illust_id=illust_id),
+            cache_updater=lambda content: self._cache_data_souce.update_related_illusts(illust_id, content),
             timeout=self.timeout
         )
 

@@ -48,6 +48,9 @@ async def connect_to_mongodb():
         db['user_bookmarks_cache'].create_index([("user_id", 1)], unique=True)
         db['user_bookmarks_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600 * 24)
 
+        db['related_illusts_cache'].create_index([("illust_id", 1)], unique=True)
+        db['related_illusts_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600 * 24)
+
         db['other_cache'].create_index([("type", 1)], unique=True)
         db['other_cache'].create_index([("update_time", 1)], expireAfterSeconds=3600 * 6)
     except Exception as e:
