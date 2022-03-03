@@ -1,7 +1,6 @@
 import asyncio
+import sys
 import typing
-
-from nonebot import logger
 
 
 class CacheManager:
@@ -10,8 +9,10 @@ class CacheManager:
 
     def __init__(self, simultaneous_query: int = 4,
                  loop: typing.Optional[asyncio.AbstractEventLoop] = None):
-        self._semaphore = asyncio.Semaphore(
-            value=simultaneous_query, loop=loop)  # 限制从远程获取的并发量为8
+        if sys.version_info >= (3, 10, 0):
+            self._semaphore = asyncio.Semaphore(value=simultaneous_query)  # 限制从远程获取的并发量为8
+        else:
+            self._semaphore = asyncio.Semaphore(value=simultaneous_query, loop=loop)
         self._waiting = {}
 
     T = typing.TypeVar("T")
@@ -34,7 +35,7 @@ class CacheManager:
             fut, remote_fetcher, cache_updater, timeout))
         result = await fut
 
-        self._waiting.pop(identifier)
+        await self._waiting.pop(identifier)
 
         return result
 
