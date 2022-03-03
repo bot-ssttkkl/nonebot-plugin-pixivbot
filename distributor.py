@@ -17,79 +17,80 @@ from .model import Illust, LazyIllust
 from .utils.errors import NoRetryError, QueryError
 
 
+def fill_id(func):
+    @functools.wraps(func)
+    def wrapped(self, *args, bot: Bot,
+                event: MessageEvent = None,
+                user_id: typing.Optional[int] = None,
+                group_id: typing.Optional[int] = None,
+                **kwargs):
+        if event is not None:
+            if group_id is None and "group_id" in event.__fields__ and event.group_id:
+                group_id = event.group_id
+            if user_id is None and "user_id" in event.__fields__ and event.user_id:
+                user_id = event.user_id
+        return func(self, *args, bot=bot, event=event, user_id=user_id, group_id=group_id, **kwargs)
+
+    return wrapped
+
+
+# @staticmethod
+# def __record(record_dict: typing.Dict):
+#     def decorator(func):
+#         @functools.wraps(func)
+#         def wrapped(self, *args, bot: Bot,
+#                     event: MessageEvent = None,
+#                     user_id: typing.Optional[int] = None,
+#                     group_id: typing.Optional[int] = None,
+#                     silently: bool = False, **kwargs):
+#             record_dict[(user_id, group_id)] = (func, args)
+#             return func(self, *args, bot=bot, event=event, user_id=user_id, group_id=group_id, silently=silently,
+#                         **kwargs)
+#
+#         return wrapped
+#
+#     return decorator
+
+def retry(func):
+    @functools.wraps(func)
+    async def wrapped(self, *args, bot: Bot,
+                      event: MessageEvent = None,
+                      user_id: typing.Optional[int] = None,
+                      group_id: typing.Optional[int] = None,
+                      silently: bool = False,
+                      **kwargs):
+        err = None
+        for t in range(5):
+            try:
+                await func(self, *args, bot=bot, event=event, user_id=user_id, group_id=group_id, silently=silently, **kwargs)
+                return
+            except NoRetryError as e:
+                if e.reason and not silently:
+                    await self._send(bot, e.reason, event=event, user_id=user_id, group_id=group_id)
+                return
+            except QueryError as e:
+                if e.reason and not silently:
+                    await self._send(bot, "获取失败：" + e.reason, event=event, user_id=user_id, group_id=group_id)
+                return
+            except asyncio.TimeoutError as e:
+                err = e
+                logger.warning("Timeout")
+            except Exception as e:
+                err = e
+                logger.exception(e)
+
+        if err is not None and not silently:
+            if isinstance(err, asyncio.TimeoutError):
+                await self._send(bot, "获取超时", event=event, user_id=user_id, group_id=group_id)
+            else:
+                await self._send(bot, f"发生内部错误：{type(err)}{err}", event=event, user_id=user_id, group_id=group_id)
+
+    return wrapped
+
+
 class Distributor:
     TYPES = ["ranking", "illust", "self.random_illust", "random_user_illust", "random_recommended_illust",
              "random_bookmark"]
-
-    @staticmethod
-    def __fill_id(func):
-        @functools.wraps(func)
-        def wrapped(self, *args, bot: Bot,
-                    event: MessageEvent = None,
-                    user_id: typing.Optional[int] = None,
-                    group_id: typing.Optional[int] = None,
-                    **kwargs):
-            if event is not None:
-                if group_id is None and "group_id" in event.__fields__ and event.group_id:
-                    group_id = event.group_id
-                if user_id is None and "user_id" in event.__fields__ and event.user_id:
-                    user_id = event.user_id
-            return func(self, *args, bot=bot, event=event, user_id=user_id, group_id=group_id, **kwargs)
-
-        return wrapped
-
-    # @staticmethod
-    # def __record(record_dict: typing.Dict):
-    #     def decorator(func):
-    #         @functools.wraps(func)
-    #         def wrapped(self, *args, bot: Bot,
-    #                     event: MessageEvent = None,
-    #                     user_id: typing.Optional[int] = None,
-    #                     group_id: typing.Optional[int] = None,
-    #                     silently: bool = False, **kwargs):
-    #             record_dict[(user_id, group_id)] = (func, args)
-    #             return func(self, *args, bot=bot, event=event, user_id=user_id, group_id=group_id, silently=silently,
-    #                         **kwargs)
-    #
-    #         return wrapped
-    #
-    #     return decorator
-
-    @staticmethod
-    def __retry(func):
-        @functools.wraps(func)
-        async def wrapped(self, *args, bot: Bot,
-                          event: MessageEvent = None,
-                          user_id: typing.Optional[int] = None,
-                          group_id: typing.Optional[int] = None,
-                          silently: bool = False):
-            err = None
-            for t in range(5):
-                try:
-                    await func(self, *args, bot=bot, event=event, user_id=user_id, group_id=group_id, silently=silently)
-                    return
-                except NoRetryError as e:
-                    if e.reason and not silently:
-                        await self._send(bot, e.reason, event=event, user_id=user_id, group_id=group_id)
-                    return
-                except QueryError as e:
-                    if e.reason and not silently:
-                        await self._send(bot, "获取失败：" + e.reason, event=event, user_id=user_id, group_id=group_id)
-                    return
-                except asyncio.TimeoutError as e:
-                    err = e
-                    logger.warning("Timeout")
-                except Exception as e:
-                    err = e
-                    logger.exception(e)
-
-            if err is not None and not silently:
-                if isinstance(err, asyncio.TimeoutError):
-                    await self._send(bot, "获取超时", event=event, user_id=user_id, group_id=group_id)
-                else:
-                    await self._send(bot, f"发生内部错误：{type(err)}{err}", event=event, user_id=user_id, group_id=group_id)
-
-        return wrapped
 
     def __init__(self, conf: Config, data_source: PixivDataSource):
         self.conf = conf
@@ -140,7 +141,8 @@ class Distributor:
                                 num_start: int = 1) -> Message:
         tasks = []
         for i, illust in enumerate(illusts):
-            tasks.append(asyncio.create_task(self._make_illust_msg(illust, i + num_start)))
+            tasks.append(asyncio.create_task(
+                self._make_illust_msg(illust, i + num_start)))
 
         await asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED)
 
@@ -250,8 +252,8 @@ class Distributor:
         await self._distribute_func[type](bot=bot, event=event, user_id=user_id, group_id=group_id,
                                           silently=silently, **kwargs)
 
-    @__fill_id
-    @__retry
+    @fill_id
+    @retry
     async def distribute_ranking(self, mode: typing.Optional[str] = None,
                                  range: typing.Optional[typing.Union[typing.Sequence[int], int]] = None,
                                  *, bot: Bot,
@@ -259,7 +261,8 @@ class Distributor:
                                  user_id: typing.Optional[int] = None,
                                  group_id: typing.Optional[int] = None,
                                  silently: bool = False):
-        self.prev_req_func[(user_id, group_id)] = functools.partial(self.distribute_ranking, mode, range)
+        self.prev_req_func[(user_id, group_id)] = functools.partial(
+            self.distribute_ranking, mode, range)
 
         if mode is None:
             mode = self.conf.pixiv_ranking_default_mode
@@ -295,29 +298,31 @@ class Distributor:
                     await self._send(bot, msg, event=event, user_id=user_id, group_id=group_id)
                     start += self.conf.pixiv_ranking_max_item_per_msg
 
-    @__fill_id
-    @__retry
+    @fill_id
+    @retry
     async def distribute_illust(self, illust: typing.Union[int, Illust],
                                 *, bot: Bot,
                                 event: MessageEvent = None,
                                 user_id: typing.Optional[int] = None,
                                 group_id: typing.Optional[int] = None,
                                 silently: bool = False):
-        self.prev_req_func[(user_id, group_id)] = functools.partial(self.distribute_illust, illust)
+        self.prev_req_func[(user_id, group_id)] = functools.partial(
+            self.distribute_illust, illust)
 
         if isinstance(illust, int):
             illust = await self.data_source.illust_detail(illust)
         await self._send_illust(bot, illust, event=event, user_id=user_id, group_id=group_id)
 
-    @__fill_id
-    @__retry
+    @fill_id
+    @retry
     async def distribute_random_illust(self, word: str,
                                        *, bot: Bot,
                                        event: MessageEvent = None,
                                        user_id: typing.Optional[int] = None,
                                        group_id: typing.Optional[int] = None,
                                        silently: bool = False):
-        self.prev_req_func[(user_id, group_id)] = functools.partial(self.distribute_random_illust, word)
+        self.prev_req_func[(user_id, group_id)] = functools.partial(
+            self.distribute_random_illust, word)
 
         illusts = await self.data_source.search_illust(word,
                                                        self.conf.pixiv_random_illust_max_item,
@@ -329,15 +334,16 @@ class Distributor:
         await self._choice_and_send_illust(bot, illusts, self.conf.pixiv_random_illust_method,
                                            event=event, user_id=user_id, group_id=group_id)
 
-    @__fill_id
-    @__retry
+    @fill_id
+    @retry
     async def distribute_random_user_illust(self, user: typing.Union[str, int],
                                             *, bot: Bot,
                                             event: MessageEvent = None,
                                             user_id: typing.Optional[int] = None,
                                             group_id: typing.Optional[int] = None,
                                             silently: bool = False):
-        self.prev_req_func[(user_id, group_id)] = functools.partial(self.distribute_random_user_illust, user)
+        self.prev_req_func[(user_id, group_id)] = functools.partial(
+            self.distribute_random_user_illust, user)
 
         if isinstance(user, str):
             users = await self.data_source.search_user(user)
@@ -355,14 +361,15 @@ class Distributor:
         await self._choice_and_send_illust(bot, illusts, self.conf.pixiv_random_user_illust_method,
                                            event=event, user_id=user_id, group_id=group_id)
 
-    @__fill_id
-    @__retry
+    @fill_id
+    @retry
     async def distribute_random_recommended_illust(self, *, bot: Bot,
                                                    event: MessageEvent = None,
                                                    user_id: typing.Optional[int] = None,
                                                    group_id: typing.Optional[int] = None,
                                                    silently: bool = False):
-        self.prev_req_func[(user_id, group_id)] = self.distribute_random_recommended_illust
+        self.prev_req_func[(user_id, group_id)
+                           ] = self.distribute_random_recommended_illust
 
         illusts = await self.data_source.recommended_illusts(self.conf.pixiv_random_recommended_illust_max_item,
                                                              self.conf.pixiv_random_recommended_illust_max_page,
@@ -373,14 +380,15 @@ class Distributor:
         await self._choice_and_send_illust(bot, illusts, self.conf.pixiv_random_recommended_illust_method,
                                            event=event, user_id=user_id, group_id=group_id)
 
-    @__fill_id
-    @__retry
+    @fill_id
+    @retry
     async def distribute_random_bookmark(self, pixiv_user_id: int = 0, *, bot: Bot,
                                          event: MessageEvent = None,
                                          user_id: typing.Optional[int] = None,
                                          group_id: typing.Optional[int] = None,
                                          silently: bool = False):
-        self.prev_req_func[(user_id, group_id)] = functools.partial(self.distribute_random_bookmark, pixiv_user_id)
+        self.prev_req_func[(user_id, group_id)] = functools.partial(
+            self.distribute_random_bookmark, pixiv_user_id)
 
         if not pixiv_user_id:
             pixiv_user_id = await pixiv_bindings.get_binding(user_id)
@@ -401,14 +409,15 @@ class Distributor:
         await self._choice_and_send_illust(bot, illusts, self.conf.pixiv_random_bookmark_method,
                                            event=event, user_id=user_id, group_id=group_id)
 
-    @__fill_id
-    @__retry
+    @fill_id
+    @retry
     async def distribute_related_illust(self, illust_id: int = 0, *, bot: Bot,
                                         event: MessageEvent = None,
                                         user_id: typing.Optional[int] = None,
                                         group_id: typing.Optional[int] = None,
                                         silently: bool = False):
-        self.prev_req_func[(user_id, group_id)] = functools.partial(self.distribute_related_illust, illust_id)
+        self.prev_req_func[(user_id, group_id)] = functools.partial(
+            self.distribute_related_illust, illust_id)
 
         if illust_id == 0:
             illust_id = self.prev_resp_illust_id.get((user_id, group_id), 0)
@@ -426,7 +435,7 @@ class Distributor:
         await self._choice_and_send_illust(bot, illusts, self.conf.pixiv_random_related_illust_method,
                                            event=event, user_id=user_id, group_id=group_id)
 
-    @__fill_id
+    @fill_id
     async def redistribute(self, *, bot: Bot,
                            event: MessageEvent = None,
                            user_id: typing.Optional[int] = None,

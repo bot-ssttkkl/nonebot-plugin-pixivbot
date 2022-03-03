@@ -76,6 +76,8 @@ pixiv_compression_enabled=False  # 启用插画压缩
 pixiv_compression_max_size=None  # 插画压缩最大尺寸
 pixiv_compression_quantity=None  # 插画压缩品质（0到100）
 
+pixiv_more_enabled=True  # 启用重复上一次请求（还要）功能
+
 pixiv_illust_query_enabled=True  # 启用插画查询（看看图）功能
 
 pixiv_query_cooldown=0  # 每次查询的冷却时间
@@ -101,6 +103,13 @@ pixiv_random_recommended_illust_min_bookmark=0
 pixiv_random_recommended_illust_min_view=0
 pixiv_random_recommended_illust_max_page=40
 pixiv_random_recommended_illust_max_item=1000
+
+pixiv_random_related_illust_query_enabled = True  # 启用关联插画随机抽选（不够色）功能
+pixiv_random_related_illust_method = "bookmark_proportion"
+pixiv_random_related_illust_min_bookmark = 0
+pixiv_random_related_illust_min_view = 0
+pixiv_random_related_illust_max_page = 4
+pixiv_random_related_illust_max_item = 100
 
 pixiv_random_user_illust_query_enabled=True  # 启用用户插画随机抽选（来张xx老师的图）功能
 pixiv_random_user_illust_method=timedelta_proportion
