@@ -1,4 +1,5 @@
 import asyncio
+from collections import OrderedDict
 import functools
 import math
 import random
@@ -12,8 +13,8 @@ from nonebot.adapters.onebot.v11 import Message, MessageSegment
 from nonebot.adapters.onebot.v11.event import MessageEvent
 
 from .config import Config, conf
-from .data_source import PixivDataSource, pixiv_data_source, pixiv_bindings
-from .model import Illust, LazyIllust
+from .data_source import *
+from .model import *
 from .utils.errors import NoRetryError, QueryError
 
 
@@ -92,9 +93,14 @@ class Distributor:
     TYPES = ["ranking", "illust", "self.random_illust", "random_user_illust", "random_recommended_illust",
              "random_bookmark"]
 
-    def __init__(self, conf: Config, data_source: PixivDataSource):
+    def __init__(self, conf: Config,
+                 data_source: PixivDataSource,
+                 pixiv_bindings: PixivBindings,
+                 session_expires_in: int = 10*60):
         self.conf = conf
         self.data_source = data_source
+        self.pixiv_bindings = pixiv_bindings
+        self.session_expires_in = session_expires_in
         self._distribute_func = {
             "ranking": self.distribute_ranking,
             "illust": self.distribute_illust,
@@ -103,8 +109,70 @@ class Distributor:
             "random_recommended_illust": self.distribute_random_recommended_illust,
             "random_bookmark": self.distribute_random_bookmark,
         }
-        self.prev_req_func = {}
-        self.prev_resp_illust_id = {}
+        self._prev_req_func = OrderedDict()
+        self._prev_resp_illust_id = OrderedDict()
+
+    def _pop_expired_req(self):
+        now = time.time()
+        while len(self._prev_req_func) > 0:
+            (user_id, group_id), (timestamp, _) = next(iter(self._prev_req_func.items()))
+            if now - timestamp > self.session_expires_in:
+                self._prev_req_func.popitem(last=False)
+                logger.info(f"popped expired req: ({user_id}, {group_id})")
+            else:
+                break
+
+    def _push_req(self, func: typing.Callable, *,
+                  user_id: typing.Optional[int] = None,
+                  group_id: typing.Optional[int] = None):
+        self._pop_expired_req()
+        if (user_id, group_id) in self._prev_req_func:
+            self._prev_req_func.move_to_end((user_id, group_id))
+        self._prev_req_func[(user_id, group_id)] = time.time(), func
+
+    def _get_req(self,  *,
+                 user_id: typing.Optional[int] = None,
+                 group_id: typing.Optional[int] = None) -> typing.Callable:
+        self._pop_expired_req()
+        if (user_id, group_id) in self._prev_req_func:
+            (_, func) = self._prev_req_func[(user_id, group_id)]
+            self._prev_req_func[(user_id, group_id)] = time.time(), func
+            self._prev_req_func.move_to_end((user_id, group_id))
+            return func
+        elif user_id is not None and group_id is not None:  # 获取上一条群订阅的请求
+            return self._get_req(group_id=group_id)
+        else:
+            return None
+
+    def _pop_expired_resp(self):
+        now = time.time()
+        while len(self._prev_resp_illust_id) > 0:
+            (user_id, group_id), (timestamp, _) = next(iter(self._prev_resp_illust_id.items()))
+            if now - timestamp > self.session_expires_in:
+                self._prev_resp_illust_id.popitem(last=False)
+                logger.info(f"popped expired resp: ({user_id}, {group_id})")
+            else:
+                break
+
+    def _push_resp(self, illust_id: int, *,
+                   user_id: typing.Optional[int] = None,
+                   group_id: typing.Optional[int] = None) -> int:
+        self._pop_expired_resp()
+        if (user_id, group_id) in self._prev_resp_illust_id:
+            self._prev_resp_illust_id.move_to_end((user_id, group_id))
+        self._prev_resp_illust_id[(user_id, group_id)] = time.time(), illust_id
+
+    def _get_resp(self,  *,
+                  user_id: typing.Optional[int] = None,
+                  group_id: typing.Optional[int] = None) -> int:
+        self._pop_expired_resp()
+        if (user_id, group_id) in self._prev_resp_illust_id:
+            (_, illust_id) = self._prev_resp_illust_id[(user_id, group_id)]
+            return illust_id
+        elif user_id is not None and group_id is not None:  # 获取上一条群订阅的响应
+            return self._get_resp(group_id=group_id)
+        else:
+            return 0
 
     async def _make_illust_msg(self, illust: typing.Union[LazyIllust, Illust],
                                number: typing.Optional[int] = None) -> Message:
@@ -225,7 +293,7 @@ class Distributor:
                            event: MessageEvent = None,
                            user_id: typing.Optional[int] = None,
                            group_id: typing.Optional[int] = None):
-        self.prev_resp_illust_id[(user_id, group_id)] = illust.id
+        self._push_resp(illust.id, user_id=user_id, group_id=group_id)
 
         msg = await self._make_illust_msg(illust)
         await self._send(bot, msg, event=event, user_id=user_id, group_id=group_id)
@@ -261,8 +329,8 @@ class Distributor:
                                  user_id: typing.Optional[int] = None,
                                  group_id: typing.Optional[int] = None,
                                  silently: bool = False):
-        self.prev_req_func[(user_id, group_id)] = functools.partial(
-            self.distribute_ranking, mode, range)
+        self._push_req(functools.partial(self.distribute_ranking, mode, range),
+                       user_id=user_id, group_id=group_id)
 
         if mode is None:
             mode = self.conf.pixiv_ranking_default_mode
@@ -306,8 +374,8 @@ class Distributor:
                                 user_id: typing.Optional[int] = None,
                                 group_id: typing.Optional[int] = None,
                                 silently: bool = False):
-        self.prev_req_func[(user_id, group_id)] = functools.partial(
-            self.distribute_illust, illust)
+        self._push_req(functools.partial(self.distribute_illust, illust),
+                       user_id=user_id, group_id=group_id)
 
         if isinstance(illust, int):
             illust = await self.data_source.illust_detail(illust)
@@ -321,8 +389,8 @@ class Distributor:
                                        user_id: typing.Optional[int] = None,
                                        group_id: typing.Optional[int] = None,
                                        silently: bool = False):
-        self.prev_req_func[(user_id, group_id)] = functools.partial(
-            self.distribute_random_illust, word)
+        self._push_req(functools.partial(self.distribute_random_illust, word),
+                       user_id=user_id, group_id=group_id)
 
         illusts = await self.data_source.search_illust(word,
                                                        self.conf.pixiv_random_illust_max_item,
@@ -342,8 +410,8 @@ class Distributor:
                                             user_id: typing.Optional[int] = None,
                                             group_id: typing.Optional[int] = None,
                                             silently: bool = False):
-        self.prev_req_func[(user_id, group_id)] = functools.partial(
-            self.distribute_random_user_illust, user)
+        self._push_req(functools.partial(self.distribute_random_user_illust, user),
+                       user_id=user_id, group_id=group_id)
 
         if isinstance(user, str):
             users = await self.data_source.search_user(user)
@@ -368,8 +436,8 @@ class Distributor:
                                                    user_id: typing.Optional[int] = None,
                                                    group_id: typing.Optional[int] = None,
                                                    silently: bool = False):
-        self.prev_req_func[(user_id, group_id)
-                           ] = self.distribute_random_recommended_illust
+        self._push_req(self.distribute_random_recommended_illust,
+                       user_id=user_id, group_id=group_id)
 
         illusts = await self.data_source.recommended_illusts(self.conf.pixiv_random_recommended_illust_max_item,
                                                              self.conf.pixiv_random_recommended_illust_max_page,
@@ -387,11 +455,11 @@ class Distributor:
                                          user_id: typing.Optional[int] = None,
                                          group_id: typing.Optional[int] = None,
                                          silently: bool = False):
-        self.prev_req_func[(user_id, group_id)] = functools.partial(
-            self.distribute_random_bookmark, pixiv_user_id)
+        self._push_req(functools.partial(self.distribute_random_bookmark, pixiv_user_id),
+                       user_id=user_id, group_id=group_id)
 
         if not pixiv_user_id:
-            pixiv_user_id = await pixiv_bindings.get_binding(user_id)
+            pixiv_user_id = await self.pixiv_bindings.get_binding(user_id)
 
         if not pixiv_user_id:
             pixiv_user_id = conf.pixiv_random_bookmark_user_id
@@ -416,11 +484,11 @@ class Distributor:
                                         user_id: typing.Optional[int] = None,
                                         group_id: typing.Optional[int] = None,
                                         silently: bool = False):
-        self.prev_req_func[(user_id, group_id)] = functools.partial(
-            self.distribute_related_illust, illust_id)
+        self._push_req(functools.partial(self.distribute_related_illust, illust_id),
+                       user_id=user_id, group_id=group_id)
 
         if illust_id == 0:
-            illust_id = self.prev_resp_illust_id.get((user_id, group_id), 0)
+            illust_id = self._get_resp(user_id=user_id, group_id=group_id)
             if illust_id == 0:
                 raise NoRetryError("你还没有发送过请求")
             logger.info(f"prev resp illust_id: {illust_id}")
@@ -440,16 +508,14 @@ class Distributor:
                            event: MessageEvent = None,
                            user_id: typing.Optional[int] = None,
                            group_id: typing.Optional[int] = None):
-        resp = self.prev_req_func.get((user_id, group_id))
-        if resp is None:
-            resp = self.prev_req_func.get((None, group_id))
+        resp = self._get_req(user_id=user_id, group_id=group_id)
 
         if resp is None:
-            raise NoRetryError("你还没有发送过请求")
+            await self._send(bot, "你还没有发送过请求", event=event, user_id=user_id, group_id=group_id)
         else:
             await resp(bot=bot, event=event, user_id=user_id, group_id=group_id)
 
 
-distributor = Distributor(conf, pixiv_data_source)
+distributor = Distributor(conf, pixiv_data_source, pixiv_bindings)
 
 __all__ = ("Distributor", "distributor")
