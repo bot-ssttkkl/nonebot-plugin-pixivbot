@@ -39,7 +39,7 @@ def _get_user_or_group_id(event: Event):
         return {}
 
 
-super_command = on_command("pixivbot", rule=to_me(), priority=5)
+super_command = on_command("pixivbot", priority=5)
 
 
 @super_command.handle()
