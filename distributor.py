@@ -57,11 +57,12 @@ def retry(func):
                       event: MessageEvent = None,
                       user_id: typing.Optional[int] = None,
                       group_id: typing.Optional[int] = None,
-                      silently: bool = False):
+                      silently: bool = False,
+                      **kwargs):
         err = None
         for t in range(5):
             try:
-                await func(self, *args, bot=bot, event=event, user_id=user_id, group_id=group_id, silently=silently)
+                await func(self, *args, bot=bot, event=event, user_id=user_id, group_id=group_id, silently=silently, **kwargs)
                 return
             except NoRetryError as e:
                 if e.reason and not silently:
@@ -140,7 +141,8 @@ class Distributor:
                                 num_start: int = 1) -> Message:
         tasks = []
         for i, illust in enumerate(illusts):
-            tasks.append(asyncio.create_task(self._make_illust_msg(illust, i + num_start)))
+            tasks.append(asyncio.create_task(
+                self._make_illust_msg(illust, i + num_start)))
 
         await asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED)
 
@@ -259,7 +261,8 @@ class Distributor:
                                  user_id: typing.Optional[int] = None,
                                  group_id: typing.Optional[int] = None,
                                  silently: bool = False):
-        self.prev_req_func[(user_id, group_id)] = functools.partial(self.distribute_ranking, mode, range)
+        self.prev_req_func[(user_id, group_id)] = functools.partial(
+            self.distribute_ranking, mode, range)
 
         if mode is None:
             mode = self.conf.pixiv_ranking_default_mode
@@ -303,7 +306,8 @@ class Distributor:
                                 user_id: typing.Optional[int] = None,
                                 group_id: typing.Optional[int] = None,
                                 silently: bool = False):
-        self.prev_req_func[(user_id, group_id)] = functools.partial(self.distribute_illust, illust)
+        self.prev_req_func[(user_id, group_id)] = functools.partial(
+            self.distribute_illust, illust)
 
         if isinstance(illust, int):
             illust = await self.data_source.illust_detail(illust)
@@ -317,7 +321,8 @@ class Distributor:
                                        user_id: typing.Optional[int] = None,
                                        group_id: typing.Optional[int] = None,
                                        silently: bool = False):
-        self.prev_req_func[(user_id, group_id)] = functools.partial(self.distribute_random_illust, word)
+        self.prev_req_func[(user_id, group_id)] = functools.partial(
+            self.distribute_random_illust, word)
 
         illusts = await self.data_source.search_illust(word,
                                                        self.conf.pixiv_random_illust_max_item,
@@ -337,7 +342,8 @@ class Distributor:
                                             user_id: typing.Optional[int] = None,
                                             group_id: typing.Optional[int] = None,
                                             silently: bool = False):
-        self.prev_req_func[(user_id, group_id)] = functools.partial(self.distribute_random_user_illust, user)
+        self.prev_req_func[(user_id, group_id)] = functools.partial(
+            self.distribute_random_user_illust, user)
 
         if isinstance(user, str):
             users = await self.data_source.search_user(user)
@@ -362,7 +368,8 @@ class Distributor:
                                                    user_id: typing.Optional[int] = None,
                                                    group_id: typing.Optional[int] = None,
                                                    silently: bool = False):
-        self.prev_req_func[(user_id, group_id)] = self.distribute_random_recommended_illust
+        self.prev_req_func[(user_id, group_id)
+                           ] = self.distribute_random_recommended_illust
 
         illusts = await self.data_source.recommended_illusts(self.conf.pixiv_random_recommended_illust_max_item,
                                                              self.conf.pixiv_random_recommended_illust_max_page,
@@ -380,7 +387,8 @@ class Distributor:
                                          user_id: typing.Optional[int] = None,
                                          group_id: typing.Optional[int] = None,
                                          silently: bool = False):
-        self.prev_req_func[(user_id, group_id)] = functools.partial(self.distribute_random_bookmark, pixiv_user_id)
+        self.prev_req_func[(user_id, group_id)] = functools.partial(
+            self.distribute_random_bookmark, pixiv_user_id)
 
         if not pixiv_user_id:
             pixiv_user_id = await pixiv_bindings.get_binding(user_id)
@@ -408,7 +416,8 @@ class Distributor:
                                         user_id: typing.Optional[int] = None,
                                         group_id: typing.Optional[int] = None,
                                         silently: bool = False):
-        self.prev_req_func[(user_id, group_id)] = functools.partial(self.distribute_related_illust, illust_id)
+        self.prev_req_func[(user_id, group_id)] = functools.partial(
+            self.distribute_related_illust, illust_id)
 
         if illust_id == 0:
             illust_id = self.prev_resp_illust_id.get((user_id, group_id), 0)
