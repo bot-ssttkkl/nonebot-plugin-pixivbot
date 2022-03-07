@@ -390,7 +390,7 @@ pixiv_data_source = PixivDataSource(simultaneous_query=conf.pixiv_simultaneous_q
                                     compression_enabled=conf.pixiv_compression_enabled,
                                     compression_max_size=conf.pixiv_compression_max_size,
                                     compression_quantity=conf.pixiv_compression_quantity)
-
+LazyIllust.set_data_source(pixiv_data_source)
 get_driver().on_startup(pixiv_data_source.start)
 get_driver().on_shutdown(pixiv_data_source.shutdown)
 

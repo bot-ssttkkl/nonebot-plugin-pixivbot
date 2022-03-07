@@ -1,6 +1,5 @@
 import typing
 from .Illust import Illust
-from ..data_source import pixiv_data_source
 
 
 class LazyIllust:
@@ -13,7 +12,7 @@ class LazyIllust:
 
     async def get(self):
         if self.content is None:
-            self.content = await pixiv_data_source.illust_detail(self.id)
+            self.content = await self.src.illust_detail(self.id)
         return self.content
 
     @property
@@ -25,3 +24,8 @@ class LazyIllust:
             return None
         else:
             return self.content.__getattribute__(attr)
+
+
+    @classmethod
+    def set_data_source(cls, src):
+        cls.src = src

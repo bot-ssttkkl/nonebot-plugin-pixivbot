@@ -121,12 +121,12 @@ async def handle_related_illust(bot: Bot, event: Event):
 
 
 if conf.pixiv_more_enabled:
-    mat = on_regex("还要", priority=1, block=True)
+    mat = on_regex("^还要$", priority=1, block=True)
     mat.append_handler(before_handle)
     mat.append_handler(handle_redistribute)
 
 if conf.pixiv_random_related_illust_query_enabled:
-    mat = on_regex("不够色", priority=1, block=True)
+    mat = on_regex("^不够色$", priority=1, block=True)
     mat.append_handler(before_handle)
     mat.append_handler(handle_related_illust)
 

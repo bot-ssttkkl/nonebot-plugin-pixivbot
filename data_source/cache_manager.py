@@ -29,15 +29,14 @@ class CacheManager:
         if identifier in self._waiting:
             return await self._waiting[identifier]
 
-        fut = asyncio.Future()
-        self._waiting[identifier] = fut
-        asyncio.create_task(self._fetch(
-            fut, remote_fetcher, cache_updater, timeout))
-        result = await fut
-
-        await self._waiting.pop(identifier)
-
-        return result
+        try:
+            fut = asyncio.Future()
+            self._waiting[identifier] = fut
+            asyncio.create_task(self._fetch(
+                fut, remote_fetcher, cache_updater, timeout))
+            return await fut
+        finally:
+            await self._waiting.pop(identifier)
 
     async def _fetch(self, fut: asyncio.Future,
                      remote_fetcher: typing.Callable[[], typing.Coroutine[typing.Any, typing.Any, T]],
