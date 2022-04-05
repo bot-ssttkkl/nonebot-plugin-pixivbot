@@ -1,11 +1,9 @@
 import asyncio
 import functools
 import typing
-from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from io import BytesIO
 
-from PIL import Image, ImageFile
 from apscheduler.triggers.date import DateTrigger
 from nonebot import get_driver, logger, require
 from pixivpy_async import *
@@ -13,41 +11,32 @@ from pixivpy_async.error import TokenError
 
 from .cache_data_source import CacheDataSource
 from .cache_manager import CacheManager
-from ..config import conf
+from .compressor import Compressor
+from .pkg_context import context
+from ..config import Config
+from ..errors import QueryError
 from ..model import Illust, User, LazyIllust
-from ..utils.errors import QueryError
 
 
+conf: Config = context.require(Config)
+
+
+@context.export_singleton(simultaneous_query=conf.pixiv_simultaneous_query,
+                          timeout=conf.pixiv_query_timeout,
+                          proxy=conf.pixiv_proxy)
 class PixivDataSource:
-    proxy: str
-    timeout: int
-    compression_enabled: bool
-    compression_max_size: int
-    compression_quantity: int
-    user_id: int
+    _cache_data_souce = context.require(CacheDataSource)
+    _compressor = context.require(Compressor)
 
-    _pclient: PixivClient
-    _papi: AppPixivAPI
-    _cache_data_souce: CacheDataSource
-    _cache_manager: CacheManager
-    _compress_executor: ThreadPoolExecutor
+    def __init__(self, simultaneous_query, timeout, proxy):
+        self.user_id = 0
 
-    def __init__(self, simultaneous_query=8, timeout=60, proxy=None,
-                 compression_enabled=False, compression_max_size=None,
-                 compression_quantity=None):
         self.simultaneous_query = simultaneous_query
         self.timeout = timeout
         self.proxy = proxy
-        self.compression_enabled = compression_enabled
-        self.compression_max_size = compression_max_size
-        self.compression_quantity = compression_quantity
-        if compression_enabled:
-            self._compress_executor = ThreadPoolExecutor(
-                2, "pixiv_bot_compression_thread")
 
     def start(self):
         self._cache_manager = CacheManager(self.simultaneous_query)
-        self._cache_data_souce = CacheDataSource()
         self._pclient = PixivClient(proxy=self.proxy)
         self._papi = AppPixivAPI(client=self._pclient.start())
 
@@ -89,9 +78,9 @@ class PixivDataSource:
     async def _flat_page(papi_search_func: typing.Callable,
                          element_list_name: str,
                          element_mapper: typing.Optional[typing.Callable[[
-                                                                             typing.Any], T]] = None,
+                             typing.Any], T]] = None,
                          element_filter: typing.Optional[typing.Callable[[
-                                                                             T], bool]] = None,
+                             T], bool]] = None,
                          max_item: int = 2 ** 31,
                          max_page: int = 2 ** 31, **kwargs) -> typing.List[T]:
         cur_page = 0
@@ -301,7 +290,8 @@ class PixivDataSource:
             remote_fetcher=self._make_illusts_remote_fetcher(self._papi.illust_related, "illusts",
                                                              block_tags, min_bookmark, min_view,
                                                              max_item, max_page, illust_id=illust_id),
-            cache_updater=lambda content: self._cache_data_souce.update_related_illusts(illust_id, content),
+            cache_updater=lambda content: self._cache_data_souce.update_related_illusts(
+                illust_id, content),
             timeout=self.timeout
         )
 
@@ -346,13 +336,8 @@ class PixivDataSource:
             with BytesIO() as bio:
                 await self._papi.download(url, fname=bio)
                 content = bio.getvalue()
-                if self.compression_enabled:
-                    loop = asyncio.get_running_loop()
-                    task = loop.run_in_executor(
-                        self._compress_executor, functools.partial(self._compress, content))
-                    return await task
-                else:
-                    return content
+                content = await self._compressor.compress(content)
+                return content
 
         return await self._cache_manager.get(
             identifier=(7, illust.id),
@@ -363,34 +348,9 @@ class PixivDataSource:
             timeout=self.timeout
         )
 
-    def _compress(self, content: bytes) -> bytes:
-        p = ImageFile.Parser()
-        p.feed(content)
-        img = p.close()
 
-        w, h = img.size
-        if w > self.compression_max_size or h > self.compression_max_size:
-            ratio = min(self.compression_max_size / w,
-                        self.compression_max_size / h)
-            img_cp = img.resize(
-                (int(ratio * w), int(ratio * h)), Image.ANTIALIAS)
-        else:
-            img_cp = img.copy()
-        img_cp = img_cp.convert("RGB")
+pixiv_data_source = context.require(PixivDataSource)
 
-        with BytesIO() as bio:
-            img_cp.save(bio, format="JPEG", optimize=True,
-                        quantity=self.compression_quantity)
-            return bio.getvalue()
-
-
-pixiv_data_source = PixivDataSource(simultaneous_query=conf.pixiv_simultaneous_query,
-                                    timeout=conf.pixiv_query_timeout,
-                                    proxy=conf.pixiv_proxy,
-                                    compression_enabled=conf.pixiv_compression_enabled,
-                                    compression_max_size=conf.pixiv_compression_max_size,
-                                    compression_quantity=conf.pixiv_compression_quantity)
-LazyIllust.set_data_source(pixiv_data_source)
 get_driver().on_startup(pixiv_data_source.start)
 get_driver().on_shutdown(pixiv_data_source.shutdown)
 
@@ -399,6 +359,7 @@ get_driver().on_shutdown(pixiv_data_source.shutdown)
 async def do_refresh():
     next_time = datetime.now() + timedelta(seconds=60)
     try:
+        conf = context.require(Config)
         result = await pixiv_data_source.refresh(conf.pixiv_refresh_token)
         logger.success(
             f"refresh access token successfully. new token expires in {result.expires_in} seconds.")
@@ -420,4 +381,4 @@ async def do_refresh():
         scheduler.add_job(do_refresh, trigger=DateTrigger(next_time))
 
 
-__all__ = ('PixivDataSource', "pixiv_data_source", "Illust")
+__all__ = ('PixivDataSource', )

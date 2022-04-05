@@ -6,5 +6,4 @@ nonebot-plugin-pixivbot
 @GitHub         : https://github.com/ssttkkl/nonebot-plugin-pixivbot
 """
 
-from . import common_command
-from . import super_command
+from . import command

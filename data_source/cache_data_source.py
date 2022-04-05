@@ -5,9 +5,11 @@ import bson
 from pymongo import UpdateOne
 
 from .mongo_conn import db
+from .pkg_context import context
 from ..model import Illust, User, LazyIllust
 
 
+@context.register_singleton()
 class CacheDataSource:
     def _make_illusts_cache_loader(self, collection_name: str,
                                    arg_name: str,

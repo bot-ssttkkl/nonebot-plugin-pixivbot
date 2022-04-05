@@ -8,9 +8,13 @@ from nonebot.log import logger
 from nonebot.matcher import Matcher
 from nonebot.typing import T_State
 
-from .config import conf
-from .distributor import distributor
-from .utils import decode_integer
+from ..config import Config
+from ..controller import Distributor
+from ..utils import decode_integer
+from .pkg_context import context
+
+conf = context.require(Config)
+distributor = context.require(Distributor)
 
 
 def _parse_ranking_mode(mode):
@@ -170,7 +174,6 @@ if conf.pixiv_poke_action:
     if conf.__getattribute__(f'pixiv_{conf.pixiv_poke_action}_query_enabled'):
         async def _group_poke(event: Event) -> bool:
             return isinstance(event, PokeNotifyEvent) and event.is_tome()
-
 
         group_poke = on_notice(_group_poke, priority=10, block=True)
         group_poke.append_handler(before_handle)

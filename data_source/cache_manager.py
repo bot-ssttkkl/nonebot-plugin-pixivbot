@@ -10,9 +10,11 @@ class CacheManager:
     def __init__(self, simultaneous_query: int = 4,
                  loop: typing.Optional[asyncio.AbstractEventLoop] = None):
         if sys.version_info >= (3, 10, 0):
-            self._semaphore = asyncio.Semaphore(value=simultaneous_query)  # 限制从远程获取的并发量为8
+            self._semaphore = asyncio.Semaphore(
+                value=simultaneous_query)  # 限制从远程获取的并发量为8
         else:
-            self._semaphore = asyncio.Semaphore(value=simultaneous_query, loop=loop)
+            self._semaphore = asyncio.Semaphore(
+                value=simultaneous_query, loop=loop)
         self._waiting = {}
 
     T = typing.TypeVar("T")

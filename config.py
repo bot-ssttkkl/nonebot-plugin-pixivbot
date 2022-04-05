@@ -4,7 +4,10 @@ from nonebot import get_driver
 from pydantic import BaseSettings, validator
 from pydantic.fields import ModelField
 
+from .pkg_context import context
 
+
+@context.register_singleton(**get_driver().config.dict())
 class Config(BaseSettings):
     pixiv_refresh_token: str
     pixiv_mongo_conn_url: str
@@ -149,7 +152,4 @@ class Config(BaseSettings):
         extra = "ignore"
 
 
-_global_config = get_driver().config
-conf = Config(**_global_config.dict())
-
-__all__ = ("Config", "conf")
+__all__ = ("Config",)

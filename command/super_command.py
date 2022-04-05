@@ -6,9 +6,15 @@ from nonebot.permission import SUPERUSER
 from nonebot.rule import to_me
 from nonebot.typing import T_State
 
-from .scheduler import scheduler
-from .data_source import pixiv_bindings, pixiv_data_source
-from .config import conf
+from ..config import Config
+from ..controller import Scheduler
+from ..data_source import PixivBindings, PixivDataSource
+from .pkg_context import context
+
+conf = context.require(Config)
+pixiv_bindings = context.require(PixivBindings)
+pixiv_data_source = context.require(PixivDataSource)
+scheduler = context.require(Scheduler)
 
 _help_text = """常规语句：
 - 看看榜：查看pixiv榜单
