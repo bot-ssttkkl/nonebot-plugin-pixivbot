@@ -62,6 +62,7 @@ def retry(func):
             except QueryError as e:
                 if e.reason and not silently:
                     await self._send(bot, "获取失败："+e.reason, event=event, user_id=user_id, group_id=group_id)
+                logger.exception(e)
                 return
             except asyncio.TimeoutError as e:
                 err = e

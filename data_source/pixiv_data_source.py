@@ -21,29 +21,23 @@ from ..model import Illust, User, LazyIllust
 conf: Config = context.require(Config)
 
 
-@context.export_singleton(simultaneous_query=conf.pixiv_simultaneous_query,
+@context.export_singleton(refresh_token=conf.pixiv_refresh_token,
+                          simultaneous_query=conf.pixiv_simultaneous_query,
                           timeout=conf.pixiv_query_timeout,
                           proxy=conf.pixiv_proxy)
 class PixivDataSource:
     _cache_data_souce = context.require(CacheDataSource)
     _compressor = context.require(Compressor)
 
-    def __init__(self, simultaneous_query, timeout, proxy):
+    def __init__(self, refresh_token, simultaneous_query, timeout, proxy):
         self.user_id = 0
 
+        self.refresh_token = refresh_token
         self.simultaneous_query = simultaneous_query
         self.timeout = timeout
         self.proxy = proxy
 
-    def start(self):
-        self._cache_manager = CacheManager(self.simultaneous_query)
-        self._pclient = PixivClient(proxy=self.proxy)
-        self._papi = AppPixivAPI(client=self._pclient.start())
-
-    async def shutdown(self):
-        await self._pclient.close()
-
-    async def refresh(self, refresh_token: str):
+    async def _refresh(self):
         # Latest app version can be found using GET /v1/application-info/android
         USER_AGENT = "PixivAndroidApp/5.0.234 (Android 11; Pixel 5)"
         REDIRECT_URI = "https://app-api.pixiv.net/web/v1/users/auth/pixiv/callback"
@@ -57,7 +51,7 @@ class PixivDataSource:
             "client_secret": CLIENT_SECRET,
             "grant_type": "refresh_token",
             "include_policy": "true",
-            "refresh_token": refresh_token,
+            "refresh_token": self.refresh_token,
         }
         result = await self._papi.requests_(method="POST", url=AUTH_TOKEN_URL, data=data,
                                             headers={"User-Agent": USER_AGENT},
@@ -67,7 +61,42 @@ class PixivDataSource:
         else:
             self._papi.set_auth(result.access_token, result.refresh_token)
             self.user_id = result["user"]["id"]
+
+            logger.success(
+                f"refresh access token successfully. new token expires in {result.expires_in} seconds.")
+            logger.debug(f"access_token: {result.access_token}")
+            logger.debug(f"refresh_token: {result.refresh_token}")
+
+            # maybe the refresh token will be changed (even thought i haven't seen it yet)
+            if result.refresh_token != self.refresh_token:
+                self.refresh_token = result.refresh_token
+                logger.warning(
+                    f"refresh token has been changed: {result.refresh_token}")
+
             return result
+
+    async def _refresh_daemon(self):
+        while True:
+            try:
+                result = await self._refresh()
+                await asyncio.sleep(result.expires_in * 0.8)
+            except asyncio.CancelledError as e:
+                raise e
+            except Exception as e:
+                logger.error(
+                    "failed to refresh access token, will retry in 60s.")
+                logger.exception(e)
+                await asyncio.sleep(60)
+
+    def start(self):
+        self._cache_manager = CacheManager(self.simultaneous_query)
+        self._pclient = PixivClient(proxy=self.proxy)
+        self._papi = AppPixivAPI(client=self._pclient.start())
+        self._refresh_daemon_task = asyncio.create_task(self._refresh_daemon())
+
+    async def shutdown(self):
+        await self._pclient.close()
+        self._refresh_daemon_task.cancel()
 
     def invalidate_cache(self):
         return self._cache_data_souce.invalidate_cache()
@@ -353,32 +382,6 @@ pixiv_data_source = context.require(PixivDataSource)
 
 get_driver().on_startup(pixiv_data_source.start)
 get_driver().on_shutdown(pixiv_data_source.shutdown)
-
-
-@get_driver().on_startup
-async def do_refresh():
-    next_time = datetime.now() + timedelta(seconds=60)
-    try:
-        conf = context.require(Config)
-        result = await pixiv_data_source.refresh(conf.pixiv_refresh_token)
-        logger.success(
-            f"refresh access token successfully. new token expires in {result.expires_in} seconds.")
-        logger.debug(f"access_token: {result.access_token}")
-        logger.debug(f"refresh_token: {result.refresh_token}")
-
-        # maybe the refresh token will be changed (even thought i haven't seen it yet)
-        if result.refresh_token != conf.pixiv_refresh_token:
-            conf.pixiv_refresh_token = result.refresh_token
-            logger.warning(
-                f"refresh token has been changed: {result.refresh_token}")
-
-        next_time = datetime.now() + timedelta(seconds=result.expires_in * 0.8)
-    except Exception as e:
-        logger.error("failed to refresh access token, will retry in 60s.")
-        logger.exception(e)
-    finally:
-        scheduler = require("nonebot_plugin_apscheduler").scheduler
-        scheduler.add_job(do_refresh, trigger=DateTrigger(next_time))
 
 
 __all__ = ('PixivDataSource', )
