@@ -17,6 +17,7 @@ from ..data_source import PixivBindings, PixivDataSource
 from ..model import Illust, LazyIllust
 from ..errors import QueryError
 from .pkg_context import context
+from .request_recorder import RequestRecorder
 
 
 class NoReplyError(Exception):
@@ -89,8 +90,7 @@ class Distributor:
     data_source = context.require(PixivDataSource)
     pixiv_bindings = context.require(PixivBindings)
 
-    def __init__(self, session_expires_in: int = 10*60):
-        self.session_expires_in = session_expires_in
+    def __init__(self):
         self._distribute_func = {
             "ranking": self.distribute_ranking,
             "illust": self.distribute_illust,
@@ -99,72 +99,7 @@ class Distributor:
             "random_recommended_illust": self.distribute_random_recommended_illust,
             "random_bookmark": self.distribute_random_bookmark,
         }
-        self._prev_req_func = OrderedDict()
-        self._prev_resp_illust_id = OrderedDict()
-
-    def _pop_expired_req(self):
-        now = time.time()
-        while len(self._prev_req_func) > 0:
-            (user_id, group_id), (timestamp, _) = next(
-                iter(self._prev_req_func.items()))
-            if now - timestamp > self.session_expires_in:
-                self._prev_req_func.popitem(last=False)
-                logger.info(f"popped expired req: ({user_id}, {group_id})")
-            else:
-                break
-
-    def _push_req(self, func: typing.Callable, *,
-                  user_id: typing.Optional[int] = None,
-                  group_id: typing.Optional[int] = None):
-        self._pop_expired_req()
-        if (user_id, group_id) in self._prev_req_func:
-            self._prev_req_func.move_to_end((user_id, group_id))
-        self._prev_req_func[(user_id, group_id)] = time.time(), func
-
-    def _get_req(self,  *,
-                 user_id: typing.Optional[int] = None,
-                 group_id: typing.Optional[int] = None) -> typing.Callable:
-        self._pop_expired_req()
-        if (user_id, group_id) in self._prev_req_func:
-            (_, func) = self._prev_req_func[(user_id, group_id)]
-            self._prev_req_func[(user_id, group_id)] = time.time(), func
-            self._prev_req_func.move_to_end((user_id, group_id))
-            return func
-        elif user_id is not None and group_id is not None:  # 获取上一条群订阅的请求
-            return self._get_req(group_id=group_id)
-        else:
-            return None
-
-    def _pop_expired_resp(self):
-        now = time.time()
-        while len(self._prev_resp_illust_id) > 0:
-            (user_id, group_id), (timestamp, _) = next(
-                iter(self._prev_resp_illust_id.items()))
-            if now - timestamp > self.session_expires_in:
-                self._prev_resp_illust_id.popitem(last=False)
-                logger.info(f"popped expired resp: ({user_id}, {group_id})")
-            else:
-                break
-
-    def _push_resp(self, illust_id: int, *,
-                   user_id: typing.Optional[int] = None,
-                   group_id: typing.Optional[int] = None) -> int:
-        self._pop_expired_resp()
-        if (user_id, group_id) in self._prev_resp_illust_id:
-            self._prev_resp_illust_id.move_to_end((user_id, group_id))
-        self._prev_resp_illust_id[(user_id, group_id)] = time.time(), illust_id
-
-    def _get_resp(self,  *,
-                  user_id: typing.Optional[int] = None,
-                  group_id: typing.Optional[int] = None) -> int:
-        self._pop_expired_resp()
-        if (user_id, group_id) in self._prev_resp_illust_id:
-            (_, illust_id) = self._prev_resp_illust_id[(user_id, group_id)]
-            return illust_id
-        elif user_id is not None and group_id is not None:  # 获取上一条群订阅的响应
-            return self._get_resp(group_id=group_id)
-        else:
-            return 0
+        self._recorder = RequestRecorder()
 
     async def _make_illust_msg(self, illust: typing.Union[LazyIllust, Illust],
                                number: typing.Optional[int] = None) -> Message:
@@ -285,7 +220,7 @@ class Distributor:
                            event: MessageEvent = None,
                            user_id: typing.Optional[int] = None,
                            group_id: typing.Optional[int] = None):
-        self._push_resp(illust.id, user_id=user_id, group_id=group_id)
+        self._recorder.push_resp(illust.id, user_id=user_id, group_id=group_id)
 
         msg = await self._make_illust_msg(illust)
         await self._send(bot, msg, event=event, user_id=user_id, group_id=group_id)
@@ -321,7 +256,7 @@ class Distributor:
                                  user_id: typing.Optional[int] = None,
                                  group_id: typing.Optional[int] = None,
                                  silently: bool = False):
-        self._push_req(functools.partial(self.distribute_ranking, mode, range),
+        self._recorder.push_req(functools.partial(self.distribute_ranking, mode, range),
                        user_id=user_id, group_id=group_id)
 
         if mode is None:
@@ -365,7 +300,7 @@ class Distributor:
                                 user_id: typing.Optional[int] = None,
                                 group_id: typing.Optional[int] = None,
                                 silently: bool = False):
-        self._push_req(functools.partial(self.distribute_illust, illust),
+        self._recorder.push_req(functools.partial(self.distribute_illust, illust),
                        user_id=user_id, group_id=group_id)
 
         if isinstance(illust, int):
@@ -380,7 +315,7 @@ class Distributor:
                                        user_id: typing.Optional[int] = None,
                                        group_id: typing.Optional[int] = None,
                                        silently: bool = False):
-        self._push_req(functools.partial(self.distribute_random_illust, word),
+        self._recorder.push_req(functools.partial(self.distribute_random_illust, word),
                        user_id=user_id, group_id=group_id)
 
         illusts = await self.data_source.search_illust(word)
@@ -396,7 +331,7 @@ class Distributor:
                                             user_id: typing.Optional[int] = None,
                                             group_id: typing.Optional[int] = None,
                                             silently: bool = False):
-        self._push_req(functools.partial(self.distribute_random_user_illust, user),
+        self._recorder.push_req(functools.partial(self.distribute_random_user_illust, user),
                        user_id=user_id, group_id=group_id)
 
         if isinstance(user, str):
@@ -417,7 +352,7 @@ class Distributor:
                                                    user_id: typing.Optional[int] = None,
                                                    group_id: typing.Optional[int] = None,
                                                    silently: bool = False):
-        self._push_req(self.distribute_random_recommended_illust,
+        self._recorder.push_req(self.distribute_random_recommended_illust,
                        user_id=user_id, group_id=group_id)
 
         illusts = await self.data_source.recommended_illusts()
@@ -432,7 +367,7 @@ class Distributor:
                                          user_id: typing.Optional[int] = None,
                                          group_id: typing.Optional[int] = None,
                                          silently: bool = False):
-        self._push_req(functools.partial(self.distribute_random_bookmark, pixiv_user_id),
+        self._recorder.push_req(functools.partial(self.distribute_random_bookmark, pixiv_user_id),
                        user_id=user_id, group_id=group_id)
 
         if not pixiv_user_id:
@@ -456,11 +391,11 @@ class Distributor:
                                         user_id: typing.Optional[int] = None,
                                         group_id: typing.Optional[int] = None,
                                         silently: bool = False):
-        self._push_req(functools.partial(self.distribute_related_illust, illust_id),
+        self._recorder.push_req(functools.partial(self.distribute_related_illust, illust_id),
                        user_id=user_id, group_id=group_id)
 
         if illust_id == 0:
-            illust_id = self._get_resp(user_id=user_id, group_id=group_id)
+            illust_id = self._recorder.get_resp(user_id=user_id, group_id=group_id)
             if illust_id == 0:
                 raise QueryError("你还没有发送过请求")
             logger.info(f"prev resp illust_id: {illust_id}")
@@ -475,7 +410,7 @@ class Distributor:
                            event: MessageEvent = None,
                            user_id: typing.Optional[int] = None,
                            group_id: typing.Optional[int] = None):
-        resp = self._get_req(user_id=user_id, group_id=group_id)
+        resp = self._recorder.get_req(user_id=user_id, group_id=group_id)
 
         if resp is None:
             await self._send(bot, "你还没有发送过请求", event=event, user_id=user_id, group_id=group_id)
