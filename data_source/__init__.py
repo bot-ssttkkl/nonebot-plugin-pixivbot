@@ -1,4 +1,4 @@
-from .pixiv_data_source import PixivDataSource
+from .pixiv import PixivDataSource
 from .subscriptions import Subscriptions
 from .pixiv_bindings import PixivBindings
 

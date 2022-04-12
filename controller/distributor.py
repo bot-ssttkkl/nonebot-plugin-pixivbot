@@ -75,7 +75,7 @@ def retry(func):
             if isinstance(err, asyncio.TimeoutError):
                 await self._send(bot, "获取超时", event=event, user_id=user_id, group_id=group_id)
             else:
-                await self._send(bot, f"发生内部错误：{type(e)}{e}", event=event, user_id=user_id, group_id=group_id)
+                await self._send(bot, f"发生内部错误：{type(err)}{err}", event=event, user_id=user_id, group_id=group_id)
 
     return wrapped
 
@@ -187,7 +187,7 @@ class Distributor:
                 raise NoReplyError()
         else:
             with BytesIO() as bio:
-                bio.write(await self.data_source.download(illust))
+                bio.write(await self.data_source.image(illust))
 
                 msg.append(MessageSegment.image(bio))
                 if number is not None:
@@ -336,8 +336,7 @@ class Distributor:
                 raise QueryError(
                     f'仅支持查询{self.conf.pixiv_ranking_fetch_item}名以内的插画')
             else:
-                illusts = await self.data_source.illust_ranking(mode, self.conf.pixiv_ranking_fetch_item,
-                                                                block_tags=self.conf.pixiv_block_tags)
+                illusts = await self.data_source.illust_ranking(mode)
                 await self._send_illust(bot, illusts[num - 1], event=event, user_id=user_id, group_id=group_id)
         else:
             start, end = range
@@ -384,12 +383,7 @@ class Distributor:
         self._push_req(functools.partial(self.distribute_random_illust, word),
                        user_id=user_id, group_id=group_id)
 
-        illusts = await self.data_source.search_illust(word,
-                                                       self.conf.pixiv_random_illust_max_item,
-                                                       self.conf.pixiv_random_illust_max_page,
-                                                       self.conf.pixiv_block_tags,
-                                                       self.conf.pixiv_random_illust_min_bookmark,
-                                                       self.conf.pixiv_random_illust_min_view)
+        illusts = await self.data_source.search_illust(word)
 
         await self._choice_and_send_illust(bot, illusts, self.conf.pixiv_random_illust_method,
                                            event=event, user_id=user_id, group_id=group_id)
@@ -411,12 +405,7 @@ class Distributor:
                 raise QueryError("未找到用户")
             else:
                 user = users[0].id
-        illusts = await self.data_source.user_illusts(user,
-                                                      self.conf.pixiv_random_user_illust_max_item,
-                                                      self.conf.pixiv_random_user_illust_max_page,
-                                                      self.conf.pixiv_block_tags,
-                                                      self.conf.pixiv_random_user_illust_min_bookmark,
-                                                      self.conf.pixiv_random_user_illust_min_view)
+        illusts = await self.data_source.user_illusts(user)
 
         await self._choice_and_send_illust(bot, illusts, self.conf.pixiv_random_user_illust_method,
                                            event=event, user_id=user_id, group_id=group_id)
@@ -431,11 +420,7 @@ class Distributor:
         self._push_req(self.distribute_random_recommended_illust,
                        user_id=user_id, group_id=group_id)
 
-        illusts = await self.data_source.recommended_illusts(self.conf.pixiv_random_recommended_illust_max_item,
-                                                             self.conf.pixiv_random_recommended_illust_max_page,
-                                                             self.conf.pixiv_block_tags,
-                                                             self.conf.pixiv_random_recommended_illust_min_bookmark,
-                                                             self.conf.pixiv_random_recommended_illust_min_view)
+        illusts = await self.data_source.recommended_illusts()
 
         await self._choice_and_send_illust(bot, illusts, self.conf.pixiv_random_recommended_illust_method,
                                            event=event, user_id=user_id, group_id=group_id)
@@ -459,12 +444,7 @@ class Distributor:
         if not pixiv_user_id:
             raise QueryError("未绑定Pixiv账号")
 
-        illusts = await self.data_source.user_bookmarks(pixiv_user_id,
-                                                        self.conf.pixiv_random_bookmark_max_item,
-                                                        self.conf.pixiv_random_bookmark_max_page,
-                                                        self.conf.pixiv_block_tags,
-                                                        self.conf.pixiv_random_bookmark_min_bookmark,
-                                                        self.conf.pixiv_random_bookmark_min_view)
+        illusts = await self.data_source.user_bookmarks(pixiv_user_id)
 
         await self._choice_and_send_illust(bot, illusts, self.conf.pixiv_random_bookmark_method,
                                            event=event, user_id=user_id, group_id=group_id)
@@ -485,12 +465,7 @@ class Distributor:
                 raise QueryError("你还没有发送过请求")
             logger.info(f"prev resp illust_id: {illust_id}")
 
-        illusts = await self.data_source.related_illusts(illust_id,
-                                                         self.conf.pixiv_random_related_illust_max_item,
-                                                         self.conf.pixiv_random_related_illust_max_page,
-                                                         self.conf.pixiv_block_tags,
-                                                         self.conf.pixiv_random_related_illust_min_bookmark,
-                                                         self.conf.pixiv_random_related_illust_min_view)
+        illusts = await self.data_source.related_illusts(illust_id)
 
         await self._choice_and_send_illust(bot, illusts, self.conf.pixiv_random_related_illust_method,
                                            event=event, user_id=user_id, group_id=group_id)

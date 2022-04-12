@@ -1,25 +1,23 @@
 import asyncio
 import functools
+import multiprocessing
 
 from concurrent.futures.thread import ThreadPoolExecutor
 from io import BytesIO
 from PIL import Image, ImageFile
-from .pkg_context import context
-from ..config import Config
+from nonebot import logger
 
 
-conf: Config = context.require(Config)
-
-
-@context.register_singleton(enabled=conf.pixiv_compression_enabled,
-                            max_size=conf.pixiv_compression_max_size,
-                            quantity=conf.pixiv_compression_quantity)
 class Compressor:
     def __init__(self, enabled, max_size, quantity) -> None:
         self.enabled = enabled
         self.max_size = max_size
         self.quantity = quantity
-        self._executor = ThreadPoolExecutor(2, "compressor")
+
+        if enabled:
+            cpu_count = multiprocessing.cpu_count()
+            self._executor = ThreadPoolExecutor(cpu_count, "compressor")
+            # logger.info(f"A ThreadPool with {cpu_count} worker(s) was created for compression")
 
     async def compress(self, content: bytes) -> bytes:
         if self.enabled:
