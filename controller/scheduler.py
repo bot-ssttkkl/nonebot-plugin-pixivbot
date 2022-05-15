@@ -1,6 +1,6 @@
 import re
 import typing
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from apscheduler.triggers.interval import IntervalTrigger
 from nonebot import require, logger, get_driver
@@ -84,7 +84,7 @@ class Scheduler:
                  group_id: typing.Optional[int] = None):
         trigger = IntervalTrigger(hours=schedule[2], minutes=schedule[3],
                                   start_date=datetime.now().replace(hour=schedule[0], minute=schedule[1],
-                                                                    second=0, microsecond=0))
+                                                                    second=0, microsecond=0) + timedelta(days=-1))
         job_id = self._make_job_id(type, user_id, group_id)
         self.apscheduler.add_job(self._handlers[type], id=job_id, trigger=trigger,
                                  kwargs={"self": self, "bot": bot, "user_id": user_id, "group_id": group_id, **kwargs})
@@ -93,9 +93,8 @@ class Scheduler:
     def _remove_job(self, type: str, *,
                     user_id: typing.Optional[int] = None,
                     group_id: typing.Optional[int] = None):
-        scheduler = require("nonebot_plugin_apscheduler").scheduler
         job_id = self._make_job_id(type, user_id, group_id)
-        scheduler.remove_job(job_id)
+        self.apscheduler.remove_job(job_id)
         logger.success(f"unscheduled {job_id}")
 
     async def _handle_ranking(self, mode: typing.Optional[str] = None,
@@ -104,24 +103,23 @@ class Scheduler:
                               user_id: typing.Optional[int] = None,
                               group_id: typing.Optional[int] = None):
         illusts = await self.service.illust_ranking(mode, range)
-        await self.postman.send_illust(
-            illusts, bot=bot, user_id=user_id, group_id=group_id)
+        await self.postman.send_illusts(illusts, number=range[0] if range else 1,
+                                        bot=bot, user_id=user_id, group_id=group_id)
 
     async def _handle_random_recommended_illust(self,
                                                 *, bot: Bot,
                                                 user_id: typing.Optional[int] = None,
                                                 group_id: typing.Optional[int] = None):
         illusts = await self.service.random_recommended_illust()
-        await self.postman.send_illust(
+        await self.postman.send_illusts(
             illusts, bot=bot, user_id=user_id, group_id=group_id)
 
-    async def _handle_random_bookmark(self, qq_user_id: int = 0,
-                                      pixiv_user_id: int = 0,
+    async def _handle_random_bookmark(self, pixiv_user_id: int = 0,
                                       *, bot: Bot,
                                       user_id: typing.Optional[int] = None,
                                       group_id: typing.Optional[int] = None):
-        illusts = await self.service.random_bookmark(qq_user_id, pixiv_user_id)
-        await self.postman.send_illust(
+        illusts = await self.service.random_bookmark(user_id, pixiv_user_id)
+        await self.postman.send_illusts(
             illusts, bot=bot, user_id=user_id, group_id=group_id)
 
     _handlers = {

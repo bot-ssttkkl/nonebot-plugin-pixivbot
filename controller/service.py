@@ -72,7 +72,7 @@ class Service:
 
     def validate_illust_ranking_args(self, mode: typing.Optional[str] = None,
                                      range: typing.Union[typing.Sequence[int], int, None] = None):
-        if mode not in self.RANKING_MODES:
+        if mode and mode not in self.RANKING_MODES:
             raise ValueError(f"{mode}不是合法的榜单类型")
 
         if range is not None:
@@ -146,7 +146,7 @@ class Service:
         illusts = await self.data_source.user_bookmarks(pixiv_user_id)
         return await self._choice_and_load(illusts, self.conf.pixiv_random_bookmark_method, count)
 
-    async def random_related_illust(self, illust_id: int = 0, count: int = 1) -> Illust:
+    async def random_related_illust(self, illust_id: int, count: int = 1) -> Illust:
         if illust_id == 0:
             raise ValueError("你还没有发送过请求")
 
