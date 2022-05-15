@@ -61,8 +61,8 @@ class RemoteDataSource(AbstractDataSource):
 
             logger.success(
                 f"refresh access token successfully. new token expires in {result.expires_in} seconds.")
-            logger.debug(f"access_token: {result.access_token}")
-            logger.debug(f"refresh_token: {result.refresh_token}")
+            logger.info(f"access_token: {result.access_token}")
+            logger.info(f"refresh_token: {result.refresh_token}")
 
             # maybe the refresh token will be changed (even thought i haven't seen it yet)
             if result.refresh_token != self.refresh_token:
@@ -109,7 +109,7 @@ class RemoteDataSource(AbstractDataSource):
         cur_page = 0
         flatten = []
 
-        # logger.debug("loading page " + str(cur_page + 1))
+        # logger.info("loading page " + str(cur_page + 1))
         raw_result = await papi_search_func(**kwargs)
         if "error" in raw_result:
             raise QueryError(**raw_result["error"])
@@ -133,7 +133,7 @@ class RemoteDataSource(AbstractDataSource):
                     del next_qs['viewed']
 
                 cur_page = cur_page + 1
-                # logger.debug("loading page " + str(cur_page + 1))
+                # logger.info("loading page " + str(cur_page + 1))
                 raw_result = await papi_search_func(**next_qs)
                 if "error" in raw_result:
                     raise QueryError(**raw_result["error"])
@@ -144,8 +144,8 @@ class RemoteDataSource(AbstractDataSource):
     async def _get_illusts(papi_search_func: typing.Callable,
                            element_list_name: str,
                            block_tags: typing.Optional[typing.List[str]],
-                           min_bookmark: int = 2 ** 31,
-                           min_view: int = 2 ** 31,
+                           min_bookmark: int = 0,
+                           min_view: int = 0,
                            max_item: int = 2 ** 31,
                            max_page: int = 2 ** 31, *args, **kwargs):
         def illust_filter(illust: Illust) -> bool:
@@ -176,13 +176,13 @@ class RemoteDataSource(AbstractDataSource):
             else:
                 content.append(LazyIllust(x.id, x))
 
-        logger.debug(
-            f"[RemoteDataSource] {len(illusts)} got, illust_detail of {broken} are missed")
+        logger.info(
+            f"[remote] {len(illusts)} got, illust_detail of {broken} are missed")
 
         return content
 
     async def illust_detail(self, illust_id: int) -> Illust:
-        logger.debug(f"[RemoteDataSource] illust_detail {illust_id}")
+        logger.info(f"[remote] illust_detail {illust_id}")
 
         content = await self._papi.illust_detail(illust_id)
         if "error" in content:
@@ -196,14 +196,14 @@ class RemoteDataSource(AbstractDataSource):
         min_view = self._conf.pixiv_random_illust_min_view
         block_tags = self._conf.pixiv_block_tags
 
-        logger.debug(f"[RemoteDataSource] search_illust {word}")
+        logger.info(f"[remote] search_illust {word}")
         return await self._get_illusts(self._papi.search_illust, "illusts",
                                        block_tags, min_bookmark, min_view,
                                        max_item, max_page,
                                        word=word)
 
     async def search_user(self, word: str) -> typing.List[User]:
-        logger.debug(f"[RemoteDataSource] search_user {word}")
+        logger.info(f"[remote] search_user {word}")
         content = await self._flat_page(self._papi.search_user, "user_previews",
                                         lambda x: User.parse_obj(
                                             x["user"]),
@@ -220,7 +220,7 @@ class RemoteDataSource(AbstractDataSource):
         min_view = self._conf.pixiv_random_user_illust_min_view
         block_tags = self._conf.pixiv_block_tags
 
-        logger.debug(f"[RemoteDataSource] user_illusts {user_id}")
+        logger.info(f"[remote] user_illusts {user_id}")
         return await self._get_illusts(self._papi.user_illusts, "illusts",
                                        block_tags, min_bookmark, min_view,
                                        max_item, max_page,
@@ -236,7 +236,7 @@ class RemoteDataSource(AbstractDataSource):
         min_view = self._conf.pixiv_random_bookmark_min_view
         block_tags = self._conf.pixiv_block_tags
 
-        logger.debug(f"[RemoteDataSource] user_bookmarks {user_id}")
+        logger.info(f"[remote] user_bookmarks {user_id}")
         return await self._get_illusts(self._papi.user_bookmarks_illust, "illusts",
                                        block_tags, min_bookmark, min_view,
                                        max_item, max_page,
@@ -249,8 +249,8 @@ class RemoteDataSource(AbstractDataSource):
         min_view = self._conf.pixiv_random_recommended_illust_min_view
         block_tags = self._conf.pixiv_block_tags
 
-        logger.debug(f"[RemoteDataSource] recommended_illusts")
-        return await self._get_illusts(self._papi.recommended_illusts, "illusts",
+        logger.info(f"[remote] recommended_illusts")
+        return await self._get_illusts(self._papi.illust_recommended, "illusts",
                                        block_tags, min_bookmark, min_view,
                                        max_item, max_page)
 
@@ -261,7 +261,7 @@ class RemoteDataSource(AbstractDataSource):
         min_view = self._conf.pixiv_random_related_illust_min_view
         block_tags = self._conf.pixiv_block_tags
 
-        logger.debug(f"[RemoteDataSource] related_illusts {illust_id}")
+        logger.info(f"[remote] related_illusts {illust_id}")
         return await self._get_illusts(self._papi.illust_related, "illusts",
                                        block_tags, min_bookmark, min_view,
                                        max_item, max_page,
@@ -271,8 +271,8 @@ class RemoteDataSource(AbstractDataSource):
         max_item = self._conf.pixiv_ranking_fetch_item
         block_tags = self._conf.pixiv_block_tags
 
-        logger.debug(
-            f"[RemoteDataSource] illust_ranking {mode}")
+        logger.info(
+            f"[remote] illust_ranking {mode}")
         return await self._get_illusts(self._papi.illust_ranking, "illusts",
                                        block_tags,
                                        max_item=max_item,

@@ -3,6 +3,7 @@ from datetime import datetime
 
 import bson
 from pymongo import UpdateOne
+from nonebot import logger
 
 from .abstract_data_source import AbstractDataSource
 from .pkg_context import context
@@ -48,17 +49,17 @@ class CacheDataSource(AbstractDataSource):
             ])
 
             cache = []
-            # broken = 0
+            broken = 0
             async for x in result:
                 if "illust" in x and x["illust"] is not None:
                     cache.append(LazyIllust(
                         x["illust_id"], Illust.parse_obj(x["illust"])))
                 else:
                     cache.append(LazyIllust(x["illust_id"]))
-                    # broken += 1
+                    broken += 1
 
-            # logger.info(
-            #     f"{len(cache)} got, illust_detail of {broken} are missed")
+            logger.info(
+                f"[cache] {len(cache)} got, illust_detail of {broken} are missed")
 
             if len(cache) != 0:
                 return cache
