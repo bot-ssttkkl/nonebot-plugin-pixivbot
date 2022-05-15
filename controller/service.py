@@ -17,13 +17,17 @@ class Service:
     data_source = context.require(PixivDataSource)
     pixiv_bindings = context.require(PixivBindings)
 
-    @staticmethod
-    def _random_illust(illusts: typing.List[LazyIllust], random_method: str) -> LazyIllust:
+    async def _choice_and_load(self, illusts: typing.List[LazyIllust], random_method: str, count: int) -> typing.List[Illust]:
+        if count <= 0:
+            raise ValueError("不合法的请求数量")
+        if count > self.conf.pixiv_max_item_per_query:
+            raise ValueError("数量超过单次请求上限")
+
         if random_method == "uniform":
             # 概率相等
-            probability = [1 / len(illusts)] * len(illusts)
             if len(illusts) == 0:
                 raise ValueError("别看了，没有的。")
+            probability = [1 / len(illusts)] * len(illusts)
         else:
             illusts = list(filter(lambda x: x.loaded, illusts))  # 只在已加载的插画中选择
             if len(illusts) == 0:
@@ -59,23 +63,9 @@ class Service:
                 raise ValueError(
                     f"illegal random_method value: {random_method}")
 
-        for i in range(1, len(probability)):
-            probability[i] = probability[i] + probability[i - 1]
-
-        ran = random.random()
-
-        # 二分查找
-        first, last = 0, len(probability) - 1
-        while first < last:
-            mid = (first + last) // 2
-            if probability[mid] > ran:
-                last = mid
-            else:
-                first = mid + 1
-        illust = illusts[first]
-
-        logger.info(f"select {illust.id}")
-        return illust
+        choices = random.choices(illusts, probability, k=count)
+        logger.info(f"choice {[x.id for x in choices]}")
+        return [await x.get() for x in choices]
 
     RANKING_MODES = ["day", "week", "month", "day_male",
                      "day_female", "week_original", "week_rookie", "day_manga"]
@@ -124,11 +114,11 @@ class Service:
     async def illust_detail(self, illust: int) -> Illust:
         return await self.data_source.illust_detail(illust)
 
-    async def random_illust(self, word: str) -> Illust:
+    async def random_illust(self, word: str, count: int = 1) -> Illust:
         illusts = await self.data_source.search_illust(word)
-        return await self._random_illust(illusts, self.conf.pixiv_random_illust_method).get()
+        return await self._choice_and_load(illusts, self.conf.pixiv_random_illust_method, count)
 
-    async def random_user_illust(self, user: typing.Union[str, int]) -> Illust:
+    async def random_user_illust(self, user: typing.Union[str, int], count: int = 1) -> Illust:
         if isinstance(user, str):
             users = await self.data_source.search_user(user)
             if len(users) == 0:
@@ -137,13 +127,13 @@ class Service:
                 user = users[0].id
 
         illusts = await self.data_source.user_illusts(user)
-        return await self._random_illust(illusts, self.conf.pixiv_random_user_illust_method).get()
+        return await self._choice_and_load(illusts, self.conf.pixiv_random_user_illust_method, count)
 
-    async def random_recommended_illust(self) -> Illust:
+    async def random_recommended_illust(self, count: int = 1) -> Illust:
         illusts = await self.data_source.recommended_illusts()
-        return await self._random_illust(illusts, self.conf.pixiv_random_recommended_illust_method).get()
+        return await self._choice_and_load(illusts, self.conf.pixiv_random_recommended_illust_method, count)
 
-    async def random_bookmark(self, qq_user_id: int = 0, pixiv_user_id: int = 0) -> Illust:
+    async def random_bookmark(self, qq_user_id: int = 0, pixiv_user_id: int = 0, count: int = 1) -> Illust:
         if not pixiv_user_id and qq_user_id:
             pixiv_user_id = await self.pixiv_bindings.get_binding(qq_user_id)
 
@@ -154,11 +144,11 @@ class Service:
             raise ValueError("无效的Pixiv账号，或未绑定Pixiv账号")
 
         illusts = await self.data_source.user_bookmarks(pixiv_user_id)
-        return await self._random_illust(illusts, self.conf.pixiv_random_bookmark_method).get()
+        return await self._choice_and_load(illusts, self.conf.pixiv_random_bookmark_method, count)
 
-    async def related_illust(self, illust_id: int = 0) -> Illust:
+    async def random_related_illust(self, illust_id: int = 0, count: int = 1) -> Illust:
         if illust_id == 0:
             raise ValueError("你还没有发送过请求")
 
         illusts = await self.data_source.related_illusts(illust_id)
-        return await self._random_illust(illusts, self.conf.pixiv_random_related_illust_method).get()
+        return await self._choice_and_load(illusts, self.conf.pixiv_random_related_illust_method, count)

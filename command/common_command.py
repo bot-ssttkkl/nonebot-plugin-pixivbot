@@ -40,50 +40,11 @@ async def cooldown_interceptor(bot: Bot, event: Event, state: T_State, matcher: 
             await matcher.finish(f"你的CD还有{int(conf.pixiv_query_cooldown - delta.total_seconds())}s转好")
 
 
-if conf.pixiv_random_recommended_illust_query_enabled:
-    mat = on_regex("^来张图$", priority=3, block=True)
-    mat.append_handler(cooldown_interceptor)
-
-    @mat.handle()
-    @catch_error
-    async def handle_random_recommended_illust_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-        illust = await service.random_recommended_illust()
-        await postman.send_illust(illust, bot=bot, event=event)
-
-
-if conf.pixiv_random_user_illust_query_enabled:
-    mat = on_regex("^来张(.+)老师的图$", priority=4, block=True)
-    mat.append_handler(cooldown_interceptor)
-
-    @mat.handle()
-    @catch_error
-    async def handle_random_user_illust_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-        word = state["_matched_groups"][0]
-        illust = await service.random_user_illust(word)
-        await postman.send_illust(illust, bot=bot, event=event)
-
-
 if conf.pixiv_ranking_query_enabled:
-    def _parse_ranking_mode(mode):
-        if mode == "日":
-            mode = "day"
-        elif mode == "周":
-            mode = "week"
-        elif mode == "月":
-            mode = "month"
-        elif mode == "男性":
-            mode = "day_male"
-        elif mode == "女性":
-            mode = "day_female"
-        elif mode == "原创":
-            mode = "week_original"
-        elif mode == "新人":
-            mode = "week_rookie"
-        elif mode == "漫画":
-            mode = "day_manga"
-        return mode
+    mode_mapping = {"日": "day", "周": "week", "月": "month", "男性": "day_male",
+                    "女性": "day_female", "原创": "week_original", "新人": "week_rookie", "漫画": "day_manga"}
 
-    mat = on_regex(r"^看看(日|周|月|男性|女性|原创|新人)?榜\s*([1-9][0-9]*|[零一两二三四五六七八九十百千万亿]+)$",
+    mat = on_regex(r"^看看(.*)?榜\s*([1-9][0-9]*|[零一两二三四五六七八九十百千万亿]+)$",
                    priority=4, block=True)
     mat.append_handler(cooldown_interceptor)
 
@@ -93,17 +54,19 @@ if conf.pixiv_ranking_query_enabled:
         mode = state["_matched_groups"][0]
         num = state["_matched_groups"][1]
 
-        mode = _parse_ranking_mode(mode)
+        if mode not in mode_mapping:
+            raise ValueError(f"{mode}不是合法的榜单类型")
+        mode = mode_mapping[mode]
 
         try:
             num = decode_integer(num)
         except ValueError:
-            await postman.send_message(f"{num}不是合法的数字", bot=bot, event=event)
+            raise ValueError(f"{num}不是合法的数字")
 
         illust = await service.illust_ranking(mode, num)
-        await postman.send_illust(illust, number=num, bot=bot, event=event)
+        await postman.send_illusts(illust, number=num, bot=bot, event=event)
 
-    mat = on_regex(r"^看看(日|周|月|男性|女性|原创|新人|漫画)?榜\s*(([1-9][0-9]*)[-~]([1-9][0-9]*))?$",
+    mat = on_regex(r"^看看(.*)?榜\s*(([1-9][0-9]*)[-~]([1-9][0-9]*))?$",
                    priority=5)
     mat.append_handler(cooldown_interceptor)
 
@@ -112,12 +75,18 @@ if conf.pixiv_ranking_query_enabled:
     async def handle_ranking_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
         if "_matched_groups" in state:
             mode = state["_matched_groups"][0]
-            mode = _parse_ranking_mode(mode)
-
             start = state["_matched_groups"][2]
             end = state["_matched_groups"][3]
+
+            if mode not in mode_mapping:
+                raise ValueError(f"{mode}不是合法的榜单类型")
+            mode = mode_mapping[mode]
+
             if start is not None and end is not None:
-                range = (int(start), int(end))
+                try:
+                    range = (int(start), int(end))
+                except ValueError:
+                    raise ValueError(f"{start}~{end}不是合法的范围")
             else:
                 range = None
         else:
@@ -138,34 +107,95 @@ if conf.pixiv_illust_query_enabled:
         try:
             illust_id = int(raw_illust_id)
         except ValueError:
-            await postman.send_message(f"{raw_illust_id}不是合法的插画ID", bot=bot, event=event)
-            return
+            raise ValueError(f"{raw_illust_id}不是合法的插画ID")
 
         illust = await service.illust_detail(illust_id)
-        await postman.send_illust(illust, bot=bot, event=event)
+        await postman.send_illusts(illust, bot=bot, event=event)
+
+
+if conf.pixiv_random_recommended_illust_query_enabled:
+    mat = on_regex("^来(.*)?张图$", priority=3, block=True)
+    mat.append_handler(cooldown_interceptor)
+
+    @mat.handle()
+    @catch_error
+    async def handle_random_recommended_illust_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
+        count = state["_matched_groups"][0]
+        if count:
+            try:
+                count = decode_integer(count)
+            except:
+                raise ValueError(f"{count}不是合法的数字")
+        else:
+            count = 1
+
+        illust = await service.random_recommended_illust(count)
+        await postman.send_illusts(illust, bot=bot, event=event)
+
+
+if conf.pixiv_random_user_illust_query_enabled:
+    mat = on_regex("^来(.*)?张(.+)老师的图$", priority=4, block=True)
+    mat.append_handler(cooldown_interceptor)
+
+    @mat.handle()
+    @catch_error
+    async def handle_random_user_illust_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
+        count = state["_matched_groups"][0]
+        word = state["_matched_groups"][1]
+
+        if count:
+            try:
+                count = decode_integer(count)
+            except:
+                raise ValueError(f"{count}不是合法的数字")
+        else:
+            count = 1
+
+        illust = await service.random_user_illust(word, count)
+        await postman.send_illusts(illust, bot=bot, event=event)
 
 
 if conf.pixiv_random_bookmark_query_enabled:
-    mat = on_regex("^来张私家车$", priority=5)
+    mat = on_regex("^来(.*)?张私家车$", priority=5)
     mat.append_handler(cooldown_interceptor)
 
     @mat.handle()
     @catch_error
     async def handle_random_bookmark_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-        illust = await service.random_bookmark(event.user_id)
-        await postman.send_illust(illust, bot=bot, event=event)
+        count = state["_matched_groups"][0]
+
+        if count:
+            try:
+                count = decode_integer(count)
+            except:
+                raise ValueError(f"{count}不是合法的数字")
+        else:
+            count = 1
+
+        illust = await service.random_bookmark(event.user_id, count=count)
+        await postman.send_illusts(illust, bot=bot, event=event)
 
 
 if conf.pixiv_random_illust_query_enabled:
-    mat = on_regex("^来张(.+)图$", priority=5)
+    mat = on_regex("^来(.*)?张(.+)图$", priority=5)
     mat.append_handler(cooldown_interceptor)
 
     @mat.handle()
     @catch_error
     async def handle_random_illust_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-        word = state["_matched_groups"][0]
-        illust = await service.random_illust(word)
-        await postman.send_illust(illust, bot=bot, event=event)
+        count = state["_matched_groups"][0]
+        word = state["_matched_groups"][1]
+
+        if count:
+            try:
+                count = decode_integer(count)
+            except:
+                raise ValueError(f"{count}不是合法的数字")
+        else:
+            count = 1
+
+        illust = await service.random_illust(word, count)
+        await postman.send_illusts(illust, bot=bot, event=event)
 
 
 # async def handle_redistribute(bot: Bot, event: Event, state: T_State, matcher: Matcher):

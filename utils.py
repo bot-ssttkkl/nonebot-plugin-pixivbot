@@ -33,12 +33,7 @@ def decode_integer(text: str) -> int:
     except ValueError:
         pass
 
-    try:
-        return decode_chinese_integer(text)
-    except ValueError:
-        pass
-
-    raise ValueError
+    return decode_chinese_integer(text)
 
 
 __all__ = ("decode_integer", "decode_chinese_integer")

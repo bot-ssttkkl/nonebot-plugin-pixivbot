@@ -19,13 +19,11 @@ class PixivDataSource(AbstractDataSource):
     cache: CacheDataSource = context.require(CacheDataSource)
 
     _conf: Config = context.require(Config)
-    timeout = _conf.pixiv_query_timeout
-
-    def __init__(self):
-        self._cache_manager = CacheManager()
+    timeout = _conf.pixiv_query_timeout        
 
     def start(self):
         self.remote.start()
+        self._cache_manager = CacheManager()
 
     async def shutdown(self):
         await self.shutdown()

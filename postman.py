@@ -80,7 +80,7 @@ class Postman:
         msg.extend(await self.make_illust_msg(illust, number))
         await self.send_message(msg, bot=bot, event=event, user_id=user_id, group_id=group_id)
 
-    async def send_illusts(self, illusts: typing.Iterable[Illust],
+    async def send_illusts(self, illusts: typing.Union[Illust, typing.Iterable[Illust]],
                            header: typing.Union[str,
                                                 MessageSegment, None] = None,
                            number: typing.Optional[int] = None,
@@ -88,53 +88,58 @@ class Postman:
                            event: MessageEvent = None,
                            user_id: typing.Optional[int] = None,
                            group_id: typing.Optional[int] = None):
-        msg_fut = [create_task(self.make_illust_msg(illust, number + i if number is not None else None))
-                   for i, illust in enumerate(illusts)]
-
-        if event is not None:
-            if "group_id" in event.__fields__ and event.group_id:
-                group_id = event.group_id
-            if "user_id" in event.__fields__ and event.user_id:
-                user_id = event.user_id
-
-        if group_id:  # 以合并转发形式发送
-            # 获取bot的群昵称
-            self_info = await bot.get_group_member_info(group_id=group_id, user_id=bot.self_id)
-            if self_info["card"]:
-                nickname = self_info["card"]
-            else:
-                nickname = self_info["nickname"]
-
-            # 创建转发消息
-            messages = []
-
-            if header is not None:
-                if header is str:
-                    header = MessageSegment.text(str)
-                messages.append([dataclasses.asdict(header)])
-
-            for fut in msg_fut:
-                msg = await fut
-                messages.append([dataclasses.asdict(seg) for seg in msg])
-
-            messages = [{
-                "type": "node",
-                "data": {
-                        "name": nickname,
-                        "uin": bot.self_id,
-                        "content": msg
-                }
-            } for msg in messages]
-
-            await bot.send_group_forward_msg(
-                group_id=group_id,
-                messages=messages
-            )
+        if isinstance(illusts, Illust):
+            await self.send_illust(illusts, header, number, bot=bot, event=event, user_id=user_id, group_id=group_id)
+        elif len(illusts) == 1:
+            await self.send_illust(illusts[0], header, number, bot=bot, event=event, user_id=user_id, group_id=group_id)
         else:
-            if header:
-                await self.send_message(header, bot=bot, user_id=user_id)
-            for fut in msg_fut:
-                await self.send_message(await fut, bot=bot, user_id=user_id)
+            msg_fut = [create_task(self.make_illust_msg(illust, number + i if number is not None else None))
+                       for i, illust in enumerate(illusts)]
+
+            if event is not None:
+                if "group_id" in event.__fields__ and event.group_id:
+                    group_id = event.group_id
+                if "user_id" in event.__fields__ and event.user_id:
+                    user_id = event.user_id
+
+            if group_id:  # 以合并转发形式发送
+                # 获取bot的群昵称
+                self_info = await bot.get_group_member_info(group_id=group_id, user_id=bot.self_id)
+                if self_info["card"]:
+                    nickname = self_info["card"]
+                else:
+                    nickname = self_info["nickname"]
+
+                # 创建转发消息
+                messages = []
+
+                if header is not None:
+                    if header is str:
+                        header = MessageSegment.text(str)
+                    messages.append([dataclasses.asdict(header)])
+
+                for fut in msg_fut:
+                    msg = await fut
+                    messages.append([dataclasses.asdict(seg) for seg in msg])
+
+                messages = [{
+                    "type": "node",
+                    "data": {
+                            "name": nickname,
+                            "uin": bot.self_id,
+                            "content": msg
+                    }
+                } for msg in messages]
+
+                await bot.send_group_forward_msg(
+                    group_id=group_id,
+                    messages=messages
+                )
+            else:
+                if header:
+                    await self.send_message(header, bot=bot, user_id=user_id)
+                for fut in msg_fut:
+                    await self.send_message(await fut, bot=bot, user_id=user_id)
 
 
 __all__ = ("Postman", )

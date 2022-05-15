@@ -1,4 +1,5 @@
 import asyncio
+from enum import auto
 import typing
 from io import BytesIO
 
@@ -14,6 +15,22 @@ from ...config import Config
 from ...errors import QueryError
 from ...model import Illust, User
 from .lazy_illust import LazyIllust
+
+
+def auto_retry(func):
+    async def wrapped(*args, **kwargs):
+        err = None
+        for t in range(10):
+            try:
+                return await func(*args, **kwargs)
+            except Exception as e:
+                logger.info(f"Retrying... {t+1}/10")
+                logger.exception(e)
+                err = e
+
+        raise err
+
+    return wrapped
 
 
 @context.register_singleton()
@@ -182,6 +199,7 @@ class RemoteDataSource(AbstractDataSource):
 
         return content
 
+    @auto_retry
     async def illust_detail(self, illust_id: int) -> Illust:
         logger.info(f"[remote] illust_detail {illust_id}")
 
@@ -190,6 +208,7 @@ class RemoteDataSource(AbstractDataSource):
             raise QueryError(**content["error"])
         return Illust.parse_obj(content["illust"])
 
+    @auto_retry
     async def search_illust(self, word: str) -> typing.List[LazyIllust]:
         max_item = self._conf.pixiv_random_illust_max_item
         max_page = self._conf.pixiv_random_illust_max_page
@@ -203,6 +222,7 @@ class RemoteDataSource(AbstractDataSource):
                                        max_item, max_page,
                                        word=word)
 
+    @auto_retry
     async def search_user(self, word: str) -> typing.List[User]:
         logger.info(f"[remote] search_user {word}")
         content = await self._flat_page(self._papi.search_user, "user_previews",
@@ -211,6 +231,7 @@ class RemoteDataSource(AbstractDataSource):
                                         word=word)
         return content
 
+    @auto_retry
     async def user_illusts(self, user_id: int = 0) -> typing.List[LazyIllust]:
         if user_id == 0:
             user_id = self.user_id
@@ -227,6 +248,7 @@ class RemoteDataSource(AbstractDataSource):
                                        max_item, max_page,
                                        user_id=user_id)
 
+    @auto_retry
     async def user_bookmarks(self, user_id: int = 0) -> typing.List[LazyIllust]:
         if user_id == 0:
             user_id = self.user_id
@@ -243,6 +265,7 @@ class RemoteDataSource(AbstractDataSource):
                                        max_item, max_page,
                                        user_id=user_id)
 
+    @auto_retry
     async def recommended_illusts(self) -> typing.List[LazyIllust]:
         max_item = self._conf.pixiv_random_recommended_illust_max_item
         max_page = self._conf.pixiv_random_recommended_illust_max_page
@@ -255,6 +278,7 @@ class RemoteDataSource(AbstractDataSource):
                                        block_tags, min_bookmark, min_view,
                                        max_item, max_page)
 
+    @auto_retry
     async def related_illusts(self, illust_id: int) -> typing.List[LazyIllust]:
         max_item = self._conf.pixiv_random_related_illust_max_item
         max_page = self._conf.pixiv_random_related_illust_max_page
@@ -268,6 +292,7 @@ class RemoteDataSource(AbstractDataSource):
                                        max_item, max_page,
                                        illust_id=illust_id)
 
+    @auto_retry
     async def illust_ranking(self, mode: str = 'day') -> typing.List[LazyIllust]:
         max_item = self._conf.pixiv_ranking_fetch_item
         block_tags = self._conf.pixiv_block_tags
@@ -279,6 +304,7 @@ class RemoteDataSource(AbstractDataSource):
                                        max_item=max_item,
                                        mode=mode)
 
+    @auto_retry
     async def image(self, illust: Illust) -> bytes:
         download_quantity = self._conf.pixiv_download_quantity
         custom_domain = self._conf.pixiv_download_custom_domain

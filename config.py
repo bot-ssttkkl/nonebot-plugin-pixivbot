@@ -83,6 +83,7 @@ class Config(BaseSettings):
 
     pixiv_query_cooldown = 0
     pixiv_no_query_cooldown_users = []
+    pixiv_max_item_per_query = 10
 
     pixiv_more_enabled = True
 
@@ -93,7 +94,6 @@ class Config(BaseSettings):
     pixiv_ranking_default_range = [1, 3]
     pixiv_ranking_fetch_item = 150
     pixiv_ranking_max_item_per_query = 10
-    pixiv_ranking_max_item_per_msg = 1
 
     @validator('pixiv_ranking_default_mode')
     def ranking_default_mode_validator(cls, v, field: ModelField):
