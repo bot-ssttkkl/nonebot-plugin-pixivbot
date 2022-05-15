@@ -12,10 +12,20 @@ from nonebot.adapters.onebot.v11 import Bot
 from nonebot.adapters.onebot.v11 import Message, MessageSegment
 from nonebot.adapters.onebot.v11.event import MessageEvent
 
-from .config import Config, conf
-from .data_source import *
-from .model import *
-from .utils.errors import NoRetryError, QueryError
+from ..config import Config
+from ..data_source import PixivBindings, PixivDataSource
+from ..model import Illust, LazyIllust
+from ..errors import QueryError
+from .pkg_context import context
+from .request_recorder import RequestRecorder
+
+
+class NoReplyError(Exception):
+    def __init__(self, reason=""):
+        self.reason = reason
+
+    def __str__(self):
+        return self.reason
 
 
 def fill_id(func):
@@ -35,23 +45,6 @@ def fill_id(func):
     return wrapped
 
 
-# @staticmethod
-# def __record(record_dict: typing.Dict):
-#     def decorator(func):
-#         @functools.wraps(func)
-#         def wrapped(self, *args, bot: Bot,
-#                     event: MessageEvent = None,
-#                     user_id: typing.Optional[int] = None,
-#                     group_id: typing.Optional[int] = None,
-#                     silently: bool = False, **kwargs):
-#             record_dict[(user_id, group_id)] = (func, args)
-#             return func(self, *args, bot=bot, event=event, user_id=user_id, group_id=group_id, silently=silently,
-#                         **kwargs)
-#
-#         return wrapped
-#
-#     return decorator
-
 def retry(func):
     @functools.wraps(func)
     async def wrapped(self, *args, bot: Bot,
@@ -65,13 +58,12 @@ def retry(func):
             try:
                 await func(self, *args, bot=bot, event=event, user_id=user_id, group_id=group_id, silently=silently, **kwargs)
                 return
-            except NoRetryError as e:
-                if e.reason and not silently:
-                    await self._send(bot, e.reason, event=event, user_id=user_id, group_id=group_id)
+            except NoReplyError:
                 return
             except QueryError as e:
                 if e.reason and not silently:
-                    await self._send(bot, "获取失败：" + e.reason, event=event, user_id=user_id, group_id=group_id)
+                    await self._send(bot, "获取失败："+e.reason, event=event, user_id=user_id, group_id=group_id)
+                logger.exception(e)
                 return
             except asyncio.TimeoutError as e:
                 err = e
@@ -80,7 +72,7 @@ def retry(func):
                 err = e
                 logger.exception(e)
 
-        if err is not None and not silently:
+        if not silently:
             if isinstance(err, asyncio.TimeoutError):
                 await self._send(bot, "获取超时", event=event, user_id=user_id, group_id=group_id)
             else:
@@ -89,18 +81,16 @@ def retry(func):
     return wrapped
 
 
+@context.export_singleton()
 class Distributor:
     TYPES = ["ranking", "illust", "self.random_illust", "random_user_illust", "random_recommended_illust",
              "random_bookmark"]
 
-    def __init__(self, conf: Config,
-                 data_source: PixivDataSource,
-                 pixiv_bindings: PixivBindings,
-                 session_expires_in: int = 10*60):
-        self.conf = conf
-        self.data_source = data_source
-        self.pixiv_bindings = pixiv_bindings
-        self.session_expires_in = session_expires_in
+    conf = context.require(Config)
+    data_source = context.require(PixivDataSource)
+    pixiv_bindings = context.require(PixivBindings)
+
+    def __init__(self):
         self._distribute_func = {
             "ranking": self.distribute_ranking,
             "illust": self.distribute_illust,
@@ -109,70 +99,7 @@ class Distributor:
             "random_recommended_illust": self.distribute_random_recommended_illust,
             "random_bookmark": self.distribute_random_bookmark,
         }
-        self._prev_req_func = OrderedDict()
-        self._prev_resp_illust_id = OrderedDict()
-
-    def _pop_expired_req(self):
-        now = time.time()
-        while len(self._prev_req_func) > 0:
-            (user_id, group_id), (timestamp, _) = next(iter(self._prev_req_func.items()))
-            if now - timestamp > self.session_expires_in:
-                self._prev_req_func.popitem(last=False)
-                logger.info(f"popped expired req: ({user_id}, {group_id})")
-            else:
-                break
-
-    def _push_req(self, func: typing.Callable, *,
-                  user_id: typing.Optional[int] = None,
-                  group_id: typing.Optional[int] = None):
-        self._pop_expired_req()
-        if (user_id, group_id) in self._prev_req_func:
-            self._prev_req_func.move_to_end((user_id, group_id))
-        self._prev_req_func[(user_id, group_id)] = time.time(), func
-
-    def _get_req(self,  *,
-                 user_id: typing.Optional[int] = None,
-                 group_id: typing.Optional[int] = None) -> typing.Callable:
-        self._pop_expired_req()
-        if (user_id, group_id) in self._prev_req_func:
-            (_, func) = self._prev_req_func[(user_id, group_id)]
-            self._prev_req_func[(user_id, group_id)] = time.time(), func
-            self._prev_req_func.move_to_end((user_id, group_id))
-            return func
-        elif user_id is not None and group_id is not None:  # 获取上一条群订阅的请求
-            return self._get_req(group_id=group_id)
-        else:
-            return None
-
-    def _pop_expired_resp(self):
-        now = time.time()
-        while len(self._prev_resp_illust_id) > 0:
-            (user_id, group_id), (timestamp, _) = next(iter(self._prev_resp_illust_id.items()))
-            if now - timestamp > self.session_expires_in:
-                self._prev_resp_illust_id.popitem(last=False)
-                logger.info(f"popped expired resp: ({user_id}, {group_id})")
-            else:
-                break
-
-    def _push_resp(self, illust_id: int, *,
-                   user_id: typing.Optional[int] = None,
-                   group_id: typing.Optional[int] = None) -> int:
-        self._pop_expired_resp()
-        if (user_id, group_id) in self._prev_resp_illust_id:
-            self._prev_resp_illust_id.move_to_end((user_id, group_id))
-        self._prev_resp_illust_id[(user_id, group_id)] = time.time(), illust_id
-
-    def _get_resp(self,  *,
-                  user_id: typing.Optional[int] = None,
-                  group_id: typing.Optional[int] = None) -> int:
-        self._pop_expired_resp()
-        if (user_id, group_id) in self._prev_resp_illust_id:
-            (_, illust_id) = self._prev_resp_illust_id[(user_id, group_id)]
-            return illust_id
-        elif user_id is not None and group_id is not None:  # 获取上一条群订阅的响应
-            return self._get_resp(group_id=group_id)
-        else:
-            return 0
+        self._recorder = RequestRecorder()
 
     async def _make_illust_msg(self, illust: typing.Union[LazyIllust, Illust],
                                number: typing.Optional[int] = None) -> Message:
@@ -192,10 +119,10 @@ class Distributor:
             elif self.conf.pixiv_block_action == "completely_block":
                 msg.append("该画像因含有不可描述的tag而被自主规制\n")
             elif self.conf.pixiv_block_action == "no_reply":
-                raise NoRetryError()
+                raise NoReplyError()
         else:
             with BytesIO() as bio:
-                bio.write(await self.data_source.download(illust))
+                bio.write(await self.data_source.image(illust))
 
                 msg.append(MessageSegment.image(bio))
                 if number is not None:
@@ -293,7 +220,7 @@ class Distributor:
                            event: MessageEvent = None,
                            user_id: typing.Optional[int] = None,
                            group_id: typing.Optional[int] = None):
-        self._push_resp(illust.id, user_id=user_id, group_id=group_id)
+        self._recorder.push_resp(illust.id, user_id=user_id, group_id=group_id)
 
         msg = await self._make_illust_msg(illust)
         await self._send(bot, msg, event=event, user_id=user_id, group_id=group_id)
@@ -309,7 +236,7 @@ class Distributor:
 
             await self._send_illust(bot, illust, event=event, user_id=user_id, group_id=group_id)
         else:
-            raise NoRetryError("别看了，没有的。")
+            raise QueryError("别看了，没有的。")
 
     async def distribute(self, type: str,
                          *, bot: Bot,
@@ -329,7 +256,7 @@ class Distributor:
                                  user_id: typing.Optional[int] = None,
                                  group_id: typing.Optional[int] = None,
                                  silently: bool = False):
-        self._push_req(functools.partial(self.distribute_ranking, mode, range),
+        self._recorder.push_req(functools.partial(self.distribute_ranking, mode, range),
                        user_id=user_id, group_id=group_id)
 
         if mode is None:
@@ -341,21 +268,20 @@ class Distributor:
         if isinstance(range, int):
             num = range
             if num > self.conf.pixiv_ranking_fetch_item:
-                raise NoRetryError(
+                raise QueryError(
                     f'仅支持查询{self.conf.pixiv_ranking_fetch_item}名以内的插画')
             else:
-                illusts = await self.data_source.illust_ranking(mode, self.conf.pixiv_ranking_fetch_item,
-                                                                block_tags=self.conf.pixiv_block_tags)
+                illusts = await self.data_source.illust_ranking(mode)
                 await self._send_illust(bot, illusts[num - 1], event=event, user_id=user_id, group_id=group_id)
         else:
             start, end = range
             if end - start + 1 > self.conf.pixiv_ranking_max_item_per_query:
-                raise NoRetryError(
+                raise QueryError(
                     f"仅支持一次查询{self.conf.pixiv_ranking_max_item_per_query}张以下插画")
             elif start > end:
-                raise NoRetryError("范围不合法")
+                raise QueryError("范围不合法")
             elif end > self.conf.pixiv_ranking_fetch_item:
-                raise NoRetryError(
+                raise QueryError(
                     f'仅支持查询{self.conf.pixiv_ranking_fetch_item}名以内的插画')
             else:
                 illusts = await self.data_source.illust_ranking(mode)
@@ -374,7 +300,7 @@ class Distributor:
                                 user_id: typing.Optional[int] = None,
                                 group_id: typing.Optional[int] = None,
                                 silently: bool = False):
-        self._push_req(functools.partial(self.distribute_illust, illust),
+        self._recorder.push_req(functools.partial(self.distribute_illust, illust),
                        user_id=user_id, group_id=group_id)
 
         if isinstance(illust, int):
@@ -389,15 +315,10 @@ class Distributor:
                                        user_id: typing.Optional[int] = None,
                                        group_id: typing.Optional[int] = None,
                                        silently: bool = False):
-        self._push_req(functools.partial(self.distribute_random_illust, word),
+        self._recorder.push_req(functools.partial(self.distribute_random_illust, word),
                        user_id=user_id, group_id=group_id)
 
-        illusts = await self.data_source.search_illust(word,
-                                                       self.conf.pixiv_random_illust_max_item,
-                                                       self.conf.pixiv_random_illust_max_page,
-                                                       self.conf.pixiv_block_tags,
-                                                       self.conf.pixiv_random_illust_min_bookmark,
-                                                       self.conf.pixiv_random_illust_min_view)
+        illusts = await self.data_source.search_illust(word)
 
         await self._choice_and_send_illust(bot, illusts, self.conf.pixiv_random_illust_method,
                                            event=event, user_id=user_id, group_id=group_id)
@@ -410,21 +331,16 @@ class Distributor:
                                             user_id: typing.Optional[int] = None,
                                             group_id: typing.Optional[int] = None,
                                             silently: bool = False):
-        self._push_req(functools.partial(self.distribute_random_user_illust, user),
+        self._recorder.push_req(functools.partial(self.distribute_random_user_illust, user),
                        user_id=user_id, group_id=group_id)
 
         if isinstance(user, str):
             users = await self.data_source.search_user(user)
             if len(users) == 0:
-                raise NoRetryError("未找到用户")
+                raise QueryError("未找到用户")
             else:
                 user = users[0].id
-        illusts = await self.data_source.user_illusts(user,
-                                                      self.conf.pixiv_random_user_illust_max_item,
-                                                      self.conf.pixiv_random_user_illust_max_page,
-                                                      self.conf.pixiv_block_tags,
-                                                      self.conf.pixiv_random_user_illust_min_bookmark,
-                                                      self.conf.pixiv_random_user_illust_min_view)
+        illusts = await self.data_source.user_illusts(user)
 
         await self._choice_and_send_illust(bot, illusts, self.conf.pixiv_random_user_illust_method,
                                            event=event, user_id=user_id, group_id=group_id)
@@ -436,14 +352,10 @@ class Distributor:
                                                    user_id: typing.Optional[int] = None,
                                                    group_id: typing.Optional[int] = None,
                                                    silently: bool = False):
-        self._push_req(self.distribute_random_recommended_illust,
+        self._recorder.push_req(self.distribute_random_recommended_illust,
                        user_id=user_id, group_id=group_id)
 
-        illusts = await self.data_source.recommended_illusts(self.conf.pixiv_random_recommended_illust_max_item,
-                                                             self.conf.pixiv_random_recommended_illust_max_page,
-                                                             self.conf.pixiv_block_tags,
-                                                             self.conf.pixiv_random_recommended_illust_min_bookmark,
-                                                             self.conf.pixiv_random_recommended_illust_min_view)
+        illusts = await self.data_source.recommended_illusts()
 
         await self._choice_and_send_illust(bot, illusts, self.conf.pixiv_random_recommended_illust_method,
                                            event=event, user_id=user_id, group_id=group_id)
@@ -455,24 +367,19 @@ class Distributor:
                                          user_id: typing.Optional[int] = None,
                                          group_id: typing.Optional[int] = None,
                                          silently: bool = False):
-        self._push_req(functools.partial(self.distribute_random_bookmark, pixiv_user_id),
+        self._recorder.push_req(functools.partial(self.distribute_random_bookmark, pixiv_user_id),
                        user_id=user_id, group_id=group_id)
 
         if not pixiv_user_id:
             pixiv_user_id = await self.pixiv_bindings.get_binding(user_id)
 
         if not pixiv_user_id:
-            pixiv_user_id = conf.pixiv_random_bookmark_user_id
+            pixiv_user_id = self.conf.pixiv_random_bookmark_user_id
 
         if not pixiv_user_id:
-            raise NoRetryError("未绑定Pixiv账号")
+            raise QueryError("未绑定Pixiv账号")
 
-        illusts = await self.data_source.user_bookmarks(pixiv_user_id,
-                                                        self.conf.pixiv_random_bookmark_max_item,
-                                                        self.conf.pixiv_random_bookmark_max_page,
-                                                        self.conf.pixiv_block_tags,
-                                                        self.conf.pixiv_random_bookmark_min_bookmark,
-                                                        self.conf.pixiv_random_bookmark_min_view)
+        illusts = await self.data_source.user_bookmarks(pixiv_user_id)
 
         await self._choice_and_send_illust(bot, illusts, self.conf.pixiv_random_bookmark_method,
                                            event=event, user_id=user_id, group_id=group_id)
@@ -484,21 +391,16 @@ class Distributor:
                                         user_id: typing.Optional[int] = None,
                                         group_id: typing.Optional[int] = None,
                                         silently: bool = False):
-        self._push_req(functools.partial(self.distribute_related_illust, illust_id),
+        self._recorder.push_req(functools.partial(self.distribute_related_illust, illust_id),
                        user_id=user_id, group_id=group_id)
 
         if illust_id == 0:
-            illust_id = self._get_resp(user_id=user_id, group_id=group_id)
+            illust_id = self._recorder.get_resp(user_id=user_id, group_id=group_id)
             if illust_id == 0:
-                raise NoRetryError("你还没有发送过请求")
+                raise QueryError("你还没有发送过请求")
             logger.info(f"prev resp illust_id: {illust_id}")
 
-        illusts = await self.data_source.related_illusts(illust_id,
-                                                         self.conf.pixiv_random_related_illust_max_item,
-                                                         self.conf.pixiv_random_related_illust_max_page,
-                                                         self.conf.pixiv_block_tags,
-                                                         self.conf.pixiv_random_related_illust_min_bookmark,
-                                                         self.conf.pixiv_random_related_illust_min_view)
+        illusts = await self.data_source.related_illusts(illust_id)
 
         await self._choice_and_send_illust(bot, illusts, self.conf.pixiv_random_related_illust_method,
                                            event=event, user_id=user_id, group_id=group_id)
@@ -508,7 +410,7 @@ class Distributor:
                            event: MessageEvent = None,
                            user_id: typing.Optional[int] = None,
                            group_id: typing.Optional[int] = None):
-        resp = self._get_req(user_id=user_id, group_id=group_id)
+        resp = self._recorder.get_req(user_id=user_id, group_id=group_id)
 
         if resp is None:
             await self._send(bot, "你还没有发送过请求", event=event, user_id=user_id, group_id=group_id)
@@ -516,6 +418,4 @@ class Distributor:
             await resp(bot=bot, event=event, user_id=user_id, group_id=group_id)
 
 
-distributor = Distributor(conf, pixiv_data_source, pixiv_bindings)
-
-__all__ = ("Distributor", "distributor")
+__all__ = ("Distributor",)

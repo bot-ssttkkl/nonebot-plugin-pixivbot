@@ -1,8 +1,10 @@
 import typing
 
 from .mongo_conn import db
+from .pkg_context import context
 
 
+@context.export_singleton()
 class PixivBindings:
     async def bind(self, qq_id: int, pixiv_user_id: int) -> None:
         await db().pixiv_binding.update_one({"qq_id": qq_id},
@@ -22,6 +24,4 @@ class PixivBindings:
             return result["pixiv_user_id"]
 
 
-pixiv_bindings = PixivBindings()
-
-__all__ = ("PixivBindings", "pixiv_bindings")
+__all__ = ("PixivBindings", )

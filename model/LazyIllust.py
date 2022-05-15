@@ -1,14 +1,18 @@
 import typing
 from .Illust import Illust
+from .pkg_context import context
 
 
 class LazyIllust:
-    id: int
-    content: Illust
-
     def __init__(self, id: int, content: typing.Optional[Illust] = None) -> None:
         self.id = id
         self.content = content
+
+    @property
+    def src(self):
+        # 为避免循环引用，将import推迟到get的时候
+        from ..data_source import PixivDataSource
+        return context.require(PixivDataSource)
 
     async def get(self):
         if self.content is None:
@@ -24,8 +28,3 @@ class LazyIllust:
             return None
         else:
             return self.content.__getattribute__(attr)
-
-
-    @classmethod
-    def set_data_source(cls, src):
-        cls.src = src

@@ -3,8 +3,10 @@ import typing
 from pymongo import ReturnDocument
 
 from .mongo_conn import db
+from .pkg_context import context
 
 
+@context.export_singleton()
 class Subscriptions:
     def get(self, user_id: typing.Optional[int] = None,
             group_id: typing.Optional[int] = None):
@@ -54,4 +56,4 @@ class Subscriptions:
             return db().subscription.delete_many(query)
 
 
-subscriptions = Subscriptions()
+__all__ = ("Subscriptions", )

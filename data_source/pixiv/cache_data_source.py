@@ -3,12 +3,16 @@ from datetime import datetime
 
 import bson
 from pymongo import UpdateOne
+from nonebot import logger
 
-from .mongo_conn import db
-from ..model import Illust, User, LazyIllust
+from .abstract_data_source import AbstractDataSource
+from .pkg_context import context
+from ..mongo_conn import db
+from ...model import Illust, User, LazyIllust
 
 
-class CacheDataSource:
+@context.register_singleton()
+class CacheDataSource(AbstractDataSource):
     def _make_illusts_cache_loader(self, collection_name: str,
                                    arg_name: str,
                                    arg: typing.Any):
@@ -45,17 +49,17 @@ class CacheDataSource:
             ])
 
             cache = []
-            # broken = 0
+            broken = 0
             async for x in result:
                 if "illust" in x and x["illust"] is not None:
                     cache.append(LazyIllust(
                         x["illust_id"], Illust.parse_obj(x["illust"])))
                 else:
                     cache.append(LazyIllust(x["illust_id"]))
-                    # broken += 1
+                    broken += 1
 
-            # logger.info(
-            #     f"{len(cache)} got, illust_detail of {broken} are missed")
+            logger.info(
+                f"[cache] {len(cache)} got, illust_detail of {broken} are missed")
 
             if len(cache) != 0:
                 return cache
@@ -122,6 +126,24 @@ class CacheDataSource:
         return self._make_illusts_cache_updater(
             "search_illust_cache", "word", word)(content)
 
+    async def search_user(self, word: str) -> typing.Optional[typing.List[User]]:
+        cache = await db().search_user_cache.find_one({"word": word})
+        if cache is not None:
+            return [User.parse_obj(x) for x in cache["users"]]
+        else:
+            return None
+
+    async def update_search_user(self, word: str, content: typing.List[User]):
+        now = datetime.now()
+        await db().search_user_cache.update_one(
+            {"word": word},
+            {"$set": {
+                "users": [x.dict() for x in content],
+                "update_time": now
+            }},
+            upsert=True
+        )
+
     def user_illusts(self, user_id: int):
         return self._make_illusts_cache_loader(
             "user_illusts_cache", "user_id", user_id)()
@@ -162,35 +184,17 @@ class CacheDataSource:
         return self._make_illusts_cache_updater(
             "other_cache", "type", mode + "_ranking")(content)
 
-    async def search_user(self, word: str) -> typing.Optional[typing.List[User]]:
-        cache = await db().search_user_cache.find_one({"word": word})
-        if cache is not None:
-            return [User.parse_obj(x) for x in cache["users"]]
-        else:
-            return None
-
-    async def update_search_user(self, word: str, content: typing.List[User]):
-        now = datetime.now()
-        await db().search_user_cache.update_one(
-            {"word": word},
-            {"$set": {
-                "users": [x.dict() for x in content],
-                "update_time": now
-            }},
-            upsert=True
-        )
-
-    async def download(self, illust_id: int) -> typing.Optional[bytes]:
-        cache = await db().download_cache.find_one({"illust_id": illust_id})
+    async def image(self, illust: Illust) -> typing.Optional[bytes]:
+        cache = await db().download_cache.find_one({"illust_id": illust.id})
         if cache is not None:
             return cache["content"]
         else:
             return None
 
-    async def update_download(self, illust_id: int, content: bytes):
+    async def update_image(self, illust: Illust, content: bytes):
         now = datetime.now()
         await db().download_cache.update_one(
-            {"illust_id": illust_id},
+            {"illust_id": illust.id},
             {"$set": {
                 "content": bson.Binary(content),
                 "update_time": now

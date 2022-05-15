@@ -6,16 +6,17 @@ from apscheduler.triggers.interval import IntervalTrigger
 from nonebot import require, logger, get_driver
 from nonebot.adapters.onebot.v11 import Bot
 
-from .data_source import subscriptions, Subscriptions
-from .distributor import distributor, Distributor
+from ..data_source import Subscriptions
+from .distributor import Distributor
+from .pkg_context import context
 
 
+@context.export_singleton()
 class Scheduler:
     TYPES = ["ranking", "random_recommended_illust", "random_bookmark"]
 
-    def __init__(self, subscriptions: Subscriptions, distributor: Distributor):
-        self.subscriptions = subscriptions
-        self.distributor = distributor
+    subscriptions = context.require(Subscriptions)
+    distributor = context.require(Distributor)
 
     @staticmethod
     def _make_job_id(type: str, user_id: typing.Optional[int], group_id: typing.Optional[int]):
@@ -136,9 +137,8 @@ class Scheduler:
         return [x async for x in self.subscriptions.get(user_id, group_id)]
 
 
-scheduler = Scheduler(subscriptions, distributor)
-
+scheduler = context.require(Scheduler)
 get_driver().on_bot_connect(scheduler.start)
 get_driver().on_bot_disconnect(scheduler.stop)
 
-__all__ = ("Scheduler", "scheduler")
+__all__ = ("Scheduler", )

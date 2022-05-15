@@ -4,7 +4,10 @@ from nonebot import get_driver
 from pydantic import BaseSettings, validator
 from pydantic.fields import ModelField
 
+from .pkg_context import context
 
+
+@context.register_singleton(**get_driver().config.dict())
 class Config(BaseSettings):
     pixiv_refresh_token: str
     pixiv_mongo_conn_url: str
@@ -12,6 +15,16 @@ class Config(BaseSettings):
     pixiv_proxy: typing.Optional[str]
     pixiv_query_timeout: int = 60
     pixiv_simultaneous_query: int = 8
+    
+    pixiv_download_cache_expires_in = 3600 * 24 * 7
+    pixiv_illust_detail_cache_expires_in = 3600 * 24 * 7
+    pixiv_illust_ranking_cache_expires_in = 3600 * 6
+    pixiv_search_illust_cache_expires_in = 3600 * 24
+    pixiv_search_user_cache_expires_in = 3600 * 24
+    pixiv_user_illusts_cache_expires_in = 3600 * 24
+    pixiv_user_bookmarks_cache_expires_in = 3600 * 24
+    pixiv_related_illusts_cache_expires_in = 3600 * 24
+    pixiv_other_cache_expires_in = 3600 * 6
 
     pixiv_block_tags: typing.List[str] = []
     pixiv_block_action: str = "no_image"
@@ -149,7 +162,4 @@ class Config(BaseSettings):
         extra = "ignore"
 
 
-_global_config = get_driver().config
-conf = Config(**_global_config.dict())
-
-__all__ = ("Config", "conf")
+__all__ = ("Config",)
