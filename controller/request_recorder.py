@@ -4,19 +4,21 @@ import typing
 
 from nonebot import logger
 
+from .pkg_context import context
 
+@context.register_singleton()
 class RequestRecorder:
-    def __init__(self, session_expires_in: int = 10*60):
+    def __init__(self, expires_in: int = 10*60):
         self._prev_req_func = OrderedDict()
         self._prev_resp_illust_id = OrderedDict()
-        self.session_expires_in = session_expires_in
+        self.expires_in = expires_in
 
     def _pop_expired_req(self):
         now = time.time()
         while len(self._prev_req_func) > 0:
             (user_id, group_id), (timestamp, _) = next(
                 iter(self._prev_req_func.items()))
-            if now - timestamp > self.session_expires_in:
+            if now - timestamp > self.expires_in:
                 self._prev_req_func.popitem(last=False)
                 logger.info(f"popped expired req: ({user_id}, {group_id})")
             else:
@@ -49,7 +51,7 @@ class RequestRecorder:
         while len(self._prev_resp_illust_id) > 0:
             (user_id, group_id), (timestamp, _) = next(
                 iter(self._prev_resp_illust_id.items()))
-            if now - timestamp > self.session_expires_in:
+            if now - timestamp > self.expires_in:
                 self._prev_resp_illust_id.popitem(last=False)
                 logger.info(f"popped expired resp: ({user_id}, {group_id})")
             else:

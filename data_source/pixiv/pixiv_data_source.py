@@ -9,7 +9,8 @@ from .cache_data_source import CacheDataSource
 from .cache_manager import CacheManager
 from .pkg_context import context
 from ...config import Config
-from ...model import Illust, User, LazyIllust
+from ...model import Illust, User
+from .lazy_illust import LazyIllust
 
 
 @context.export_singleton()
@@ -39,8 +40,7 @@ class PixivDataSource(AbstractDataSource):
                                  illust_id=illust_id),
             remote_fetcher=partial(
                 self.remote.illust_detail, illust_id=illust_id),
-            cache_updater=lambda content: self.cache.update_illust_detail(
-                illust_id, content),
+            cache_updater=self.cache.update_illust_detail,
             timeout=self.timeout
         )
 

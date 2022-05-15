@@ -10,6 +10,7 @@ from ..config import Config
 from ..controller import Scheduler
 from ..data_source import PixivBindings, PixivDataSource
 from .pkg_context import context
+from .catch_error import catch_error
 
 conf = context.require(Config)
 pixiv_bindings = context.require(PixivBindings)
@@ -36,6 +37,15 @@ _help_text = """常规语句：
 """
 
 
+# def _get_user_and_group_id(event: Event):
+#     d = {}
+#     if "group_id" in event.__fields__ and event.group_id:
+#         d["group_id"] = event.group_id
+#     if "user_id" in event.__fields__ and event.user_id:
+#         d["user_id"] = event.user_id
+#     return d
+
+
 def _get_user_or_group_id(event: Event):
     if "group_id" in event.__fields__ and event.group_id:
         return {"group_id": event.group_id}
@@ -49,139 +59,118 @@ super_command = on_command("pixivbot", priority=5)
 
 
 @super_command.handle()
-async def handle_super_command(event: Event, state: T_State, matcher: Matcher):
+async def handle_super_command(bot: Bot, event: Event, state: T_State, matcher: Matcher):
     state["args"] = str(event.get_message()).strip().split()[1:]
     # 未跟参数或参数为help时，输出帮助信息
     if len(state["args"]) == 0 or state["args"][0] == "help":
-        await matcher.send(_help_text)
-        matcher.stop_propagation()
+        await matcher.finish(_help_text)
 
 
 @super_command.handle()
-async def handle_bind(event: Event, state: T_State, matcher: Matcher):
+@catch_error
+async def handle_bind(bot: Bot, event: Event, state: T_State, matcher: Matcher):
     args = state["args"]
     if len(args) == 0 or args[0] != "bind":
         return
 
     # sample: /pixivbot bind 114514
-    try:
-        if "user_id" in event.__fields__ and event.user_id:
-            qq_id = event.user_id
-        else:
-            raise AttributeError("user_id")
+    if "user_id" in event.__fields__ and event.user_id:
+        qq_id = event.user_id
+    else:
+        raise AttributeError("user_id")
 
-        if len(args) < 2:
-            pixiv_user_id = await pixiv_bindings.get_binding(qq_id)
-            if pixiv_user_id is not None:
-                msg = f"当前绑定账号：{pixiv_user_id}\n"
-            else:
-                msg = "当前未绑定Pixiv账号\n"
-            msg += "命令格式：/pixivbot bind <pixiv_user_id>"
-            await matcher.send(msg)
+    if len(args) < 2:
+        pixiv_user_id = await pixiv_bindings.get_binding(qq_id)
+        if pixiv_user_id is not None:
+            msg = f"当前绑定账号：{pixiv_user_id}\n"
         else:
-            pixiv_user_id = int(state["args"][1])
-            await pixiv_bindings.bind(qq_id, pixiv_user_id)
-            await matcher.send("Pixiv账号绑定成功")
-    except Exception as e:
-        logger.exception(e)
-        await matcher.send(f"发生内部错误：{e}")
+            msg = "当前未绑定Pixiv账号\n"
+        msg += "命令格式：/pixivbot bind <pixiv_user_id>"
+        await matcher.send(msg)
+    else:
+        pixiv_user_id = int(state["args"][1])
+        await pixiv_bindings.bind(qq_id, pixiv_user_id)
+        await matcher.send("Pixiv账号绑定成功")
 
 
 @super_command.handle()
-async def handle_unbind(event: Event, state: T_State, matcher: Matcher):
+@catch_error
+async def handle_unbind(bot: Bot, event: Event, state: T_State, matcher: Matcher):
     args = state["args"]
     if len(args) == 0 or state["args"][0] != "unbind":
         return
 
     # sample: /pixivbot unbind
-    try:
-        if "user_id" in event.__fields__ and event.user_id:
-            qq_id = event.user_id
-        else:
-            raise AttributeError("user_id")
+    if "user_id" in event.__fields__ and event.user_id:
+        qq_id = event.user_id
+    else:
+        raise AttributeError("user_id")
 
-        await pixiv_bindings.unbind(qq_id)
-        await matcher.send("Pixiv账号解绑成功")
-    except Exception as e:
-        logger.exception(e)
-        await matcher.send(f"发生内部错误：{e}")
+    await pixiv_bindings.unbind(qq_id)
+    await matcher.send("Pixiv账号解绑成功")
 
 
 @super_command.handle()
-async def handle_subscribe(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-    args = state["args"]
-    if len(args) == 0 or state["args"][0] != "subscribe":
+@catch_error
+async def handle_schedule(bot: Bot, event: Event, state: T_State, matcher: Matcher):
+    args: list = state["args"]
+    if len(args) == 0 or state["args"][0] != "schedule":
         return
     if isinstance(event, GroupMessageEvent) and not (event.sender.role == "admin" or event.sender.role == "owner" or await SUPERUSER(bot, event)):
         await matcher.send("只有群主/管理员/超级用户可以调用该命令")
         return
 
-    # sample: /pixivbot subscribe random_bookmark 00:00+00:30*x
-    try:
-        if len(args) < 3:
-            subscription = await scheduler.all_subscription(**_get_user_or_group_id(event))
-            msg = "当前订阅：\n"
-            if len(subscription) > 0:
-                for x in subscription:
-                    msg += f'{x["type"]} {str(x["schedule"][0]).zfill(2)}:{str(x["schedule"][1]).zfill(2)}+{str(x["schedule"][2]).zfill(2)}:{str(x["schedule"][3]).zfill(2)}*x\n'
-            else:
-                msg += '无\n'
-            msg += "\n"
-            msg += "命令格式：/pixivbot subscribe <type> <schedule>\n"
-            msg += "type可选值：ranking, random_bookmark, random_recommended_illust\n"
-            msg += "schedule可选格式：12:00, 01:00*x, 00:10+00:30*x\n"
-            await matcher.send(msg)
+    # sample: /pixivbot schedule random_bookmark 00:00+00:30*x <args> <kwargs>
+    if len(args) < 3:
+        subscription = await scheduler.all_subscription(**_get_user_or_group_id(event))
+        msg = "当前订阅：\n"
+        if len(subscription) > 0:
+            for x in subscription:
+                msg += f'{x["type"]} {str(x["schedule"][0]).zfill(2)}:{str(x["schedule"][1]).zfill(2)}+{str(x["schedule"][2]).zfill(2)}:{str(x["schedule"][3]).zfill(2)}*x\n'
         else:
-            kwargs = _get_user_or_group_id(event)
+            msg += '无\n'
+        msg += "\n"
+        msg += "命令格式：/pixivbot schedule <type> <schedule>\n"
+        msg += "type可选值：ranking, random_bookmark, random_recommended_illust\n"
+        msg += "schedule可选格式：12:00, 01:00*x, 00:10+00:30*x\n"
+        await matcher.send(msg)
+    else:
+        sch_args = args[3:]
+        # if args[1] == "random_bookmark":
+        #     sch_args.insert(0, event.user_id)
 
-            if args[1] == "random_bookmark":
-                if "user_id" in event.__fields__ and event.user_id:
-                    qq_id = event.user_id
-                else:
-                    raise AttributeError("user_id")
-
-                pixiv_user_id = await pixiv_bindings.get_binding(qq_id)
-                if pixiv_user_id is None:
-                    pixiv_user_id = conf.pixiv_random_bookmark_user_id
-                kwargs["pixiv_user_id"] = pixiv_user_id
-
-            await scheduler.subscribe(args[1], args[2], bot=bot, **kwargs)
-            await matcher.send("订阅成功")
-    except Exception as e:
-        logger.exception(e)
-        await matcher.send(f"发生内部错误：{e}")
+        await scheduler.schedule(args[1], args[2], sch_args, bot=bot, **_get_user_or_group_id(event))
+        await matcher.send("订阅成功")
 
 
 @super_command.handle()
-async def handle_unsubscribe(bot: Bot, event: Event, state: T_State, matcher: Matcher):
+@catch_error
+async def handle_unschedule(bot: Bot, event: Event, state: T_State, matcher: Matcher):
     args = state["args"]
-    if len(args) == 0 or state["args"][0] != "unsubscribe":
+    if len(args) == 0 or state["args"][0] != "unschedule":
         return
     if isinstance(event, GroupMessageEvent) and not (event.sender.role == "admin" or event.sender.role == "owner" or await SUPERUSER(bot, event)):
         await matcher.send("只有群主/管理员/超级用户可以调用该命令")
         return
 
-    # sample: /pixivbot unsubscribe random_bookmark
-    try:
-        if len(args) < 2:
-            subscription = await scheduler.all_subscription(**_get_user_or_group_id(event))
-            msg = "当前订阅：\n"
-            if len(subscription) > 0:
-                for x in subscription:
-                    msg += f'{x["type"]} {str(x["schedule"][0]).zfill(2)}:{str(x["schedule"][1]).zfill(2)}+{str(x["schedule"][2]).zfill(2)}:{str(x["schedule"][3]).zfill(2)}*x\n'
-            else:
-                msg += '无\n'
-            msg += "\n"
-            await matcher.send("命令格式：/pixivbot unsubscribe <type>")
+    # sample: /pixivbot unschedule random_bookmark
+    if len(args) < 2:
+        subscription = await scheduler.all_subscription(**_get_user_or_group_id(event))
+        msg = "当前订阅：\n"
+        if len(subscription) > 0:
+            for x in subscription:
+                msg += f'{x["type"]} {str(x["schedule"][0]).zfill(2)}:{str(x["schedule"][1]).zfill(2)}+{str(x["schedule"][2]).zfill(2)}:{str(x["schedule"][3]).zfill(2)}*x\n'
         else:
-            await scheduler.unsubscribe(args[1], **_get_user_or_group_id(event))
-            await matcher.send("取消订阅成功")
-    except Exception as e:
-        logger.exception(e)
-        await matcher.send(f"发生内部错误：{e}")
+            msg += '无\n'
+        msg += "\n"
+        await matcher.send("命令格式：/pixivbot unschedule <type>")
+    else:
+        await scheduler.unschedule(args[1], **_get_user_or_group_id(event))
+        await matcher.send("取消订阅成功")
 
 
 @super_command.handle()
+@catch_error
 async def handle_invalidate_cache(bot: Bot, event: Event, state: T_State, matcher: Matcher):
     args = state["args"]
     if len(args) == 0 or state["args"][0] != "invalidate_cache":
@@ -190,9 +179,5 @@ async def handle_invalidate_cache(bot: Bot, event: Event, state: T_State, matche
         await matcher.send("只有超级用户可以调用该命令")
         return
 
-    try:
-        await pixiv_data_source.invalidate_cache()
-        await matcher.send("ok")
-    except Exception as e:
-        logger.exception(e)
-        await matcher.send(f"发生内部错误：{e}")
+    await pixiv_data_source.invalidate_cache()
+    await matcher.send("ok")

@@ -38,7 +38,6 @@ async def connect_to_mongodb():
     global _mongodb_client
     _mongodb_client = AsyncIOMotorClient(
         f'{conf.pixiv_mongo_conn_url}/{conf.pixiv_mongo_database_name}')
-    logger.opt(colors=True).info("<y>Connect to Mongodb</y>")
 
     # ensure index
     db = _mongodb_client[conf.pixiv_mongo_database_name]
@@ -70,7 +69,6 @@ async def free_conn():
     global _mongodb_client
     if _mongodb_client is not None:
         _mongodb_client.close()
-        logger.opt(colors=True).info("<y>Disconnect to Mongodb</y>")
 
 
 __all__ = ("db", "connect_to_mongodb", "free_conn")

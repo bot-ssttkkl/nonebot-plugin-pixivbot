@@ -12,7 +12,8 @@ from .compressor import Compressor
 from .pkg_context import context
 from ...config import Config
 from ...errors import QueryError
-from ...model import Illust, User, LazyIllust
+from ...model import Illust, User
+from .lazy_illust import LazyIllust
 
 
 @context.register_singleton()

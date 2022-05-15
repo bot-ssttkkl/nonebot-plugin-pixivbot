@@ -22,10 +22,10 @@ class Subscriptions:
         return db().subscription.find(query)
 
     def update(self, type: str,
-               schedule: typing.Sequence[int],
                user_id: typing.Optional[int] = None,
                group_id: typing.Optional[int] = None,
-               **kwargs):
+               *, schedule: typing.Sequence[int],
+               kwargs: dict = {}):
         if user_id is None and group_id is not None:
             query = {"type": type, "group_id": group_id}
         elif user_id is not None and group_id is None:

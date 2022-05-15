@@ -8,7 +8,8 @@ from nonebot import logger
 from .abstract_data_source import AbstractDataSource
 from .pkg_context import context
 from ..mongo_conn import db
-from ...model import Illust, User, LazyIllust
+from ...model import Illust, User
+from .lazy_illust import LazyIllust
 
 
 @context.register_singleton()

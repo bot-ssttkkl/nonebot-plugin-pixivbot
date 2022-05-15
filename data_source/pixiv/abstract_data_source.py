@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 import typing
 
-from ...model import Illust, User, LazyIllust
+from ...model import Illust, User
+from .lazy_illust import LazyIllust
 
 
 class AbstractDataSource(ABC):

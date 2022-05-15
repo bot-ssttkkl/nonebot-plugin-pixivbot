@@ -1,3 +1,3 @@
 from .pixiv_data_source import PixivDataSource
-
-__all__ = ("PixivDataSource",)
+from .lazy_illust import LazyIllust
+__all__ = ("PixivDataSource", "LazyIllust",)

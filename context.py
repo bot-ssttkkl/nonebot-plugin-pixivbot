@@ -1,4 +1,4 @@
-from xml.dom import NotFoundErr
+import typing
 
 
 class Context:
@@ -7,10 +7,12 @@ class Context:
         self.container = {}
         self.lazy_container = {}
 
-    def register(self, key, bean):
+    T = typing.TypeVar("T")
+
+    def _register(self, key: typing.Type[T], bean: T):
         self.container[key] = bean
 
-    def register_lazy(self, key, bean_initializer):
+    def register_lazy(self, key: typing.Type[T], bean_initializer: typing.Callable[[], T]):
         if key in self.container:
             del self.container[key]
         self.lazy_container[key] = bean_initializer
@@ -21,17 +23,17 @@ class Context:
         else:
             return self.parent._get_root()
 
-    def export(self, key, bean):
-        self._get_root().register(key, bean)
+    def _export(self, key: typing.Type[T], bean: T):
+        self._get_root()._register(key, bean)
 
-    def export_lazy(self, key, bean_initializer):
+    def export_lazy(self, key: typing.Type[T], bean_initializer: typing.Callable[[], T]):
         self._get_root().register_lazy(key, bean_initializer)
 
-    def require(self, key):
+    def require(self, key: typing.Type[T]) -> T:
         if key in self.container:
             return self.container[key]
         elif key in self.lazy_container:
-            self.register(key, self.lazy_container[key]())
+            self._register(key, self.lazy_container[key]())
             del self.lazy_container[key]
             return self.container[key]
         elif self.parent is not None:

@@ -1,4 +1,4 @@
-from .distributor import Distributor
 from .scheduler import Scheduler
+from .service import Service
 
-__all__ = ("Distributor", "Scheduler",)
+__all__ = ("Scheduler", "Service",)
