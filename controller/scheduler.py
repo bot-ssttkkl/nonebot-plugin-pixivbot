@@ -104,7 +104,7 @@ class Scheduler:
                               user_id: typing.Optional[int] = None,
                               group_id: typing.Optional[int] = None):
         illusts = await self.service.illust_ranking(mode, range)
-        await self.postman.send_illusts(
+        await self.postman.send_illust(
             illusts, bot=bot, user_id=user_id, group_id=group_id)
 
     async def _handle_random_recommended_illust(self,
@@ -112,7 +112,7 @@ class Scheduler:
                                                 user_id: typing.Optional[int] = None,
                                                 group_id: typing.Optional[int] = None):
         illusts = await self.service.random_recommended_illust()
-        await self.postman.send_illusts(
+        await self.postman.send_illust(
             illusts, bot=bot, user_id=user_id, group_id=group_id)
 
     async def _handle_random_bookmark(self, qq_user_id: int = 0,
@@ -121,7 +121,7 @@ class Scheduler:
                                       user_id: typing.Optional[int] = None,
                                       group_id: typing.Optional[int] = None):
         illusts = await self.service.random_bookmark(qq_user_id, pixiv_user_id)
-        await self.postman.send_illusts(
+        await self.postman.send_illust(
             illusts, bot=bot, user_id=user_id, group_id=group_id)
 
     _handlers = {

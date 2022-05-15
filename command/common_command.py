@@ -101,7 +101,7 @@ if conf.pixiv_ranking_query_enabled:
             await postman.send_message(f"{num}不是合法的数字", bot=bot, event=event)
 
         illust = await service.illust_ranking(mode, num)
-        await postman.send_illusts(illust, number=num, bot=bot, event=event)
+        await postman.send_illust(illust, number=num, bot=bot, event=event)
 
     mat = on_regex(r"^看看(日|周|月|男性|女性|原创|新人|漫画)?榜\s*(([1-9][0-9]*)[-~]([1-9][0-9]*))?$",
                    priority=5)

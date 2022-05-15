@@ -92,7 +92,7 @@ class Config(BaseSettings):
     pixiv_ranking_default_mode = "day"
     pixiv_ranking_default_range = [1, 3]
     pixiv_ranking_fetch_item = 150
-    pixiv_ranking_max_item_per_query = 5
+    pixiv_ranking_max_item_per_query = 10
     pixiv_ranking_max_item_per_msg = 1
 
     @validator('pixiv_ranking_default_mode')
