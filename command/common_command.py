@@ -12,6 +12,8 @@ from ..config import Config
 from ..controller import Service
 from ..postman import Postman
 from ..utils import decode_integer
+from ..handler import *
+from ..errors import BadRequestError
 from .pkg_context import context
 from .catch_error import catch_error
 
@@ -41,11 +43,7 @@ async def cooldown_interceptor(bot: Bot, event: Event, state: T_State, matcher: 
 
 
 if conf.pixiv_ranking_query_enabled:
-    mode_mapping = {"日": "day", "周": "week", "月": "month", "男性": "day_male",
-                    "女性": "day_female", "原创": "week_original", "新人": "week_rookie", "漫画": "day_manga"}
-
-    mat = on_regex(r"^看看(.*)?榜\s*([1-9][0-9]*|[零一两二三四五六七八九十百千万亿]+)$",
-                   priority=4, block=True)
+    mat = on_regex(r"^看看(.*)?榜\s*(.*)?$", priority=4, block=True)
     mat.append_handler(cooldown_interceptor)
 
     @mat.handle()
@@ -54,46 +52,9 @@ if conf.pixiv_ranking_query_enabled:
         mode = state["_matched_groups"][0]
         num = state["_matched_groups"][1]
 
-        if mode not in mode_mapping:
-            raise ValueError(f"{mode}不是合法的榜单类型")
-        mode = mode_mapping[mode]
-
-        try:
-            num = decode_integer(num)
-        except ValueError:
-            raise ValueError(f"{num}不是合法的数字")
-
-        illust = await service.illust_ranking(mode, num)
-        await postman.send_illusts(illust, number=num, bot=bot, event=event)
-
-    mat = on_regex(r"^看看(.*)?榜\s*(([1-9][0-9]*)[-~]([1-9][0-9]*))?$",
-                   priority=5)
-    mat.append_handler(cooldown_interceptor)
-
-    @mat.handle()
-    @catch_error
-    async def handle_ranking_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-        if "_matched_groups" in state:
-            mode = state["_matched_groups"][0]
-            start = state["_matched_groups"][2]
-            end = state["_matched_groups"][3]
-
-            if mode not in mode_mapping:
-                raise ValueError(f"{mode}不是合法的榜单类型")
-            mode = mode_mapping[mode]
-
-            if start is not None and end is not None:
-                try:
-                    range = (int(start), int(end))
-                except ValueError:
-                    raise ValueError(f"{start}~{end}不是合法的范围")
-            else:
-                range = None
-        else:
-            mode, range = None, None
-
-        illust = await service.illust_ranking(mode, range)
-        await postman.send_illusts(illust, number=range[0] if range else 1, bot=bot, event=event)
+        handler = context.require(RankingHandler)
+        kwargs = handler.parse_command_args((mode, num), event.user_id)
+        await handler.handle(bot=bot, event=event, **kwargs)
 
 
 if conf.pixiv_illust_query_enabled:
@@ -103,14 +64,11 @@ if conf.pixiv_illust_query_enabled:
     @mat.handle()
     @catch_error
     async def handle_illust_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-        raw_illust_id = state["_matched_groups"][0]
-        try:
-            illust_id = int(raw_illust_id)
-        except ValueError:
-            raise ValueError(f"{raw_illust_id}不是合法的插画ID")
+        illust_id = state["_matched_groups"][0]
 
-        illust = await service.illust_detail(illust_id)
-        await postman.send_illusts(illust, bot=bot, event=event)
+        handler = context.require(IllustHandler)
+        kwargs = handler.parse_command_args((illust_id,), event.user_id)
+        await handler.handle(bot=bot, event=event, **kwargs)
 
 
 if conf.pixiv_random_recommended_illust_query_enabled:
@@ -125,12 +83,12 @@ if conf.pixiv_random_recommended_illust_query_enabled:
             try:
                 count = decode_integer(count)
             except:
-                raise ValueError(f"{count}不是合法的数字")
+                raise BadRequestError(f"{count}不是合法的数字")
         else:
             count = 1
 
-        illust = await service.random_recommended_illust(count)
-        await postman.send_illusts(illust, bot=bot, event=event)
+        handler = context.require(RandomRecommendedIllustHandler)
+        await handler.handle(count=count, bot=bot, event=event)
 
 
 if conf.pixiv_random_user_illust_query_enabled:
@@ -141,18 +99,18 @@ if conf.pixiv_random_user_illust_query_enabled:
     @catch_error
     async def handle_random_user_illust_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
         count = state["_matched_groups"][0]
-        word = state["_matched_groups"][1]
+        user = state["_matched_groups"][1]
 
         if count:
             try:
                 count = decode_integer(count)
             except:
-                raise ValueError(f"{count}不是合法的数字")
+                raise BadRequestError(f"{count}不是合法的数字")
         else:
             count = 1
 
-        illust = await service.random_user_illust(word, count)
-        await postman.send_illusts(illust, bot=bot, event=event)
+        handler = context.require(RandomUserIllustHandler)
+        await handler.handle(user, count=count, bot=bot, event=event)
 
 
 if conf.pixiv_random_bookmark_query_enabled:
@@ -168,12 +126,12 @@ if conf.pixiv_random_bookmark_query_enabled:
             try:
                 count = decode_integer(count)
             except:
-                raise ValueError(f"{count}不是合法的数字")
+                raise BadRequestError(f"{count}不是合法的数字")
         else:
             count = 1
 
-        illust = await service.random_bookmark(event.user_id, count=count)
-        await postman.send_illusts(illust, bot=bot, event=event)
+        handler = context.require(RandomBookmarkHandler)
+        await handler.handle(event.user_id, count=count, bot=bot, event=event)
 
 
 if conf.pixiv_random_illust_query_enabled:
@@ -190,12 +148,12 @@ if conf.pixiv_random_illust_query_enabled:
             try:
                 count = decode_integer(count)
             except:
-                raise ValueError(f"{count}不是合法的数字")
+                raise BadRequestError(f"{count}不是合法的数字")
         else:
             count = 1
 
-        illust = await service.random_illust(word, count)
-        await postman.send_illusts(illust, bot=bot, event=event)
+        handler = context.require(RandomIllustHandler)
+        await handler.handle(word, count=count, bot=bot, event=event)
 
 
 # async def handle_redistribute(bot: Bot, event: Event, state: T_State, matcher: Matcher):

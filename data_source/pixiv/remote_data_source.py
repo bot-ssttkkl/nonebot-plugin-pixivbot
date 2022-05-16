@@ -113,6 +113,12 @@ class RemoteDataSource(AbstractDataSource):
         await self._pclient.close()
         self._refresh_daemon_task.cancel()
 
+    @staticmethod
+    def _check_error_in_raw_result(raw_result: dict):
+        if "error" in raw_result:
+            raise QueryError(raw_result["error"]["user_message"]
+                             or raw_result["error"]["message"] or raw_result["error"]["reason"])
+
     T = typing.TypeVar("T")
 
     @staticmethod
@@ -129,8 +135,7 @@ class RemoteDataSource(AbstractDataSource):
 
         # logger.info("loading page " + str(cur_page + 1))
         raw_result = await papi_search_func(**kwargs)
-        if "error" in raw_result:
-            raise QueryError(**raw_result["error"])
+        RemoteDataSource._check_error_in_raw_result(raw_result)
 
         while len(flatten) < max_item and cur_page < max_page:
             for x in raw_result[element_list_name]:
@@ -153,8 +158,7 @@ class RemoteDataSource(AbstractDataSource):
                 cur_page = cur_page + 1
                 # logger.info("loading page " + str(cur_page + 1))
                 raw_result = await papi_search_func(**next_qs)
-                if "error" in raw_result:
-                    raise QueryError(**raw_result["error"])
+                RemoteDataSource._check_error_in_raw_result(raw_result)
 
         return flatten
 
@@ -203,10 +207,9 @@ class RemoteDataSource(AbstractDataSource):
     async def illust_detail(self, illust_id: int) -> Illust:
         logger.info(f"[remote] illust_detail {illust_id}")
 
-        content = await self._papi.illust_detail(illust_id)
-        if "error" in content:
-            raise QueryError(**content["error"])
-        return Illust.parse_obj(content["illust"])
+        raw_result = await self._papi.illust_detail(illust_id)
+        RemoteDataSource._check_error_in_raw_result(raw_result)
+        return Illust.parse_obj(raw_result["illust"])
 
     @auto_retry
     async def search_illust(self, word: str) -> typing.List[LazyIllust]:

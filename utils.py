@@ -12,7 +12,7 @@ def decode_chinese_integer(text: str) -> int:
     radix = 1
     for i in reversed(range(len(text))):
         if text[i] not in __numerals:
-            raise ValueError
+            raise ValueError()
         digit = __numerals[text[i]]
         if digit >= 10:
             if digit > radix:  # 成为新的基数

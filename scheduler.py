@@ -1,3 +1,5 @@
+import asyncio
+from inspect import isawaitable
 import re
 import typing
 from datetime import datetime, timedelta
@@ -6,10 +8,12 @@ from apscheduler.triggers.interval import IntervalTrigger
 from nonebot import require, logger, get_driver
 from nonebot.adapters.onebot.v11 import Bot
 
-from ..data_source import Subscriptions
-from ..postman import Postman
-from .service import Service
+from .data_source import Subscriptions
+from .postman import Postman
+from .controller import Service
+from .handler import *
 from .pkg_context import context
+from .errors import BadRequestError
 
 
 @context.export_singleton()
@@ -49,23 +53,19 @@ class Scheduler:
                     start_hour, start_minute = int(g[0]), int(g[1])
                     interval_hour, interval_minute = int(g[2]), int(g[3])
                 else:
-                    raise ValueError(f'illegal schedule: {raw_schedule}')
+                    raise BadRequestError(f'{raw_schedule}不是合法的时间')
 
         if start_hour < 0 or start_hour >= 24 or start_minute < 0 or start_minute >= 60 \
                 or interval_hour < 0 or interval_minute >= 60 \
                 or (interval_hour > 0 and interval_minute < 0) or (interval_hour == 0 and interval_minute <= 0):
-            raise ValueError(f'illegal schedule: {raw_schedule}')
+            raise BadRequestError(f'{raw_schedule}不是合法的时间')
 
         return start_hour, start_minute, interval_hour, interval_minute
 
     async def start(self, bot: Bot):
         async for x in self.subscriptions.get():
-            if "user_id" in x and x["user_id"] is not None:
-                user_id, group_id = x["user_id"], None
-            elif "group_id" in x and x["group_id"] is not None:
-                user_id, group_id = None, x["group_id"]
-            else:
-                raise ValueError("Both user_id and group_id are None")
+            user_id = x.get("user_id", None)
+            group_id = x.get("group_id", None)
 
             self._add_job(x["type"], x["schedule"], x["kwargs"],
                           bot=bot, user_id=user_id, group_id=group_id)
@@ -75,6 +75,14 @@ class Scheduler:
         for j in jobs:
             if j.id.startswith("scheduled"):
                 j.remove()
+
+    _handlers: typing.Dict[str, AbstractHandler] = {
+        RandomBookmarkHandler.type(): context.require(RandomBookmarkHandler),
+        RandomRecommendedIllustHandler.type(): context.require(RandomRecommendedIllustHandler),
+        RankingHandler.type(): context.require(RankingHandler),
+        RandomIllustHandler.type(): context.require(RandomIllustHandler),
+        RandomUserIllustHandler.type(): context.require(RandomUserIllustHandler),
+    }
 
     def _add_job(self, type: str,
                  schedule: typing.Sequence[int],
@@ -86,8 +94,8 @@ class Scheduler:
                                   start_date=datetime.now().replace(hour=schedule[0], minute=schedule[1],
                                                                     second=0, microsecond=0) + timedelta(days=-1))
         job_id = self._make_job_id(type, user_id, group_id)
-        self.apscheduler.add_job(self._handlers[type], id=job_id, trigger=trigger,
-                                 kwargs={"self": self, "bot": bot, "user_id": user_id, "group_id": group_id, **kwargs})
+        self.apscheduler.add_job(self._handlers[type].handle, id=job_id, trigger=trigger,
+                                 kwargs={"bot": bot, "user_id": user_id, "group_id": group_id, **kwargs})
         logger.success(f"scheduled {job_id} {trigger}")
 
     def _remove_job(self, type: str, *,
@@ -97,49 +105,6 @@ class Scheduler:
         self.apscheduler.remove_job(job_id)
         logger.success(f"unscheduled {job_id}")
 
-    async def _handle_ranking(self, mode: typing.Optional[str] = None,
-                              range: typing.Optional[typing.Union[typing.Sequence[int], int]] = None,
-                              *, bot: Bot,
-                              user_id: typing.Optional[int] = None,
-                              group_id: typing.Optional[int] = None):
-        illusts = await self.service.illust_ranking(mode, range)
-        await self.postman.send_illusts(illusts, number=range[0] if range else 1,
-                                        bot=bot, user_id=user_id, group_id=group_id)
-
-    async def _handle_random_recommended_illust(self,
-                                                *, bot: Bot,
-                                                user_id: typing.Optional[int] = None,
-                                                group_id: typing.Optional[int] = None):
-        illusts = await self.service.random_recommended_illust()
-        await self.postman.send_illusts(
-            illusts, bot=bot, user_id=user_id, group_id=group_id)
-
-    async def _handle_random_bookmark(self, pixiv_user_id: int = 0,
-                                      *, bot: Bot,
-                                      user_id: typing.Optional[int] = None,
-                                      group_id: typing.Optional[int] = None):
-        illusts = await self.service.random_bookmark(user_id, pixiv_user_id)
-        await self.postman.send_illusts(
-            illusts, bot=bot, user_id=user_id, group_id=group_id)
-
-    _handlers = {
-        "ranking": _handle_ranking,
-        "random_recommended_illust": _handle_random_recommended_illust,
-        "random_bookmark": _handle_random_bookmark,
-    }
-
-    def _args_to_kwargs(self, type: str, args: list = []) -> dict:
-        if type == "ranking":
-            mode = args[0] if len(args) > 0 else None
-            range = args[1] if len(args) > 1 else None
-            self.service.validate_illust_ranking_args(mode, range)
-            return {"mode": mode, "range": range}
-        elif type == "random_recommended_illust":
-            return {}
-        elif type == "random_bookmark":
-            pixiv_user_id = args[0] if len(args) > 0 else 0
-            return {"pixiv_user_id": pixiv_user_id}
-
     async def schedule(self, type: str,
                        schedule: typing.Union[str, typing.Sequence[int]],
                        args: list = [],
@@ -147,12 +112,15 @@ class Scheduler:
                        user_id: typing.Optional[int] = None,
                        group_id: typing.Optional[int] = None):
         if type not in self._handlers:
-            raise ValueError(f"Illegal type: {type}")
+            raise BadRequestError(f"{type}不是合法的类型")
 
         if isinstance(schedule, str):
             schedule = self._parse_schedule(schedule)
 
-        kwargs = self._args_to_kwargs(type, args)
+        kwargs = self._handlers[type].parse_command_args(args, user_id)
+        if isawaitable(kwargs):
+            kwargs = await kwargs
+
         old_sub = await self.subscriptions.update(type, user_id, group_id,
                                                   schedule=schedule, kwargs=kwargs)
         if old_sub is not None:
@@ -163,14 +131,14 @@ class Scheduler:
     async def unschedule(self, type: str, *,
                          user_id: typing.Optional[int] = None,
                          group_id: typing.Optional[int] = None):
-        if type != "all" and type not in self._handlers:
-            raise ValueError(f"Illegal type: {type}")
-
         if type != "all":
             self._remove_job(type, user_id=user_id, group_id=group_id)
-        else:
+        elif type in self._handlers:
             async for x in self.subscriptions.get(user_id, group_id):
                 self._remove_job(x["type"], user_id=user_id, group_id=group_id)
+        else:
+            raise BadRequestError(f"{type}不是合法的类型")
+
         self.subscriptions.delete(type, user_id, group_id)
 
     async def all_subscription(self, *,

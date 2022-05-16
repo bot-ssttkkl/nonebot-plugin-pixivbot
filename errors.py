@@ -1,13 +1,18 @@
-from pixivpy_async import PixivError
-
-
-class QueryError(PixivError):
-    def __init__(self, user_message, message, reason, user_message_details=None):
-        self.reason = user_message or message or reason
-        super(PixivError, self).__init__(self, self.reason)
+class QueryError(Exception):
+    def __init__(self, message):
+        self.message = message
 
     def __str__(self):
-        return self.reason
+        return self.message
 
 
-__all__ = ("QueryError",)
+class BadRequestError(Exception):
+    def __init__(self, message):
+        super().__init__()
+        self.message = message
+
+    def __str__(self):
+        return self.message
+
+
+__all__ = ("QueryError", "BadRequestError")

@@ -7,7 +7,7 @@ from nonebot.rule import to_me
 from nonebot.typing import T_State
 
 from ..config import Config
-from ..controller import Scheduler
+from ..scheduler import Scheduler
 from ..data_source import PixivBindings, PixivDataSource
 from .pkg_context import context
 from .catch_error import catch_error
@@ -18,13 +18,11 @@ pixiv_data_source = context.require(PixivDataSource)
 scheduler = context.require(Scheduler)
 
 _help_text = """常规语句：
-- 看看榜：查看pixiv榜单
-- 看看榜21-25：查看pixiv榜单的第21到第25名
-- 看看榜50：查看pixiv榜单的第50名
+- 看看榜<范围>：查看pixiv榜单
 - 来张图：从推荐插画随机抽选一张插画
-- 来张初音ミク图：搜索关键字初音ミク，从搜索结果随机抽选一张插画
-- 来张森倉円老师的图：搜索画师森倉円，从该画师的插画列表里随机抽选一张插画
-- 看看图114514：查看id为114514的插画
+- 来张<关键字>图：搜索关键字，从搜索结果随机抽选一张插画
+- 来张<用户>老师的图：搜索画师，从该画师的插画列表里随机抽选一张插画
+- 看看图<插画ID>：查看id为<插画ID>的插画
 - 来张私家车：从书签中随机抽选一张插画
 - 还要：重复上一次请求
 - 不够色：获取上一张插画的相关推荐
@@ -37,22 +35,20 @@ _help_text = """常规语句：
 """
 
 
-# def _get_user_and_group_id(event: Event):
-#     d = {}
-#     if "group_id" in event.__fields__ and event.group_id:
-#         d["group_id"] = event.group_id
-#     if "user_id" in event.__fields__ and event.user_id:
-#         d["user_id"] = event.user_id
-#     return d
+def _get_user_and_group_id(event: Event):
+    d = {}
+    if "group_id" in event.__fields__ and event.group_id:
+        d["group_id"] = event.group_id
+    if "user_id" in event.__fields__ and event.user_id:
+        d["user_id"] = event.user_id
+    return d
 
 
 def _get_user_or_group_id(event: Event):
-    if "group_id" in event.__fields__ and event.group_id:
-        return {"group_id": event.group_id}
-    elif "user_id" in event.__fields__ and event.user_id:
-        return {"user_id": event.user_id}
-    else:
-        return {}
+    d = _get_user_and_group_id(event)
+    if "group_id" in d:
+        del d["user_id"]
+    return d
 
 
 super_command = on_command("pixivbot", priority=5)
@@ -130,16 +126,11 @@ async def handle_schedule(bot: Bot, event: Event, state: T_State, matcher: Match
         else:
             msg += '无\n'
         msg += "\n"
-        msg += "命令格式：/pixivbot schedule <type> <schedule>\n"
-        msg += "type可选值：ranking, random_bookmark, random_recommended_illust\n"
-        msg += "schedule可选格式：12:00, 01:00*x, 00:10+00:30*x\n"
+        msg += "命令格式：/pixivbot schedule <type> <schedule> <..args>\n"
+        msg += "示例：/pixivbot schedule ranking 06:00*x day 1-5\n"
         await matcher.send(msg)
     else:
-        sch_args = args[3:]
-        # if args[1] == "random_bookmark":
-        #     sch_args.insert(0, event.user_id)
-
-        await scheduler.schedule(args[1], args[2], sch_args, bot=bot, **_get_user_or_group_id(event))
+        await scheduler.schedule(args[1], args[2], args[3:], bot=bot, **_get_user_and_group_id(event))
         await matcher.send("订阅成功")
 
 
