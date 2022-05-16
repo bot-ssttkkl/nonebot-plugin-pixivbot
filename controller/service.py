@@ -7,7 +7,7 @@ from nonebot import logger
 
 from ..config import Config
 from ..data_source import PixivBindings, PixivDataSource, LazyIllust
-from ..model import Illust
+from ..model import Illust, User
 from ..errors import BadRequestError, QueryError
 from .pkg_context import context
 
@@ -86,19 +86,21 @@ class Service:
         illusts = await self.data_source.search_illust(word)
         return await self._choice_and_load(illusts, self.conf.pixiv_random_illust_method, count)
 
-    async def user_name_to_id(self, user: str) -> int:
-        users = await self.data_source.search_user(user)
-        if len(users) == 0:
-            raise QueryError("未找到用户")
-        else:
-            return users[0].id
-
-    async def random_user_illust(self, user: typing.Union[str, int], *, count: int = 1) -> Illust:
+    async def get_user(self, user: typing.Union[str, int]) -> User:
         if isinstance(user, str):
-            user = await self.user_name_to_id(user)
+            users = await self.data_source.search_user(user)
+            if len(users) == 0:
+                raise QueryError("未找到用户")
+            else:
+                return users[0]
+        else:
+            return await self.data_source.user_detail(user)
 
-        illusts = await self.data_source.user_illusts(user)
-        return await self._choice_and_load(illusts, self.conf.pixiv_random_user_illust_method, count)
+    async def random_user_illust(self, user: typing.Union[str, int], *, count: int = 1) -> typing.Tuple[User, Illust]:
+        user = await self.get_user(user)
+        illusts = await self.data_source.user_illusts(user.id)
+        illust = await self._choice_and_load(illusts, self.conf.pixiv_random_user_illust_method, count)
+        return user, illust
 
     async def random_recommended_illust(self, *, count: int = 1) -> Illust:
         illusts = await self.data_source.recommended_illusts()

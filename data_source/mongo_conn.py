@@ -43,6 +43,7 @@ async def connect_to_mongodb():
     db = _mongodb_client[conf.pixiv_mongo_database_name]
     await _ensure_cache_index(db, 'download_cache', "illust_id", conf.pixiv_download_cache_expires_in)
     await _ensure_cache_index(db, 'illust_detail_cache', "illust.id", conf.pixiv_illust_detail_cache_expires_in)
+    await _ensure_cache_index(db, 'user_detail_cache', "user.id", conf.pixiv_user_detail_cache_expires_in)
     await _ensure_cache_index(db, 'illust_ranking_cache', "mode", conf.pixiv_illust_ranking_cache_expires_in)
     await _ensure_cache_index(db, 'search_illust_cache', "word", conf.pixiv_search_illust_cache_expires_in)
     await _ensure_cache_index(db, 'search_user_cache', "word", conf.pixiv_search_user_cache_expires_in)

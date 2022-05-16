@@ -212,6 +212,14 @@ class RemoteDataSource(AbstractDataSource):
         return Illust.parse_obj(raw_result["illust"])
 
     @auto_retry
+    async def user_detail(self, user_id: int) -> User:
+        logger.info(f"[remote] user_detail {user_id}")
+
+        raw_result = await self._papi.user_detail(user_id)
+        RemoteDataSource._check_error_in_raw_result(raw_result)
+        return User.parse_obj(raw_result["user"])
+
+    @auto_retry
     async def search_illust(self, word: str) -> typing.List[LazyIllust]:
         max_item = self._conf.pixiv_random_illust_max_item
         max_page = self._conf.pixiv_random_illust_max_page

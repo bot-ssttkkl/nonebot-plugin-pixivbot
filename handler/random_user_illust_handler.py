@@ -27,7 +27,7 @@ class RandomUserIllustHandler(AbstractHandler):
     async def parse_command_args(self, command_args: list[str], sender_user_id: int = 0) -> dict:
         user = command_args[0]
         if isinstance(user, str):
-            user = await self.service.user_name_to_id(user)
+            user = await self.service.get_user(user)
 
         return {"user": user}
 
@@ -37,6 +37,7 @@ class RandomUserIllustHandler(AbstractHandler):
                      event: MessageEvent = None,
                      user_id: typing.Optional[int] = None,
                      group_id: typing.Optional[int] = None):
-        illusts = await self.service.random_user_illust(user, count=count)
+        user, illusts = await self.service.random_user_illust(user, count=count)
         await self.postman.send_illusts(illusts,
+                                        header=f"这是您点的{user.name}老师({user.id})的图",
                                         bot=bot, event=event, user_id=user_id, group_id=group_id)

@@ -9,6 +9,10 @@ class AbstractDataSource(ABC):
     @abstractmethod
     async def illust_detail(self, illust_id: int) -> Illust:
         raise NotImplementedError()
+        
+    @abstractmethod
+    async def user_detail(self, user_id: int) -> User:
+        raise NotImplementedError()
 
     @abstractmethod
     async def search_illust(self, word: str) -> typing.List[LazyIllust]:

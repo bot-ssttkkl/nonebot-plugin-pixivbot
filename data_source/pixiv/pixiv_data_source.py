@@ -19,7 +19,7 @@ class PixivDataSource(AbstractDataSource):
     cache: CacheDataSource = context.require(CacheDataSource)
 
     _conf: Config = context.require(Config)
-    timeout = _conf.pixiv_query_timeout        
+    timeout = _conf.pixiv_query_timeout
 
     def start(self):
         self.remote.start()
@@ -28,8 +28,8 @@ class PixivDataSource(AbstractDataSource):
     async def shutdown(self):
         await self.shutdown()
 
-    async def invalidate_cache(self):
-        self.cache.invalidate_cache()
+    def invalidate_cache(self):
+        return self.cache.invalidate_cache()
 
     async def illust_detail(self, illust_id: int) -> Illust:
         return await self._cache_manager.get(
@@ -39,6 +39,17 @@ class PixivDataSource(AbstractDataSource):
             remote_fetcher=partial(
                 self.remote.illust_detail, illust_id=illust_id),
             cache_updater=self.cache.update_illust_detail,
+            timeout=self.timeout
+        )
+
+    async def user_detail(self, user_id: int) -> User:
+        return await self._cache_manager.get(
+            identifier=(9, user_id),
+            cache_loader=partial(self.cache.user_detail,
+                                 user_id=user_id),
+            remote_fetcher=partial(
+                self.remote.user_detail, user_id=user_id),
+            cache_updater=self.cache.update_user_detail,
             timeout=self.timeout
         )
 

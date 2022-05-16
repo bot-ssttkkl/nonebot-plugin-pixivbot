@@ -119,6 +119,23 @@ class CacheDataSource(AbstractDataSource):
             upsert=True
         )
 
+    async def user_detail(self, user_id: int) -> typing.Optional[User]:
+        cache = await db().user_detail_cache.find_one({"user.id": user_id})
+        if cache is not None:
+            return User.parse_obj(cache["user"])
+        else:
+            return None
+
+    async def update_user_detail(self, user: User):
+        await db().user_detail_cache.update_one(
+            {"user.id": user.id},
+            {"$set": {
+                "user": user.dict(),
+                "update_time": datetime.now()
+            }},
+            upsert=True
+        )
+
     def search_illust(self, word: str):
         return self._make_illusts_cache_loader(
             "search_illust_cache", "word", word)()
@@ -128,22 +145,87 @@ class CacheDataSource(AbstractDataSource):
             "search_illust_cache", "word", word)(content)
 
     async def search_user(self, word: str) -> typing.Optional[typing.List[User]]:
-        cache = await db().search_user_cache.find_one({"word": word})
-        if cache is not None:
-            return [User.parse_obj(x) for x in cache["users"]]
+        # cache = await db().search_user_cache.find_one({"word": word})
+        # if cache is not None:
+        #     return [User.parse_obj(x) for x in cache["users"]]
+        # else:
+        #     return None
+
+        result = db().search_user_cache.aggregate([
+            {
+                "$match": {"word": word}
+            },
+            {
+                "$replaceWith": {"user_id": "$user_id"}
+            },
+            {
+                "$unwind": "$user_id"
+            },
+            {
+                "$lookup": {
+                    "from": "user_detail_cache",
+                    "localField": "user_id",
+                    "foreignField": "user.id",
+                    "as": "users"
+                }
+            },
+            {
+                "$replaceWith": {
+                    "$mergeObjects": [
+                        "$$ROOT",
+                        {"$arrayElemAt": ["$users", 0]}
+                    ]
+                }
+            },
+            {
+                "$project": {"_id": 0, "user": 1, "user_id": 1}
+            }
+        ])
+
+        users = []
+        async for x in result:
+            if "user" in x and x["user"] is not None:
+                users.append(User.parse_obj(x["user"]))
+            else:
+                users.append(User(id=x["user_id"], name="", account=""))
+
+        if len(users) != 0:
+            return users
         else:
             return None
 
     async def update_search_user(self, word: str, content: typing.List[User]):
+        # now = datetime.now()
+        # await db().search_user_cache.update_one(
+        #     {"word": word},
+        #     {"$set": {
+        #         "users": [x.dict() for x in content],
+        #         "update_time": now
+        #     }},
+        #     upsert=True
+        # )
         now = datetime.now()
         await db().search_user_cache.update_one(
             {"word": word},
             {"$set": {
-                "users": [x.dict() for x in content],
+                "user_id": [user.id for user in content],
                 "update_time": now
             }},
             upsert=True
         )
+
+        opt = []
+        for user in content:
+            opt.append(UpdateOne(
+                {"user.id": user.id},
+                {"$set": {
+                    "user": user.dict(),
+                    "update_time": now
+                }},
+                upsert=True
+            ))
+        if len(opt) != 0:
+            await db().user_detail_cache.bulk_write(opt, ordered=False)
 
     def user_illusts(self, user_id: int):
         return self._make_illusts_cache_loader(
@@ -206,6 +288,7 @@ class CacheDataSource(AbstractDataSource):
     async def invalidate_cache(self):
         await db().download_cache.delete_many({})
         await db().illust_detail_cache.delete_many({})
+        await db().user_detail_cache.delete_many({})
         await db().illust_ranking_cache.delete_many({})
         await db().search_illust_cache.delete_many({})
         await db().search_user_cache.delete_many({})

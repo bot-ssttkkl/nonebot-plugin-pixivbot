@@ -18,6 +18,7 @@ class Config(BaseSettings):
     
     pixiv_download_cache_expires_in = 3600 * 24 * 7
     pixiv_illust_detail_cache_expires_in = 3600 * 24 * 7
+    pixiv_user_detail_cache_expires_in = 3600 * 24 * 7
     pixiv_illust_ranking_cache_expires_in = 3600 * 6
     pixiv_search_illust_cache_expires_in = 3600 * 24
     pixiv_search_user_cache_expires_in = 3600 * 24
