@@ -68,14 +68,8 @@ class Service:
         logger.info(f"choice {[x.id for x in choices]}")
         return [await x.get() for x in choices]
 
-    async def illust_ranking(self, mode: typing.Optional[str] = None,
-                             range: typing.Union[typing.Sequence[int], int, None] = None) -> typing.List[Illust]:
-        if mode is None:
-            mode = self.conf.pixiv_ranking_default_mode
-
-        if range is None:
-            range = self.conf.pixiv_ranking_default_range
-
+    async def illust_ranking(self, mode: str,
+                             range: typing.Union[typing.Sequence[int], int]) -> typing.List[Illust]:
         if isinstance(range, int):
             illusts = await self.data_source.illust_ranking(mode)
             illusts = illusts[range - 1]

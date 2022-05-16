@@ -21,8 +21,8 @@ class RankingHandler(AbstractHandler):
     mode_mapping = {"日": "day", "周": "week", "月": "month", "男性": "day_male",
                     "女性": "day_female", "原创": "week_original", "新人": "week_rookie", "漫画": "day_manga"}
 
-    RANKING_MODES = ["day", "week", "month", "day_male",
-                     "day_female", "week_original", "week_rookie", "day_manga"]
+    mode_reversed_mapping = {"day": "日", "week": "周", "month": "月", "day_male": "男性",
+                             "day_female": "女性", "week_original": "原创", "week_rookie": "新人", "day_manga": "漫画"}
 
     @classmethod
     def type(cls) -> str:
@@ -34,7 +34,7 @@ class RankingHandler(AbstractHandler):
 
     def validate_args(self, mode: typing.Optional[str] = None,
                       range: typing.Union[typing.Sequence[int], int, None] = None):
-        if mode and mode not in self.RANKING_MODES:
+        if mode and mode not in self.mode_reversed_mapping:
             raise BadRequestError(f"{mode}不是合法的榜单类型")
 
         if range:
@@ -74,7 +74,7 @@ class RankingHandler(AbstractHandler):
                     range = decode_integer(range)
             except ValueError:
                 raise BadRequestError(f"{range}不是合法的范围")
-                
+
         self.validate_args(mode, range)
         return {"mode": mode, "range": range}
 
@@ -85,7 +85,15 @@ class RankingHandler(AbstractHandler):
                      event: MessageEvent = None,
                      user_id: typing.Optional[int] = None,
                      group_id: typing.Optional[int] = None):
+        if mode is None:
+            mode = self.conf.pixiv_ranking_default_mode
+
+        if range is None:
+            range = self.conf.pixiv_ranking_default_range
+
         self.validate_args(mode, range)
         illusts = await self.service.illust_ranking(mode, range)
-        await self.postman.send_illusts(illusts, number=range[0] if range else 1,
+        await self.postman.send_illusts(illusts,
+                                        header=f"这是您点的{self.mode_reversed_mapping[mode]}榜",
+                                        number=range[0] if range else 1,
                                         bot=bot, event=event, user_id=user_id, group_id=group_id)

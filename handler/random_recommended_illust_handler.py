@@ -35,4 +35,5 @@ class RandomRecommendedIllustHandler(AbstractHandler):
                      group_id: typing.Optional[int] = None):
         illusts = await self.service.random_recommended_illust(count=count)
         await self.postman.send_illusts(illusts,
+                                        header="这是您点的图",
                                         bot=bot, event=event, user_id=user_id, group_id=group_id)

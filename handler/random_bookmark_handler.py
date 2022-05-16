@@ -44,4 +44,5 @@ class RandomBookmarkHandler(AbstractHandler):
                      group_id: typing.Optional[int] = None):
         illusts = await self.service.random_bookmark(sender_user_id, pixiv_user_id, count=count)
         await self.postman.send_illusts(illusts,
+                                        header=f"这是您点的私家车",
                                         bot=bot, event=event, user_id=user_id, group_id=group_id)

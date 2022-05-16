@@ -35,4 +35,5 @@ class RandomIllustHandler(AbstractHandler):
                      group_id: typing.Optional[int] = None):
         illusts = await self.service.random_illust(word, count=count)
         await self.postman.send_illusts(illusts,
+                                        header=f"这是您点的{word}图",
                                         bot=bot, event=event, user_id=user_id, group_id=group_id)

@@ -114,8 +114,8 @@ class Postman:
                 messages = []
 
                 if header is not None:
-                    if header is str:
-                        header = MessageSegment.text(str)
+                    if isinstance(header, str):
+                        header = MessageSegment.text(header)
                     messages.append([dataclasses.asdict(header)])
 
                 for fut in msg_fut:
