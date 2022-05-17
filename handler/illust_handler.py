@@ -5,7 +5,6 @@ from nonebot.adapters.onebot.v11.event import MessageEvent
 
 from ..postman import Postman
 from ..controller import Service
-from ..config import Config
 from ..errors import BadRequestError
 from .pkg_context import context
 from .abstract_handler import AbstractHandler
@@ -13,7 +12,6 @@ from .abstract_handler import AbstractHandler
 
 @context.export_singleton()
 class IllustHandler(AbstractHandler):
-    conf = context.require(Config)
     service = context.require(Service)
     postman = context.require(Postman)
 

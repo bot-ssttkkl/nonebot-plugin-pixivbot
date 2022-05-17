@@ -46,7 +46,7 @@ class Service:
     async def illust_detail(self, illust: int) -> Illust:
         return await self.data_source.illust_detail(illust)
 
-    async def random_illust(self, word: str, *, count: int = 1) -> Illust:
+    async def random_illust(self, word: str, *, count: int = 1) -> typing.List[Illust]:
         if self.conf.pixiv_tag_translation_enabled:
             tag = await self.local_tags.get_by_translated_name(word)
             if tag:
@@ -66,17 +66,17 @@ class Service:
         else:
             return await self.data_source.user_detail(user)
 
-    async def random_user_illust(self, user: typing.Union[str, int], *, count: int = 1) -> typing.Tuple[User, Illust]:
+    async def random_user_illust(self, user: typing.Union[str, int], *, count: int = 1) -> typing.Tuple[User, typing.List[Illust]]:
         user = await self.get_user(user)
         illusts = await self.data_source.user_illusts(user.id)
         illust = await self._choice_and_load(illusts, self.conf.pixiv_random_user_illust_method, count)
         return user, illust
 
-    async def random_recommended_illust(self, *, count: int = 1) -> Illust:
+    async def random_recommended_illust(self, *, count: int = 1) -> typing.List[Illust]:
         illusts = await self.data_source.recommended_illusts()
         return await self._choice_and_load(illusts, self.conf.pixiv_random_recommended_illust_method, count)
 
-    async def random_bookmark(self, sender_user_id: int = 0, pixiv_user_id: int = 0, *, count: int = 1) -> Illust:
+    async def random_bookmark(self, sender_user_id: int = 0, pixiv_user_id: int = 0, *, count: int = 1) -> typing.List[Illust]:
         if not pixiv_user_id and sender_user_id:
             pixiv_user_id = await self.pixiv_bindings.get_binding(sender_user_id)
 
@@ -89,7 +89,7 @@ class Service:
         illusts = await self.data_source.user_bookmarks(pixiv_user_id)
         return await self._choice_and_load(illusts, self.conf.pixiv_random_bookmark_method, count)
 
-    async def random_related_illust(self, illust_id: int, *, count: int = 1) -> Illust:
+    async def random_related_illust(self, illust_id: int, *, count: int = 1) -> typing.List[Illust]:
         if illust_id == 0:
             raise BadRequestError("你还没有发送过请求")
 

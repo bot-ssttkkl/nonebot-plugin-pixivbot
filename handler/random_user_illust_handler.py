@@ -5,14 +5,12 @@ from nonebot.adapters.onebot.v11.event import MessageEvent
 
 from ..postman import Postman
 from ..controller import Service
-from ..config import Config
 from .pkg_context import context
 from .abstract_handler import AbstractHandler
 
 
 @context.export_singleton()
 class RandomUserIllustHandler(AbstractHandler):
-    conf = context.require(Config)
     service = context.require(Service)
     postman = context.require(Postman)
 
@@ -37,7 +35,16 @@ class RandomUserIllustHandler(AbstractHandler):
                      event: MessageEvent = None,
                      user_id: typing.Optional[int] = None,
                      group_id: typing.Optional[int] = None):
-        user, illusts = await self.service.random_user_illust(user, count=count)
+        userinfo, illusts = await self.service.random_user_illust(user, count=count)
+
+        # 记录请求
+        self.record_req(userinfo.id, count=count,
+                        user_id=user_id, group_id=group_id)
+        # 记录结果
+        if len(illusts) == 1:
+            self.record_resp_illust(illusts[0].id,
+                                    user_id=user_id, group_id=group_id)
+
         await self.postman.send_illusts(illusts,
-                                        header=f"这是您点的{user.name}老师({user.id})的图",
+                                        header=f"这是您点的{userinfo.name}老师({userinfo.id})的图",
                                         bot=bot, event=event, user_id=user_id, group_id=group_id)

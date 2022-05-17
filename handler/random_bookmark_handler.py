@@ -4,7 +4,6 @@ from nonebot.adapters.onebot.v11.event import MessageEvent
 
 from ..postman import Postman
 from ..controller import Service
-from ..config import Config
 from ..errors import BadRequestError
 from .pkg_context import context
 from .abstract_handler import AbstractHandler
@@ -12,7 +11,6 @@ from .abstract_handler import AbstractHandler
 
 @context.export_singleton()
 class RandomBookmarkHandler(AbstractHandler):
-    conf = context.require(Config)
     service = context.require(Service)
     postman = context.require(Postman)
 
@@ -43,6 +41,15 @@ class RandomBookmarkHandler(AbstractHandler):
                      user_id: typing.Optional[int] = None,
                      group_id: typing.Optional[int] = None):
         illusts = await self.service.random_bookmark(sender_user_id, pixiv_user_id, count=count)
+
+        # 记录请求
+        self.record_req(sender_user_id, pixiv_user_id, count=count,
+                        user_id=user_id, group_id=group_id)
+        # 记录结果
+        if len(illusts) == 1:
+            self.record_resp_illust(illusts[0].id,
+                                    user_id=user_id, group_id=group_id)
+
         await self.postman.send_illusts(illusts,
                                         header=f"这是您点的私家车",
                                         bot=bot, event=event, user_id=user_id, group_id=group_id)

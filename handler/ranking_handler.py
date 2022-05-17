@@ -7,14 +7,12 @@ from ..postman import Postman
 from ..utils import decode_integer
 from ..controller import Service
 from ..errors import BadRequestError
-from ..config import Config
 from .pkg_context import context
 from .abstract_handler import AbstractHandler
 
 
 @context.export_singleton()
 class RankingHandler(AbstractHandler):
-    conf = context.require(Config)
     service = context.require(Service)
     postman = context.require(Postman)
 

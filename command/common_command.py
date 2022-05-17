@@ -156,23 +156,25 @@ if conf.pixiv_random_illust_query_enabled:
         await handler.handle(word, count=count, bot=bot, event=event)
 
 
-# async def handle_redistribute(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-#     await distributor.redistribute(bot=bot, event=event)
+if conf.pixiv_more_enabled:
+    mat = on_regex("^还要$", priority=1, block=True)
+    mat.append_handler(cooldown_interceptor)
 
+    @mat.handle()
+    @catch_error
+    async def handle_more(bot: Bot, event: Event, state: T_State, matcher: Matcher):
+        handler = context.require(MoreHandler)
+        await handler.handle(bot=bot, event=event)
 
-# async def handle_related_illust(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-#     await distributor.distribute_related_illust(bot=bot, event=event)
+if conf.pixiv_random_related_illust_query_enabled:
+    mat = on_regex("^不够色$", priority=1, block=True)
+    mat.append_handler(cooldown_interceptor)
 
-
-# if conf.pixiv_more_enabled:
-#     mat = on_regex("^还要$", priority=1, block=True)
-#     mat.append_handler(cooldown_interceptor)
-#     mat.append_handler(handle_redistribute)
-
-# if conf.pixiv_random_related_illust_query_enabled:
-#     mat = on_regex("^不够色$", priority=1, block=True)
-#     mat.append_handler(cooldown_interceptor)
-#     mat.append_handler(handle_related_illust)
+    @mat.handle()
+    @catch_error
+    async def handle_related_illust(bot: Bot, event: Event, state: T_State, matcher: Matcher):
+        handler = context.require(RandomRelatedIllustHandler)
+        await handler.handle(bot=bot, event=event)
 
 
 if conf.pixiv_poke_action:
