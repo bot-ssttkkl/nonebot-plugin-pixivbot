@@ -13,6 +13,18 @@ from ...model import Illust, User
 from .lazy_illust import LazyIllust
 
 
+def do_skip_and_limit(items: list, skip: int, limit: int) -> list:
+    if skip:
+        if limit and len(items) > skip+limit:
+            return items[skip:skip+limit]
+        else:
+            return items[skip:]
+    elif limit and len(items) > limit:
+        return items[:limit]
+    else:
+        return items
+
+
 @context.export_singleton()
 class PixivDataSource(AbstractDataSource):
     remote: RemoteDataSource = context.require(RemoteDataSource)
@@ -53,77 +65,97 @@ class PixivDataSource(AbstractDataSource):
             timeout=self.timeout
         )
 
-    async def search_illust(self, word: str) -> typing.List[LazyIllust]:
+    async def search_illust(self, word: str, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
+        # skip和limit只作用于cache_loader
         return await self._cache_manager.get(
             identifier=(0, word),
-            cache_loader=partial(self.cache.search_illust, word=word),
+            cache_loader=partial(self.cache.search_illust,
+                                 word=word, skip=skip, limit=limit),
             remote_fetcher=partial(self.remote.search_illust, word=word),
             cache_updater=lambda content: self.cache.update_search_illust(
                 word, content),
+            hook_on_fetch=lambda result: do_skip_and_limit(
+                result, skip, limit),
             timeout=self.timeout
         )
 
-    async def search_user(self, word: str) -> typing.List[User]:
+    async def search_user(self, word: str, *, skip: int = 0, limit: int = 0) -> typing.List[User]:
         return await self._cache_manager.get(
             identifier=(1, word),
-            cache_loader=partial(self.cache.search_user, word=word),
+            cache_loader=partial(self.cache.search_user,
+                                 word=word, skip=skip, limit=limit),
             remote_fetcher=partial(self.remote.search_user, word=word),
             cache_updater=lambda content: self.cache.update_search_user(
                 word, content),
+            hook_on_fetch=lambda result: do_skip_and_limit(
+                result, skip, limit),
             timeout=self.timeout
         )
 
-    async def user_illusts(self, user_id: int = 0) -> typing.List[LazyIllust]:
+    async def user_illusts(self, user_id: int = 0, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
         return await self._cache_manager.get(
             identifier=(2, user_id),
-            cache_loader=partial(self.cache.user_illusts, user_id=user_id),
+            cache_loader=partial(self.cache.user_illusts,
+                                 user_id=user_id, skip=skip, limit=limit),
             remote_fetcher=partial(self.remote.user_illusts, user_id=user_id),
             cache_updater=lambda content: self.cache.update_user_illusts(
                 user_id, content),
+            hook_on_fetch=lambda result: do_skip_and_limit(
+                result, skip, limit),
             timeout=self.timeout
         )
 
-    async def user_bookmarks(self, user_id: int = 0) -> typing.List[LazyIllust]:
+    async def user_bookmarks(self, user_id: int = 0, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
         return await self._cache_manager.get(
             identifier=(3, user_id),
-            cache_loader=partial(self.cache.user_bookmarks, user_id=user_id),
+            cache_loader=partial(self.cache.user_bookmarks,
+                                 user_id=user_id, skip=skip, limit=limit),
             remote_fetcher=partial(
                 self.remote.user_bookmarks, user_id=user_id),
             cache_updater=lambda content: self.cache.update_user_bookmarks(
                 user_id, content),
+            hook_on_fetch=lambda result: do_skip_and_limit(
+                result, skip, limit),
             timeout=self.timeout
         )
 
-    async def recommended_illusts(self) -> typing.List[LazyIllust]:
+    async def recommended_illusts(self, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
         return await self._cache_manager.get(
             identifier=(4,),
-            cache_loader=self.cache.recommended_illusts,
+            cache_loader=partial(
+                self.cache.recommended_illusts, skip=skip, limit=limit),
             remote_fetcher=self.remote.recommended_illusts,
             cache_updater=self.cache.update_recommended_illusts,
+            hook_on_fetch=lambda result: do_skip_and_limit(
+                result, skip, limit),
             timeout=self.timeout
         )
 
-    async def related_illusts(self, illust_id: int) -> typing.List[LazyIllust]:
+    async def related_illusts(self, illust_id: int, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
         return await self._cache_manager.get(
             identifier=(8, illust_id),
             cache_loader=partial(
-                self.cache.related_illusts, illust_id=illust_id),
+                self.cache.related_illusts, illust_id=illust_id, skip=skip, limit=limit),
             remote_fetcher=partial(
                 self.remote.related_illusts, illust_id=illust_id),
             cache_updater=lambda content: self.cache.update_related_illusts(
                 illust_id, content),
+            hook_on_fetch=lambda result: do_skip_and_limit(
+                result, skip, limit),
             timeout=self.timeout
         )
 
-    async def illust_ranking(self, mode: str = 'day') -> typing.List[LazyIllust]:
+    async def illust_ranking(self, mode: str = 'day', *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
         return await self._cache_manager.get(
             identifier=(5, mode),
             cache_loader=partial(
-                self.cache.illust_ranking, mode=mode),
+                self.cache.illust_ranking, mode=mode, skip=skip, limit=limit),
             remote_fetcher=partial(
                 self.remote.illust_ranking, mode=mode),
             cache_updater=lambda content: self.cache.update_illust_ranking(
                 mode, content),
+            hook_on_fetch=lambda result: do_skip_and_limit(
+                result, skip, limit),
             timeout=self.timeout
         )
 

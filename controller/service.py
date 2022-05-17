@@ -6,7 +6,7 @@ import typing
 from nonebot import logger
 
 from ..config import Config
-from ..data_source import PixivBindings, PixivDataSource, LazyIllust,LocalTags
+from ..data_source import PixivBindings, PixivDataSource, LazyIllust, LocalTags
 from ..model import Illust, User
 from ..errors import BadRequestError, QueryError
 from .pkg_context import context
@@ -33,13 +33,9 @@ class Service:
         return [await x.get() for x in winners]
 
     async def illust_ranking(self, mode: str,
-                             range: typing.Union[typing.Sequence[int], int]) -> typing.List[Illust]:
-        if isinstance(range, int):
-            illusts = await self.data_source.illust_ranking(mode)
-            illusts = illusts[range - 1]
-        else:
-            illusts = await self.data_source.illust_ranking(mode)
-            illusts = illusts[range[0] - 1: range[1]]
+                             range: typing.Sequence[int]) -> typing.List[Illust]:
+        start, end = range
+        illusts = await self.data_source.illust_ranking(mode, skip=start-1, limit=end-start+1)
 
         return [await x.get() for x in illusts]
 
@@ -52,7 +48,7 @@ class Service:
             if tag:
                 logger.info(f"found translation {word} -> {tag.name}")
                 word = tag.name
-        
+
         illusts = await self.data_source.search_illust(word)
         return await self._choice_and_load(illusts, self.conf.pixiv_random_illust_method, count)
 

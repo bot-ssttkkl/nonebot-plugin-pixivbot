@@ -32,26 +32,20 @@ class RankingHandler(AbstractHandler):
         return cls.conf.pixiv_ranking_query_enabled
 
     def validate_args(self, mode: typing.Optional[str] = None,
-                      range: typing.Union[typing.Sequence[int], int, None] = None):
+                      range: typing.Optional[typing.Sequence[int]] = None):
         if mode and mode not in self.mode_reversed_mapping:
             raise BadRequestError(f"{mode}不是合法的榜单类型")
 
         if range:
-            if isinstance(range, int):
-                num = range
-                if num > self.conf.pixiv_ranking_fetch_item:
-                    raise BadRequestError(
-                        f'仅支持查询{self.conf.pixiv_ranking_fetch_item}名以内的插画')
-            else:
-                start, end = range
-                if end - start + 1 > self.conf.pixiv_ranking_max_item_per_query:
-                    raise BadRequestError(
-                        f"仅支持一次查询{self.conf.pixiv_ranking_max_item_per_query}张以下插画")
-                elif start > end:
-                    raise BadRequestError("范围不合法")
-                elif end > self.conf.pixiv_ranking_fetch_item:
-                    raise BadRequestError(
-                        f'仅支持查询{self.conf.pixiv_ranking_fetch_item}名以内的插画')
+            start, end = range
+            if end - start + 1 > self.conf.pixiv_ranking_max_item_per_query:
+                raise BadRequestError(
+                    f"仅支持一次查询{self.conf.pixiv_ranking_max_item_per_query}张以下插画")
+            elif start > end:
+                raise BadRequestError("范围不合法")
+            elif end > self.conf.pixiv_ranking_fetch_item:
+                raise BadRequestError(
+                    f'仅支持查询{self.conf.pixiv_ranking_fetch_item}名以内的插画')
 
     def parse_command_args(self, command_args: list[str], sender_user_id: int = 0) -> dict:
         mode = command_args[0] if len(command_args) > 0 else None
@@ -71,6 +65,7 @@ class RankingHandler(AbstractHandler):
                     range = int(start), int(end)
                 else:
                     range = decode_integer(range)
+                    range = range, range
             except ValueError:
                 raise BadRequestError(f"{range}不是合法的范围")
 
@@ -91,9 +86,12 @@ class RankingHandler(AbstractHandler):
         if range is None:
             range = self.conf.pixiv_ranking_default_range
 
+        if isinstance(range, int):
+            range = range, range
+
         self.validate_args(mode, range)
         illusts = await self.service.illust_ranking(mode, range)
         await self.postman.send_illusts(illusts,
                                         header=f"这是您点的{self.mode_reversed_mapping[mode]}榜",
-                                        number=range[0] if range else 1,
+                                        number=range[0],
                                         bot=bot, event=event, user_id=user_id, group_id=group_id)

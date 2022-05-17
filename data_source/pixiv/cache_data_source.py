@@ -14,11 +14,9 @@ from .lazy_illust import LazyIllust
 
 @context.register_singleton()
 class CacheDataSource(AbstractDataSource):
-    def _make_illusts_cache_loader(self, collection_name: str,
-                                   arg_name: str,
-                                   arg: typing.Any):
+    def _make_illusts_cache_loader(self, collection_name: str, arg_name: str, arg: typing.Any, *, skip: int = 0, limit: int = 0):
         async def cache_loader() -> typing.Optional[typing.List[LazyIllust]]:
-            result = db()[collection_name].aggregate([
+            aggregation = [
                 {
                     "$match": {arg_name: arg}
                 },
@@ -28,6 +26,14 @@ class CacheDataSource(AbstractDataSource):
                 {
                     "$unwind": "$illust_id"
                 },
+            ]
+
+            if skip:
+                aggregation.append({"$skip": skip})
+            if limit:
+                aggregation.append({"$limit": limit})
+
+            aggregation.extend([
                 {
                     "$lookup": {
                         "from": "illust_detail_cache",
@@ -48,6 +54,8 @@ class CacheDataSource(AbstractDataSource):
                     "$project": {"_id": 0, "illust": 1, "illust_id": 1}
                 }
             ])
+
+            result = db()[collection_name].aggregate(aggregation)
 
             cache = []
             broken = 0
@@ -136,22 +144,14 @@ class CacheDataSource(AbstractDataSource):
             upsert=True
         )
 
-    def search_illust(self, word: str):
-        return self._make_illusts_cache_loader(
-            "search_illust_cache", "word", word)()
+    def search_illust(self, word: str, *, skip: int = 0, limit: int = 0):
+        return self._make_illusts_cache_loader("search_illust_cache", "word", word, skip=skip, limit=limit)()
 
     def update_search_illust(self, word: str, content: typing.List[typing.Union[Illust, LazyIllust]]):
-        return self._make_illusts_cache_updater(
-            "search_illust_cache", "word", word)(content)
+        return self._make_illusts_cache_updater("search_illust_cache", "word", word)(content)
 
-    async def search_user(self, word: str) -> typing.Optional[typing.List[User]]:
-        # cache = await db().search_user_cache.find_one({"word": word})
-        # if cache is not None:
-        #     return [User.parse_obj(x) for x in cache["users"]]
-        # else:
-        #     return None
-
-        result = db().search_user_cache.aggregate([
+    async def search_user(self, word: str, *, skip: int = 0, limit: int = 0) -> typing.Optional[typing.List[User]]:
+        aggregation = [
             {
                 "$match": {"word": word}
             },
@@ -161,6 +161,14 @@ class CacheDataSource(AbstractDataSource):
             {
                 "$unwind": "$user_id"
             },
+        ]
+
+        if skip:
+            aggregation.append({"$skip": skip})
+        if limit:
+            aggregation.append({"$limit": limit})
+
+        aggregation.extend([
             {
                 "$lookup": {
                     "from": "user_detail_cache",
@@ -182,6 +190,8 @@ class CacheDataSource(AbstractDataSource):
             }
         ])
 
+        result = db().search_user_cache.aggregate(aggregation)
+
         users = []
         async for x in result:
             if "user" in x and x["user"] is not None:
@@ -195,15 +205,6 @@ class CacheDataSource(AbstractDataSource):
             return None
 
     async def update_search_user(self, word: str, content: typing.List[User]):
-        # now = datetime.now()
-        # await db().search_user_cache.update_one(
-        #     {"word": word},
-        #     {"$set": {
-        #         "users": [x.dict() for x in content],
-        #         "update_time": now
-        #     }},
-        #     upsert=True
-        # )
         now = datetime.now()
         await db().search_user_cache.update_one(
             {"word": word},
@@ -227,45 +228,35 @@ class CacheDataSource(AbstractDataSource):
         if len(opt) != 0:
             await db().user_detail_cache.bulk_write(opt, ordered=False)
 
-    def user_illusts(self, user_id: int):
-        return self._make_illusts_cache_loader(
-            "user_illusts_cache", "user_id", user_id)()
+    def user_illusts(self, user_id: int, *, skip: int = 0, limit: int = 0):
+        return self._make_illusts_cache_loader("user_illusts_cache", "user_id", user_id, skip=skip, limit=limit)()
 
     def update_user_illusts(self, user_id: int, content: typing.List[typing.Union[Illust, LazyIllust]]):
-        return self._make_illusts_cache_updater(
-            "user_illusts_cache", "user_id", user_id)(content)
+        return self._make_illusts_cache_updater("user_illusts_cache", "user_id", user_id)(content)
 
-    def user_bookmarks(self, user_id: int):
-        return self._make_illusts_cache_loader(
-            "user_bookmarks_cache", "user_id", user_id)()
+    def user_bookmarks(self, user_id: int, *, skip: int = 0, limit: int = 0):
+        return self._make_illusts_cache_loader("user_bookmarks_cache", "user_id", user_id, skip=skip, limit=limit)()
 
     def update_user_bookmarks(self, user_id: int, content: typing.List[typing.Union[Illust, LazyIllust]]):
-        return self._make_illusts_cache_updater(
-            "user_bookmarks_cache", "user_id", user_id)(content)
+        return self._make_illusts_cache_updater("user_bookmarks_cache", "user_id", user_id)(content)
 
-    def recommended_illusts(self):
-        return self._make_illusts_cache_loader(
-            "other_cache", "type", "recommended_illusts")()
+    def recommended_illusts(self, *, skip: int = 0, limit: int = 0):
+        return self._make_illusts_cache_loader("other_cache", "type", "recommended_illusts", skip=skip, limit=limit)()
 
     def update_recommended_illusts(self, content: typing.List[typing.Union[Illust, LazyIllust]]):
-        return self._make_illusts_cache_updater(
-            "other_cache", "type", "recommended_illusts")(content)
+        return self._make_illusts_cache_updater("other_cache", "type", "recommended_illusts")(content)
 
-    def related_illusts(self, illust_id: int):
-        return self._make_illusts_cache_loader(
-            "related_illusts_cache", "original_illust_id", illust_id)()
+    def related_illusts(self, illust_id: int, *, skip: int = 0, limit: int = 0):
+        return self._make_illusts_cache_loader("related_illusts_cache", "original_illust_id", illust_id, skip=skip, limit=limit)()
 
     def update_related_illusts(self, illust_id: int, content: typing.List[typing.Union[Illust, LazyIllust]]):
-        return self._make_illusts_cache_updater(
-            "related_illusts_cache", "original_illust_id", illust_id)(content)
+        return self._make_illusts_cache_updater("related_illusts_cache", "original_illust_id", illust_id)(content)
 
-    def illust_ranking(self, mode: str):
-        return self._make_illusts_cache_loader(
-            "other_cache", "type", mode + "_ranking")()
+    def illust_ranking(self, mode: str, *, skip: int = 0, limit: int = 0):
+        return self._make_illusts_cache_loader("other_cache", "type", mode + "_ranking", skip=skip, limit=limit)()
 
     def update_illust_ranking(self, mode: str, content: typing.List[typing.Union[Illust, LazyIllust]]):
-        return self._make_illusts_cache_updater(
-            "other_cache", "type", mode + "_ranking")(content)
+        return self._make_illusts_cache_updater("other_cache", "type", mode + "_ranking")(content)
 
     async def image(self, illust: Illust) -> typing.Optional[bytes]:
         cache = await db().download_cache.find_one({"illust_id": illust.id})

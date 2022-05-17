@@ -14,9 +14,13 @@ class CacheManager:
                   cache_loader: typing.Callable[[], typing.Coroutine[typing.Any, typing.Any, T]],
                   remote_fetcher: typing.Callable[[], typing.Coroutine[typing.Any, typing.Any, T]],
                   cache_updater: typing.Callable[[T], typing.Coroutine[typing.Any, typing.Any, typing.NoReturn]],
+                  hook_on_cache: typing.Optional[typing.Callable[[T], T]] = None,
+                  hook_on_fetch: typing.Optional[typing.Callable[[T], T]] = None,
                   timeout: typing.Optional[int] = 0) -> T:
         cache = await cache_loader()
         if cache is not None:
+            if hook_on_cache:
+                cache = hook_on_cache(cache)
             return cache
 
         if identifier in self._waiting:
@@ -27,7 +31,10 @@ class CacheManager:
         try:
             asyncio.create_task(self._fetch(
                 fut, remote_fetcher, cache_updater, timeout))
-            return await fut
+            result = await fut
+            if hook_on_fetch:
+                result = hook_on_fetch(result)
+            return result
         finally:
             await self._waiting.pop(identifier)
 
