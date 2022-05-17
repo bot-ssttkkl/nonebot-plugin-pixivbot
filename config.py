@@ -86,6 +86,8 @@ class Config(BaseSettings):
     pixiv_no_query_cooldown_users = []
     pixiv_max_item_per_query = 10
 
+    pixiv_tag_translation_enabled = True
+
     pixiv_more_enabled = True
 
     pixiv_illust_query_enabled = True

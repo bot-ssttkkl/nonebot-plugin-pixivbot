@@ -4,6 +4,7 @@ import typing
 from pydantic import *
 
 from .User import User
+from .tag import Tag
 
 
 class Illust(BaseModel):
@@ -11,10 +12,6 @@ class Illust(BaseModel):
         square_medium: str
         medium: str
         large: str
-
-    class Tag(BaseModel):
-        name: str
-        translated_name: typing.Optional[str] = None
 
     class MetaSinglePage(BaseModel):
         original_image_url: typing.Optional[str] = None
@@ -43,7 +40,7 @@ class Illust(BaseModel):
     total_bookmarks: int
 
     def has_tag(self, tag: typing.Union[str, Tag]) -> bool:
-        if isinstance(tag, self.Tag):
+        if isinstance(tag, Tag):
             for x in self.tags:
                 if x == tag:
                     return True

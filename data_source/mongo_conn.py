@@ -60,6 +60,9 @@ async def connect_to_mongodb():
         await db['subscription'].create_index([("group_id", 1)])
         await db['subscription'].create_index([("type", 1), ("user_id", 1)])
         await db['subscription'].create_index([("type", 1), ("group_id", 1)])
+
+        await db['local_tags'].create_index([("name", 1)], unique=True)
+        await db['local_tags'].create_index([("translated_name", 1)])
     except Exception as e:
         logger.exception(e)
         logger.warning("Error occured during creating indexes.")

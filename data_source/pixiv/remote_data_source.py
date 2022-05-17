@@ -11,6 +11,7 @@ from .abstract_data_source import AbstractDataSource
 from .cache_manager import CacheManager
 from .compressor import Compressor
 from .pkg_context import context
+from ..local_tags import LocalTags
 from ...config import Config
 from ...errors import QueryError
 from ...model import Illust, User
@@ -23,6 +24,8 @@ def auto_retry(func):
         for t in range(10):
             try:
                 return await func(*args, **kwargs)
+            except QueryError as e:
+                raise e
             except Exception as e:
                 logger.info(f"Retrying... {t+1}/10")
                 logger.exception(e)
@@ -36,6 +39,7 @@ def auto_retry(func):
 @context.register_singleton()
 class RemoteDataSource(AbstractDataSource):
     _conf: Config = context.require(Config)
+    _local_tags = context.require(LocalTags)
 
     def __init__(self):
         self.user_id = 0
@@ -107,6 +111,7 @@ class RemoteDataSource(AbstractDataSource):
         self._cache_manager = CacheManager(self.simultaneous_query)
         self._pclient = PixivClient(proxy=self.proxy)
         self._papi = AppPixivAPI(client=self._pclient.start())
+        self._papi.set_additional_headers({'Accept-Language': 'zh-CN'})
         self._refresh_daemon_task = asyncio.create_task(self._refresh_daemon())
 
     async def shutdown(self):
@@ -121,8 +126,7 @@ class RemoteDataSource(AbstractDataSource):
 
     T = typing.TypeVar("T")
 
-    @staticmethod
-    async def _flat_page(papi_search_func: typing.Callable,
+    async def _flat_page(self, papi_search_func: typing.Callable,
                          element_list_name: str,
                          element_mapper: typing.Optional[typing.Callable[[
                              typing.Any], T]] = None,
@@ -135,7 +139,7 @@ class RemoteDataSource(AbstractDataSource):
 
         # logger.info("loading page " + str(cur_page + 1))
         raw_result = await papi_search_func(**kwargs)
-        RemoteDataSource._check_error_in_raw_result(raw_result)
+        self._check_error_in_raw_result(raw_result)
 
         while len(flatten) < max_item and cur_page < max_page:
             for x in raw_result[element_list_name]:
@@ -158,12 +162,25 @@ class RemoteDataSource(AbstractDataSource):
                 cur_page = cur_page + 1
                 # logger.info("loading page " + str(cur_page + 1))
                 raw_result = await papi_search_func(**next_qs)
-                RemoteDataSource._check_error_in_raw_result(raw_result)
+                self._check_error_in_raw_result(raw_result)
 
         return flatten
 
-    @staticmethod
-    async def _get_illusts(papi_search_func: typing.Callable,
+    async def _add_to_local_tags(self, illusts: typing.List[LazyIllust]):
+        try:
+            tags = {}
+            for x in illusts:
+                if not x.loaded:
+                    continue
+                for t in x.content.tags:
+                    if t.translated_name:
+                        tags[t.name] = t
+
+            await self._local_tags.insert_many(tags.values())
+        except Exception as e:
+            logger.exception(e)
+
+    async def _get_illusts(self, papi_search_func: typing.Callable,
                            element_list_name: str,
                            block_tags: typing.Optional[typing.List[str]],
                            min_bookmark: int = 0,
@@ -184,11 +201,11 @@ class RemoteDataSource(AbstractDataSource):
                 return False
             return True
 
-        illusts = await RemoteDataSource._flat_page(papi_search_func, element_list_name,
-                                                    lambda x: Illust.parse_obj(
-                                                        x),
-                                                    illust_filter, max_item, max_page,
-                                                    **kwargs)
+        illusts = await self._flat_page(papi_search_func, element_list_name,
+                                        lambda x: Illust.parse_obj(
+                                            x),
+                                        illust_filter, max_item, max_page,
+                                        **kwargs)
         content = []
         broken = 0
         for x in illusts:
@@ -199,7 +216,10 @@ class RemoteDataSource(AbstractDataSource):
                 content.append(LazyIllust(x.id, x))
 
         logger.info(
-            f"[remote] {len(illusts)} got, illust_detail of {broken} are missed")
+            f"[remote] {len(content)} got, illust_detail of {broken} are missed")
+
+        if self._conf.pixiv_tag_translation_enabled:
+            asyncio.create_task(self._add_to_local_tags(content))
 
         return content
 
@@ -208,15 +228,20 @@ class RemoteDataSource(AbstractDataSource):
         logger.info(f"[remote] illust_detail {illust_id}")
 
         raw_result = await self._papi.illust_detail(illust_id)
-        RemoteDataSource._check_error_in_raw_result(raw_result)
-        return Illust.parse_obj(raw_result["illust"])
+        self._check_error_in_raw_result(raw_result)
+        illust = Illust.parse_obj(raw_result["illust"])
+
+        if self._conf.pixiv_tag_translation_enabled:
+            asyncio.create_task(self._add_to_local_tags([illust]))
+
+        return illust
 
     @auto_retry
     async def user_detail(self, user_id: int) -> User:
         logger.info(f"[remote] user_detail {user_id}")
 
         raw_result = await self._papi.user_detail(user_id)
-        RemoteDataSource._check_error_in_raw_result(raw_result)
+        self._check_error_in_raw_result(raw_result)
         return User.parse_obj(raw_result["user"])
 
     @auto_retry

@@ -6,7 +6,7 @@ import typing
 from nonebot import logger
 
 from ..config import Config
-from ..data_source import PixivBindings, PixivDataSource, LazyIllust
+from ..data_source import PixivBindings, PixivDataSource, LazyIllust,LocalTags
 from ..model import Illust, User
 from ..errors import BadRequestError, QueryError
 from .pkg_context import context
@@ -18,6 +18,7 @@ class Service:
     conf = context.require(Config)
     data_source = context.require(PixivDataSource)
     pixiv_bindings = context.require(PixivBindings)
+    local_tags = context.require(LocalTags)
 
     async def _choice_and_load(self, illusts: typing.List[LazyIllust], random_method: str, count: int) -> typing.List[Illust]:
         if count <= 0:
@@ -46,6 +47,12 @@ class Service:
         return await self.data_source.illust_detail(illust)
 
     async def random_illust(self, word: str, *, count: int = 1) -> Illust:
+        if self.conf.pixiv_tag_translation_enabled:
+            tag = await self.local_tags.get_by_translated_name(word)
+            if tag:
+                logger.info(f"found translation {word} -> {tag.name}")
+                word = tag.name
+        
         illusts = await self.data_source.search_illust(word)
         return await self._choice_and_load(illusts, self.conf.pixiv_random_illust_method, count)
 
