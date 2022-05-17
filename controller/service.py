@@ -24,6 +24,8 @@ class Service:
             raise BadRequestError("不合法的请求数量")
         if count > self.conf.pixiv_max_item_per_query:
             raise BadRequestError("数量超过单次请求上限")
+        if count > len(illusts):
+            raise QueryError("别看了，没有的。")
 
         winners = roulette(illusts, random_method, count)
         logger.info(f"choice {[x.id for x in winners]}")

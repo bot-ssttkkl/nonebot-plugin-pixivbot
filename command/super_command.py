@@ -7,7 +7,7 @@ from nonebot.rule import to_me
 from nonebot.typing import T_State
 
 from ..config import Config
-from ..scheduler import Scheduler
+from ..controller import Scheduler
 from ..data_source import PixivBindings, PixivDataSource
 from .pkg_context import context
 from .catch_error import catch_error
