@@ -36,8 +36,7 @@ async def _ensure_cache_index(db, coll_name, identity_field, expires_in):
 @get_driver().on_startup
 async def connect_to_mongodb():
     global _mongodb_client
-    _mongodb_client = AsyncIOMotorClient(
-        f'{conf.pixiv_mongo_conn_url}/{conf.pixiv_mongo_database_name}')
+    _mongodb_client = AsyncIOMotorClient(conf.pixiv_mongo_conn_url)
 
     # ensure index
     db = _mongodb_client[conf.pixiv_mongo_database_name]
