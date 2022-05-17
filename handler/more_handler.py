@@ -6,6 +6,7 @@ from nonebot.adapters.onebot.v11.event import MessageEvent
 from ..errors import BadRequestError
 from .pkg_context import context
 from .abstract_handler import AbstractHandler
+from .utils import fill_id
 
 
 @context.export_singleton()
@@ -21,6 +22,7 @@ class MoreHandler(AbstractHandler):
     def parse_command_args(self, command_args: list[str], sender_user_id: int = 0) -> dict:
         return {}
 
+    @fill_id
     async def handle(self, *, count: int = 1,
                      bot: Bot,
                      event: MessageEvent = None,

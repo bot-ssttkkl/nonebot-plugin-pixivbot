@@ -7,6 +7,7 @@ from ..postman import Postman
 from ..controller import Service
 from .pkg_context import context
 from .abstract_handler import AbstractHandler
+from .utils import fill_id
 
 
 @context.export_singleton()
@@ -25,6 +26,7 @@ class RandomRecommendedIllustHandler(AbstractHandler):
     def parse_command_args(self, command_args: list[str], sender_user_id: int = 0) -> dict:
         return {}
 
+    @fill_id
     async def handle(self,
                      *, count: int = 1,
                      bot: Bot,

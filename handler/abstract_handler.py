@@ -1,4 +1,3 @@
-import time
 import typing
 
 from abc import ABC, abstractmethod
@@ -7,9 +6,7 @@ from nonebot.adapters.onebot.v11.event import MessageEvent
 
 from ..config import Config
 from .pkg_context import context
-from .recorder import Recorder
-from .req_resp import Req
-
+from .recorder import Recorder, Req
 
 class AbstractHandler(ABC):
     conf = context.require(Config)
@@ -45,6 +42,6 @@ class AbstractHandler(ABC):
 
     def record_resp_illust(self, illust_id: int,
                            user_id: typing.Optional[int] = None,
-                           group_id: typing.Optional[int] = None, ):
+                           group_id: typing.Optional[int] = None):
         self.recorder.record_resp(
             illust_id, user_id=user_id, group_id=group_id)

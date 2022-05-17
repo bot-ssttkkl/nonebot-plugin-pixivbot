@@ -8,6 +8,7 @@ from ..controller import Service
 from ..errors import BadRequestError
 from .pkg_context import context
 from .abstract_handler import AbstractHandler
+from .utils import fill_id
 
 
 @context.export_singleton()
@@ -29,6 +30,7 @@ class IllustHandler(AbstractHandler):
         except ValueError:
             raise BadRequestError(f"{command_args[0]}不是合法的插画ID")
 
+    @fill_id
     async def handle(self, illust_id: int,
                      *, bot: Bot,
                      event: MessageEvent = None,

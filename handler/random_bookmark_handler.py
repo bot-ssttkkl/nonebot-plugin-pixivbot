@@ -7,6 +7,7 @@ from ..controller import Service
 from ..errors import BadRequestError
 from .pkg_context import context
 from .abstract_handler import AbstractHandler
+from .utils import fill_id
 
 
 @context.export_singleton()
@@ -33,6 +34,7 @@ class RandomBookmarkHandler(AbstractHandler):
 
         return d
 
+    @fill_id  # 将event的user_id和group_id填充到参数中，用于记录请求和结果用，其他Handler同
     async def handle(self, sender_user_id: int,
                      pixiv_user_id: int = 0,
                      *, count: int = 1,

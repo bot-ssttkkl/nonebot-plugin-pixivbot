@@ -9,6 +9,7 @@ from ..controller import Service
 from ..errors import BadRequestError
 from .pkg_context import context
 from .abstract_handler import AbstractHandler
+from .utils import fill_id
 
 
 @context.export_singleton()
@@ -76,6 +77,7 @@ class RankingHandler(AbstractHandler):
         self.validate_args(mode, range)
         return {"mode": mode, "range": range}
 
+    @fill_id
     async def handle(self, mode: typing.Optional[str] = None,
                      range: typing.Union[typing.Sequence[int],
                                          int, None] = None,

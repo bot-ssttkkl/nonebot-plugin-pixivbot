@@ -7,6 +7,7 @@ from ..postman import Postman
 from ..controller import Service
 from .pkg_context import context
 from .abstract_handler import AbstractHandler
+from .utils import fill_id
 
 
 @context.export_singleton()
@@ -29,6 +30,7 @@ class RandomUserIllustHandler(AbstractHandler):
 
         return {"user": user}
 
+    @fill_id
     async def handle(self, user: typing.Union[str, int],
                      *, count: int = 1,
                      bot: Bot,
