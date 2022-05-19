@@ -44,10 +44,13 @@ class Service:
 
     async def random_illust(self, word: str, *, count: int = 1) -> typing.List[Illust]:
         if self.conf.pixiv_tag_translation_enabled:
-            tag = await self.local_tags.get_by_translated_name(word)
-            if tag:
-                logger.info(f"found translation {word} -> {tag.name}")
-                word = tag.name
+            # 只有原word不是标签时获取翻译（例子：唐可可）
+            tag = await self.local_tags.get_by_name(word)
+            if not tag:
+                tag = await self.local_tags.get_by_translated_name(word)
+                if tag:
+                    logger.info(f"found translation {word} -> {tag.name}")
+                    word = tag.name
 
         illusts = await self.data_source.search_illust(word)
         return await self._choice_and_load(illusts, self.conf.pixiv_random_illust_method, count)
