@@ -59,8 +59,10 @@ class Postman:
                     msg = Message([MessageSegment.reply(
                         event.message_id), MessageSegment.text(msg)])
             await bot.send(event, msg)
+        elif group_id:
+            await bot.send_group_msg(group_id=group_id, message=msg)
         else:
-            await bot.send_msg(user_id=user_id, group_id=group_id, message=msg)
+            await bot.send_msg(user_id=user_id, message=msg)
 
     async def send_illust(self, illust: Illust,
                           header: typing.Union[str,

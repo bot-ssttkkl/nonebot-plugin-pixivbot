@@ -1,5 +1,6 @@
 import asyncio
 from enum import auto
+from sqlite3 import NotSupportedError
 import typing
 from io import BytesIO
 
@@ -139,10 +140,15 @@ class RemoteDataSource(AbstractDataSource):
         cur_page = 0
         items = []
 
-        raw_result = await papi_search_func(offset=skip, **kwargs)
+        # user_bookmarks_illust 没有offset参数
+        if skip:
+            raw_result = await papi_search_func(offset=skip, **kwargs)
+        else:
+            raw_result = await papi_search_func(**kwargs)
+
         self._check_error_in_raw_result(raw_result)
 
-        while (not limit or len(items) < limit) and cur_page < limit_page:
+        while (not limit or len(items) < limit) and (not limit_page or cur_page < limit_page):
             for x in raw_result[element_list_name]:
                 element = x
                 if element_mapper is not None:
@@ -293,6 +299,9 @@ class RemoteDataSource(AbstractDataSource):
     async def user_bookmarks(self, user_id: int = 0, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
         if user_id == 0:
             user_id = self.user_id
+
+        if skip:
+            raise NotSupportedError("Argument skip is not supported")
 
         if not limit:
             limit = self._conf.pixiv_random_bookmark_max_item
