@@ -26,10 +26,10 @@ class Scheduler:
 
     @staticmethod
     def _make_job_id(type: str, user_id: typing.Optional[int], group_id: typing.Optional[int]):
-        if user_id is not None:
-            return f'scheduled {type} u{user_id}'
-        else:
+        if group_id:
             return f'scheduled {type} g{group_id}'
+        else:
+            return f'scheduled {type} u{user_id}'
 
     @staticmethod
     def _parse_schedule(raw_schedule: str) -> typing.Sequence[int]:
@@ -63,7 +63,7 @@ class Scheduler:
         return start_hour, start_minute, interval_hour, interval_minute
 
     async def start(self, bot: Bot):
-        async for x in self.subscriptions.get():
+        async for x in self.subscriptions.get_all():
             user_id = x.get("user_id", None)
             group_id = x.get("group_id", None)
 
