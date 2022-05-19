@@ -272,7 +272,8 @@ class RemoteDataSource(AbstractDataSource):
     async def search_user(self, word: str, *, skip: int = 0, limit: int = 20) -> typing.List[User]:
         logger.info(f"[remote] search_user {word}")
         content = await self._flat_page(self._papi.search_user, "user_previews",
-                                        lambda x: User.parse_obj(x["user"]),
+                                        lambda x: User.parse_obj(
+                                            x["user"]), None,
                                         skip, limit, 1,
                                         word=word)
         return content
