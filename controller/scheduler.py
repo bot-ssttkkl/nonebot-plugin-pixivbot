@@ -131,11 +131,11 @@ class Scheduler:
     async def unschedule(self, type: str, *,
                          user_id: typing.Optional[int] = None,
                          group_id: typing.Optional[int] = None):
-        if type != "all":
-            self._remove_job(type, user_id=user_id, group_id=group_id)
-        elif type in self._handlers:
+        if type == "all":
             async for x in self.subscriptions.get(user_id, group_id):
                 self._remove_job(x["type"], user_id=user_id, group_id=group_id)
+        elif type in self._handlers:
+            self._remove_job(type, user_id=user_id, group_id=group_id)
         else:
             raise BadRequestError(f"{type}不是合法的类型")
 

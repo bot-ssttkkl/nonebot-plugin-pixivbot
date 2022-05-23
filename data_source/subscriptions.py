@@ -50,11 +50,11 @@ class Subscriptions:
         else:
             raise ValueError("Both user_id and group_id are None.")
 
-        if type != 'all':
-            return db().subscription.delete_one(query)
-        else:
+        if type == 'all':
             del query["type"]
             return db().subscription.delete_many(query)
+        else:
+            return db().subscription.delete_one(query)
 
 
 __all__ = ("Subscriptions", )
