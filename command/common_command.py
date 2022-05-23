@@ -49,8 +49,12 @@ if conf.pixiv_ranking_query_enabled:
     @mat.handle()
     @catch_error
     async def handle_ranking_nth_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-        mode = state["_matched_groups"][0]
-        num = state["_matched_groups"][1]
+        if "_matched_groups" in state:
+            mode = state["_matched_groups"][0]
+            num = state["_matched_groups"][1]
+        else:
+            mode = None
+            num = None
 
         handler = context.require(RankingHandler)
         kwargs = handler.parse_command_args((mode, num), event.user_id)
@@ -71,6 +75,18 @@ if conf.pixiv_illust_query_enabled:
         await handler.handle(bot=bot, event=event, **kwargs)
 
 
+def get_count(state: T_State, pos: int = 0):
+    count = 1
+    if "_matched_groups" in state:
+        raw_count = state["_matched_groups"][pos]
+        if raw_count:
+            try:
+                count = decode_integer(raw_count)
+            except:
+                raise BadRequestError(f"{raw_count}不是合法的数字")
+    return count
+
+
 if conf.pixiv_random_recommended_illust_query_enabled:
     mat = on_regex("^来(.*)?张图$", priority=3, block=True)
     mat.append_handler(cooldown_interceptor)
@@ -78,17 +94,8 @@ if conf.pixiv_random_recommended_illust_query_enabled:
     @mat.handle()
     @catch_error
     async def handle_random_recommended_illust_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-        count = state["_matched_groups"][0]
-        if count:
-            try:
-                count = decode_integer(count)
-            except:
-                raise BadRequestError(f"{count}不是合法的数字")
-        else:
-            count = 1
-
         handler = context.require(RandomRecommendedIllustHandler)
-        await handler.handle(count=count, bot=bot, event=event)
+        await handler.handle(count=get_count(state), bot=bot, event=event)
 
 
 if conf.pixiv_random_user_illust_query_enabled:
@@ -98,19 +105,10 @@ if conf.pixiv_random_user_illust_query_enabled:
     @mat.handle()
     @catch_error
     async def handle_random_user_illust_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-        count = state["_matched_groups"][0]
         user = state["_matched_groups"][1]
 
-        if count:
-            try:
-                count = decode_integer(count)
-            except:
-                raise BadRequestError(f"{count}不是合法的数字")
-        else:
-            count = 1
-
         handler = context.require(RandomUserIllustHandler)
-        await handler.handle(user, count=count, bot=bot, event=event)
+        await handler.handle(user, count=get_count(state), bot=bot, event=event)
 
 
 if conf.pixiv_random_bookmark_query_enabled:
@@ -120,18 +118,8 @@ if conf.pixiv_random_bookmark_query_enabled:
     @mat.handle()
     @catch_error
     async def handle_random_bookmark_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-        count = state["_matched_groups"][0]
-
-        if count:
-            try:
-                count = decode_integer(count)
-            except:
-                raise BadRequestError(f"{count}不是合法的数字")
-        else:
-            count = 1
-
         handler = context.require(RandomBookmarkHandler)
-        await handler.handle(event.user_id, count=count, bot=bot, event=event)
+        await handler.handle(event.user_id, count=get_count(state), bot=bot, event=event)
 
 
 if conf.pixiv_random_illust_query_enabled:
@@ -141,19 +129,10 @@ if conf.pixiv_random_illust_query_enabled:
     @mat.handle()
     @catch_error
     async def handle_random_illust_query(bot: Bot, event: Event, state: T_State, matcher: Matcher):
-        count = state["_matched_groups"][0]
         word = state["_matched_groups"][1]
 
-        if count:
-            try:
-                count = decode_integer(count)
-            except:
-                raise BadRequestError(f"{count}不是合法的数字")
-        else:
-            count = 1
-
         handler = context.require(RandomIllustHandler)
-        await handler.handle(word, count=count, bot=bot, event=event)
+        await handler.handle(word, count=get_count(state), bot=bot, event=event)
 
 
 if conf.pixiv_more_enabled:
