@@ -37,7 +37,7 @@ def auto_retry(func):
     return wrapped
 
 
-@context.export_singleton()
+@context.register_singleton()
 class RemoteDataSource(AbstractDataSource):
     _conf: Config = context.require(Config)
     _local_tags = context.require(LocalTags)

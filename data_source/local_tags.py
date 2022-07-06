@@ -2,12 +2,12 @@ import typing
 
 from pymongo import *
 
-from .mongo_conn import db
-from .pkg_context import context
+from ..global_context import global_context as context
 from ..model import Tag
+from .mongo_conn import db
 
 
-@context.export_singleton()
+@context.register_singleton()
 class LocalTags:
     async def insert(self, tag: Tag) -> typing.NoReturn:
         await db().local_tags.updateOne(

@@ -2,11 +2,11 @@ import typing
 
 from pymongo import ReturnDocument
 
+from ..global_context import global_context as context
 from .mongo_conn import db
-from .pkg_context import context
 
 
-@context.export_singleton()
+@context.register_singleton()
 class Subscriptions:
     def get(self, user_id: typing.Optional[int] = None,
             group_id: typing.Optional[int] = None):

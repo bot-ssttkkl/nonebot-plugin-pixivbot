@@ -6,4 +6,5 @@ nonebot-plugin-pixivbot
 @GitHub         : https://github.com/ssttkkl/nonebot-plugin-pixivbot
 """
 
+from . import nb_providers
 from . import command

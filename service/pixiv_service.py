@@ -13,8 +13,8 @@ from .pkg_context import context
 from .roulette import roulette
 
 
-@context.export_singleton()
-class Service:
+@context.root.register_singleton()
+class PixivService:
     conf = context.require(Config)
     data_source = context.require(PixivDataSource)
     pixiv_bindings = context.require(PixivBindings)
