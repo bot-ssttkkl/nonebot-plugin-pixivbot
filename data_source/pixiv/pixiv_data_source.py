@@ -25,7 +25,7 @@ def do_skip_and_limit(items: list, skip: int, limit: int) -> list:
         return items
 
 
-@context.export_singleton()
+@context.root.register_singleton()
 class PixivDataSource(AbstractDataSource):
     remote: RemoteDataSource = context.require(RemoteDataSource)
     cache: CacheDataSource = context.require(CacheDataSource)

@@ -7,12 +7,13 @@ from nonebot.rule import to_me
 from nonebot.typing import T_State
 
 from ..config import Config
-from ..controller import Scheduler
 from ..data_source import PixivBindings, PixivDataSource
-from .pkg_context import context
-from .catch_error import catch_error
+from ..global_context import global_context as context
+from ..postman import Postman
+from ..service import Scheduler
 
 conf = context.require(Config)
+postman = context.require(Postman)
 pixiv_bindings = context.require(PixivBindings)
 pixiv_data_source = context.require(PixivDataSource)
 scheduler = context.require(Scheduler)
@@ -63,7 +64,7 @@ async def handle_super_command(bot: Bot, event: Event, state: T_State, matcher: 
 
 
 @super_command.handle()
-@catch_error
+@postman.catch_error
 async def handle_bind(bot: Bot, event: Event, state: T_State, matcher: Matcher):
     args = state["args"]
     if len(args) == 0 or args[0] != "bind":
@@ -90,7 +91,7 @@ async def handle_bind(bot: Bot, event: Event, state: T_State, matcher: Matcher):
 
 
 @super_command.handle()
-@catch_error
+@postman.catch_error
 async def handle_unbind(bot: Bot, event: Event, state: T_State, matcher: Matcher):
     args = state["args"]
     if len(args) == 0 or state["args"][0] != "unbind":
@@ -107,7 +108,7 @@ async def handle_unbind(bot: Bot, event: Event, state: T_State, matcher: Matcher
 
 
 @super_command.handle()
-@catch_error
+@postman.catch_error
 async def handle_schedule(bot: Bot, event: Event, state: T_State, matcher: Matcher):
     args: list = state["args"]
     if len(args) == 0 or state["args"][0] != "schedule":
@@ -135,7 +136,7 @@ async def handle_schedule(bot: Bot, event: Event, state: T_State, matcher: Match
 
 
 @super_command.handle()
-@catch_error
+@postman.catch_error
 async def handle_unschedule(bot: Bot, event: Event, state: T_State, matcher: Matcher):
     args = state["args"]
     if len(args) == 0 or state["args"][0] != "unschedule":
@@ -161,7 +162,7 @@ async def handle_unschedule(bot: Bot, event: Event, state: T_State, matcher: Mat
 
 
 @super_command.handle()
-@catch_error
+@postman.catch_error
 async def handle_invalidate_cache(bot: Bot, event: Event, state: T_State, matcher: Matcher):
     args = state["args"]
     if len(args) == 0 or state["args"][0] != "invalidate_cache":

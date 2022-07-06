@@ -1,27 +1,26 @@
-import asyncio
 from inspect import isawaitable
 import re
 import typing
 from datetime import datetime, timedelta
 
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
-from nonebot import require, logger, get_driver
+from nonebot import logger, get_driver
 from nonebot.adapters.onebot.v11 import Bot
 
 from ..data_source import Subscriptions
 from ..postman import Postman
-from ..controller import Service
 from ..handler import *
 from ..errors import BadRequestError
 from .pkg_context import context
+from .pixiv_service import PixivService
 
 
-@context.export_singleton()
+@context.root.register_singleton()
 class Scheduler:
-    apscheduler = require("nonebot_plugin_apscheduler").scheduler
-
+    apscheduler = context.require(AsyncIOScheduler)
     subscriptions = context.require(Subscriptions)
-    service = context.require(Service)
+    service = context.require(PixivService)
     postman = context.require(Postman)
 
     @staticmethod

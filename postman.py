@@ -1,22 +1,23 @@
 
-from asyncio import create_task
+from asyncio import create_task, TimeoutError
 import dataclasses
 from io import BytesIO
-import json
 import typing
-from h11 import Data
 
-from nonebot.adapters.onebot.v11 import Bot, Message, MessageSegment
-from nonebot.adapters.onebot.v11.event import MessageEvent, GroupMessageEvent
-from nonebot.utils import DataclassEncoder
+from nonebot.adapters.onebot.v11 import Bot, Event, Message, MessageSegment
+from nonebot.adapters.onebot.v11.event import MessageEvent
+from nonebot.log import logger
+from nonebot.matcher import Matcher
+from nonebot.typing import T_State
 
-from .model import Illust
 from .config import Config
 from .data_source import PixivDataSource
-from .pkg_context import context
+from .global_context import global_context as context
+from .model import Illust
+from .errors import BadRequestError, QueryError
 
 
-@context.export_singleton()
+@context.register_singleton()
 class Postman:
     conf = context.require(Config)
     data_source = context.require(PixivDataSource)
@@ -142,6 +143,22 @@ class Postman:
                     await self.send_message(header, bot=bot, user_id=user_id)
                 for fut in msg_fut:
                     await self.send_message(await fut, bot=bot, user_id=user_id)
+
+    def catch_error(self, wrapped):
+        async def func(bot: Bot, event: Event, state: T_State, matcher: Matcher):
+            try:
+                await wrapped(bot, event, state, matcher)
+            except TimeoutError:
+                logger.warning("Timeout")
+                await self.send_message(f"下载超时", bot=bot, event=event)
+            except BadRequestError as e:
+                await self.send_message(str(e), bot=bot, event=event)
+            except QueryError as e:
+                await self.send_message(str(e), bot=bot, event=event)
+            except Exception as e:
+                logger.exception(e)
+                await self.send_message(f"内部错误：{type(e)}{e}", bot=bot, event=event)
+        return func
 
 
 __all__ = ("Postman", )

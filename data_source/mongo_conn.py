@@ -1,7 +1,7 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from nonebot import logger, get_driver
 
-from .pkg_context import context
+from ..global_context import global_context as context
 from ..config import Config
 
 import pymongo

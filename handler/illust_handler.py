@@ -4,16 +4,16 @@ from nonebot.adapters.onebot.v11 import Bot
 from nonebot.adapters.onebot.v11.event import MessageEvent
 
 from ..postman import Postman
-from ..controller import Service
+from ..service import PixivService
 from ..errors import BadRequestError
 from .pkg_context import context
 from .abstract_handler import AbstractHandler
 from .utils import fill_id
 
 
-@context.export_singleton()
+@context.root.register_singleton()
 class IllustHandler(AbstractHandler):
-    service = context.require(Service)
+    service = context.require(PixivService)
     postman = context.require(Postman)
 
     @classmethod

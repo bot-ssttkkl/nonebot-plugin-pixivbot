@@ -9,7 +9,7 @@ from .abstract_handler import AbstractHandler
 from .utils import fill_id
 
 
-@context.export_singleton()
+@context.root.register_singleton()
 class MoreHandler(AbstractHandler):
     @classmethod
     def type(cls) -> str:

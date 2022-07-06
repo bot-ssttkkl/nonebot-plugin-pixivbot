@@ -5,16 +5,16 @@ from nonebot.adapters.onebot.v11.event import MessageEvent
 
 from ..postman import Postman
 from ..utils import decode_integer
-from ..controller import Service
+from ..service import PixivService
 from ..errors import BadRequestError
 from .pkg_context import context
 from .abstract_handler import AbstractHandler
 from .utils import fill_id
 
 
-@context.export_singleton()
+@context.root.register_singleton()
 class RankingHandler(AbstractHandler):
-    service = context.require(Service)
+    service = context.require(PixivService)
     postman = context.require(Postman)
 
     mode_mapping = {"日": "day", "周": "week", "月": "month", "男性": "day_male",

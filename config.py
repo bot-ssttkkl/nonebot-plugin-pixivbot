@@ -4,10 +4,9 @@ from nonebot import get_driver
 from pydantic import BaseSettings, validator
 from pydantic.fields import ModelField
 
-from .pkg_context import context
+from .global_context import global_context as context
 
 
-@context.register_singleton(**get_driver().config.dict())
 class Config(BaseSettings):
     pixiv_refresh_token: str
     pixiv_mongo_conn_url: str
@@ -15,7 +14,7 @@ class Config(BaseSettings):
     pixiv_proxy: typing.Optional[str]
     pixiv_query_timeout: int = 60
     pixiv_simultaneous_query: int = 8
-    
+
     pixiv_download_cache_expires_in = 3600 * 24 * 7
     pixiv_illust_detail_cache_expires_in = 3600 * 24 * 7
     pixiv_user_detail_cache_expires_in = 3600 * 24 * 7
@@ -163,6 +162,11 @@ class Config(BaseSettings):
 
     class Config:
         extra = "ignore"
+
+
+@context.register_factory(Config)
+def config_factory():
+    return Config(**get_driver().config.dict())
 
 
 __all__ = ("Config",)

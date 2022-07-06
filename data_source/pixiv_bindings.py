@@ -1,10 +1,9 @@
 import typing
 
+from ..global_context import global_context as context
 from .mongo_conn import db
-from .pkg_context import context
 
-
-@context.export_singleton()
+@context.register_singleton()
 class PixivBindings:
     async def bind(self, qq_id: int, pixiv_user_id: int) -> None:
         await db().pixiv_binding.update_one({"qq_id": qq_id},
