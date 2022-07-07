@@ -1,0 +1,35 @@
+[project]
+name = "nonebot-plugin-pixivbot"
+version = "1.1.0"
+description = "Nonebot Plugin PixivBot"
+authors = [
+    {email = "huang.wen.long@hotmail.com", name = "ssttkkl"}
+]
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "nb-cli >= 0.6.6",
+    "nonebot2 >= 2.0.0b2",
+    "nonebot_plugin_apscheduler >= 0.1.2",
+    "nonebot-adapter-onebot >= 2.0.0b1",
+    "PixivPy-Async >= 1.2.13",
+    "Pillow >= 9.0.1",
+    "motor >= 2.5.1",
+    "numpy >= 1.22.3",
+    "aiohttp-socks >= 0.6.0",
+    "python-socks[asyncio] >= 2.0.1"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/ssttkkl/nonebot-plugin-pixivbot"
+"Bug Tracker" = "https://github.com/ssttkkl/nonebot-plugin-pixivbot/issues"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
