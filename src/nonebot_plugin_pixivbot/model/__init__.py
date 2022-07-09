@@ -1,5 +1,6 @@
-from .Illust import Illust
-from .User import User
+from .illust import Illust
+from .subscription import Subscription
 from .tag import Tag
+from .user import User
 
-__all__ = ("Illust", "User", "Tag")
+__all__ = ("Illust", "User", "Tag", "Subscription")

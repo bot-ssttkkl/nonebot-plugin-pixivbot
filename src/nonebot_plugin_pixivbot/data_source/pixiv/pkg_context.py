@@ -1,4 +1,4 @@
-from ...global_context import global_context as parent_context
-from ...context import Context
+from nonebot_plugin_pixivbot.global_context import context as parent_context
+from nonebot_plugin_pixivbot.utils.context import Context
 
 context = Context(parent=parent_context)

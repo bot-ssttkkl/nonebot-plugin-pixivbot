@@ -1,5 +1,5 @@
-from .context import Context
+from nonebot_plugin_pixivbot.utils.context import Context
 
-global_context = Context()
+context = Context()
 
-__all__ = ("global_context")
+__all__ = ("context",)

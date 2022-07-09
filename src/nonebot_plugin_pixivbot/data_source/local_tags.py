@@ -2,15 +2,17 @@ import typing
 
 from pymongo import *
 
-from ..global_context import global_context as context
-from ..model import Tag
-from .mongo_conn import db
+from nonebot_plugin_pixivbot.data_source.mongo_conn import MongoConn
+from nonebot_plugin_pixivbot.global_context import context as context
+from nonebot_plugin_pixivbot.model import Tag
 
 
 @context.register_singleton()
 class LocalTags:
+    mongo = context.require(MongoConn)
+
     async def insert(self, tag: Tag) -> typing.NoReturn:
-        await db().local_tags.updateOne(
+        await self.mongo.db.local_tags.updateOne(
             {"name": tag.name},
             {"$setOnInsert": {"translated_name": tag.translated_name}},
             upsert=True
@@ -27,21 +29,21 @@ class LocalTags:
             ))
 
         if len(opt) != 0:
-            await db().local_tags.bulk_write(opt, ordered=False)
+            await self.mongo.db.local_tags.bulk_write(opt, ordered=False)
 
     async def get_by_name(self, name: str) -> typing.Optional[Tag]:
-        result = await db().local_tags.find_one({"name": name})
+        result = await self.mongo.db.local_tags.find_one({"name": name})
         if result:
             return Tag.parse_obj(result)
         else:
             return None
 
     async def get_by_translated_name(self, translated_name: str) -> typing.Optional[Tag]:
-        result = await db().local_tags.find_one({"translated_name": translated_name})
+        result = await self.mongo.db.local_tags.find_one({"translated_name": translated_name})
         if result:
             return Tag.parse_obj(result)
         else:
             return None
 
 
-__all__ = ("PixivBindings", )
+__all__ = ("LocalTags",)

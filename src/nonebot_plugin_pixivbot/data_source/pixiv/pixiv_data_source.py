@@ -3,20 +3,20 @@ from functools import partial
 
 from nonebot import get_driver
 
+from nonebot_plugin_pixivbot.model import Illust, User
+from nonebot_plugin_pixivbot.utils.config import Config
 from .abstract_data_source import AbstractDataSource
-from .remote_data_source import RemoteDataSource
 from .cache_data_source import CacheDataSource
 from .cache_manager import CacheManager
-from .pkg_context import context
-from ...config import Config
-from ...model import Illust, User
 from .lazy_illust import LazyIllust
+from .pkg_context import context
+from .remote_data_source import RemoteDataSource
 
 
 def do_skip_and_limit(items: list, skip: int, limit: int) -> list:
     if skip:
-        if limit and len(items) > skip+limit:
-            return items[skip:skip+limit]
+        if limit and len(items) > skip + limit:
+            return items[skip:skip + limit]
         else:
             return items[skip:]
     elif limit and len(items) > limit:
@@ -33,12 +33,15 @@ class PixivDataSource(AbstractDataSource):
     _conf: Config = context.require(Config)
     timeout = _conf.pixiv_query_timeout
 
+    def __init__(self):
+        self._cache_manager = None
+
     def start(self):
         self.remote.start()
         self._cache_manager = CacheManager()
 
     async def shutdown(self):
-        await self.shutdown()
+        await self.remote.shutdown()
 
     def invalidate_cache(self):
         return self.cache.invalidate_cache()
@@ -175,5 +178,4 @@ pixiv_data_source = context.require(PixivDataSource)
 get_driver().on_startup(pixiv_data_source.start)
 get_driver().on_shutdown(pixiv_data_source.shutdown)
 
-
-__all__ = ('PixivDataSource', )
+__all__ = ('PixivDataSource',)

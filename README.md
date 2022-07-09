@@ -1,62 +1,9 @@
 nonebot_plugin_pixivbot
 =====
 
-## 环境配置
-
-事前准备：登录pixiv账号并获取refresh_token。（参考：[@ZipFile Pixiv OAuth Flow](https://gist.github.com/ZipFile/c9ebedb224406f4f11845ab700124362)）
-
-1. 参考[安装 | NoneBot](https://v2.nonebot.dev/guide/installation.html)安装NoneBot和OneBot V11适配器；
-2. 参考[创建一个完整的项目 | NoneBot](https://v2.nonebot.dev/guide/creating-a-project.html)创建一个Bot实例；
-3. 将本插件clone到插件目录；
-4. 别忘了`pip install -r requirement.txt`安装依赖包；
-5. 运行`nb plugin install nonebot_plugin_apscheduler`安装定时任务插件；
-6. 安装MongoDB（用于保存缓存）；
-7. 在.env.prod中修改配置；
-
-## 触发语句
-
-普通语句：
-
-所有数字参数均支持中文数字和罗马数字。
-
-- **看看<类型>榜<范围>***：查看pixiv榜单（<类型>可省略，<范围>应为a-b或a）
-  - 示例：看看榜、看看日榜、看看榜1-5、看看月榜一
-- **来<数量>张图**：从推荐插画随机抽选一张插画（<数量>可省略，下同）
-  - 示例：来张图、来五张图
-- **来<数量>张<关键字>图**：搜索关键字，从搜索结果随机抽选一张插画
-  - 示例：来张初音ミク图、来五张初音ミク图
-  - 注：默认开启关键字翻译功能。Bot会在平时的数据爬取时记录各个Tag的中文翻译。在搜索时，若关键字的日文翻译存在，则使用日文翻译代替关键字进行搜索。
-- **来<数量>张<用户>老师的图**：搜索用户，从插画列表中随机抽选一张插画
-  - 示例：来张Rella老师的图、来五张Rella老师的图
-- **看看图<插画ID>**：查看ID对应的插画
-  - 示例：看看图114514
-- **来<数量>张私家车**：从书签中随机抽选一张插画（发送者需绑定Pixiv账号，或者在配置中指定默认Pixiv账号）
-  - 示例：来张私家车、来五张私家车
-- **还要**：重复上一次请求
-- **不够色**：获取上一张插画的相关插画
-
-命令语句：
-
-- **/pixivbot schedule \<type\> \<schedule\> [..args]**：为本群（本用户）订阅类型为<type>的定时推送功能，时间满足<schedule>时进行推送
-    - \<type\>：可选值有ranking, random_bookmark, random_recommended_illust, random_illust, random_user_illust
-    - \<schedule\>：有三种格式，*00:30\*x*为每隔30分钟进行一次推送，*12:00*为每天12:00进行一次推送，*00:10+00:30\*x*为从今天00:10开始每隔30分钟进行一次推送（开始时间若是一个过去的时间点，则从下一个开始推送的时间点进行推送）
-    - [..args]：
-      - \<type\>为ranking时，接受\<mode\> \<range\>
-      - \<type\>为random_bookmark时，接受\<pixiv_user_id\>
-      - \<type\>为random_illust时，接受\<word\>
-      - \<type\>为random_user_illust时，接受\<user\>
-- **/pixivbot schedule**：查看本群（本用户）的所有订阅
-- **/pixivbot unschedule <type>**：取消本群（本用户）的订阅
-- **/pixivbot bind <pixiv_user_id>**：绑定Pixiv账号（用于随机书签功能）
-- **/pixivbot unbind**：解绑Pixiv账号
-- **/pixivbot invalidate_cache**：清除缓存
-
-## 注意事项
-
-1. 必须登录pixiv账号并获取refresh_token才能使用。
-2. 尽管作者已经尽力以高并发作为目标进行开发，但由于向Pixiv发送**搜索请求**太频繁会撞Rate Limit、收到警告甚至被ban号，因此不保证并发用户数量较大时还能够正常使用。（或者只开放部分功能当普通的涩图bot）
-3. 根据1和2，建议使用小号登录。
-4. 学业繁忙，issue可能不会及时处理。
+PixivBot中协议无关的通用部分。
+请使用具体协议版本的插件：
+- [nonebot-plugin-pixivbot-onebot-v11 (Onebot V11)](https://github.com/ssttkkl/nonebot-plugin-pixivbot-onebot-v11)
 
 ## 配置
 
