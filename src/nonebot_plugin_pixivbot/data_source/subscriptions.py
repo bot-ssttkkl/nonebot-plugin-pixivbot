@@ -1,60 +1,61 @@
-import typing
+from typing import TypeVar, Generic, AsyncGenerator
 
+from nonebot_plugin_pixivbot.data_source.mongo_conn import MongoConn
+from nonebot_plugin_pixivbot.global_context import context as context
+from nonebot_plugin_pixivbot.model import Subscription
+from nonebot_plugin_pixivbot.postman import PostIdentifier
 from pymongo import ReturnDocument
 
-from ..global_context import global_context as context
-from .mongo_conn import db
+UID = TypeVar("UID")
+GID = TypeVar("GID")
+
+ID = PostIdentifier[UID, GID]
 
 
 @context.register_singleton()
-class Subscriptions:
-    def get(self, user_id: typing.Optional[int] = None,
-            group_id: typing.Optional[int] = None):
-        if group_id:
-            query = {"group_id": group_id}
-        elif user_id:
-            query = {"user_id": user_id}
+class Subscriptions(Generic[UID, GID]):
+    mongo = context.require(MongoConn)
+
+    async def get(self, identifier: ID) -> AsyncGenerator[Subscription, None]:
+        if identifier.group_id:
+            query = {"group_id": identifier.group_id}
+        elif identifier.user_id:
+            query = {"user_id": identifier.user_id}
         else:
-            raise ValueError("Both user_id and group_id are None.")
+            raise ValueError("at least one of user_id and group_id should be not None")
 
-        return db().subscription.find(query)
+        async for obj in self.mongo.db.subscription.find(query):
+            yield Subscription.parse_obj(obj)
 
-    def get_all(self):
-        return db().subscription.find()
+    async def get_all(self) -> AsyncGenerator[Subscription, None]:
+        async for obj in self.mongo.db.subscription.find():
+            yield Subscription.parse_obj(obj)
 
-    def update(self, type: str,
-               user_id: typing.Optional[int] = None,
-               group_id: typing.Optional[int] = None,
-               *, schedule: typing.Sequence[int],
-               kwargs: dict = {}):
-        if group_id:
-            query = {"group_id": group_id, "type": type}
-        elif user_id:
-            query = {"user_id": user_id, "type": type}
+    async def update(self, subscription: Subscription) -> Subscription:
+        if subscription.group_id:
+            query = {"group_id": subscription.group_id, "type": subscription.type}
+        elif subscription.user_id:
+            query = {"user_id": subscription.user_id, "type": subscription.type}
         else:
-            raise ValueError("Both user_id and group_id are None.")
+            raise ValueError("at least one of user_id and group_id should be not None")
 
-        return db().subscription.find_one_and_replace(query, {**query,
-                                                              "schedule": schedule,
-                                                              "kwargs": kwargs},
-                                                      return_document=ReturnDocument.BEFORE,
-                                                      upsert=True)
+        return await self.mongo.db.subscription.find_one_and_replace(query, subscription.dict(),
+                                                                     return_document=ReturnDocument.BEFORE,
+                                                                     upsert=True)
 
-    def delete(self, type: str,
-               user_id: typing.Optional[int] = None,
-               group_id: typing.Optional[int] = None):
-        if group_id:
-            query = {"group_id": group_id, "type": type}
-        elif user_id:
-            query = {"user_id": user_id, "type": type}
+    async def delete(self, type: str, identifier: ID):
+        if identifier.group_id:
+            query = {"group_id": identifier.group_id, "type": type}
+        elif identifier.user_id:
+            query = {"user_id": identifier.user_id, "type": type}
         else:
-            raise ValueError("Both user_id and group_id are None.")
+            raise ValueError("at least one of user_id and group_id should be not None")
 
         if type == 'all':
             del query["type"]
-            return db().subscription.delete_many(query)
+            await self.mongo.db.subscription.delete_many(query)
         else:
-            return db().subscription.delete_one(query)
+            await self.mongo.db.subscription.delete_one(query)
 
 
-__all__ = ("Subscriptions", )
+__all__ = ("Subscriptions",)

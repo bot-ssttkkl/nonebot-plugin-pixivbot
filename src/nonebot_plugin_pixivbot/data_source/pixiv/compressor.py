@@ -1,11 +1,10 @@
 import asyncio
 import functools
 import multiprocessing
-
 from concurrent.futures.thread import ThreadPoolExecutor
 from io import BytesIO
+
 from PIL import Image, ImageFile
-from nonebot import logger
 
 
 class Compressor:

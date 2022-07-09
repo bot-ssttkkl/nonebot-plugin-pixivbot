@@ -1,9 +1,8 @@
-import math
-import numpy as np
-
 from time import time
 
-from ..data_source import LazyIllust
+import numpy as np
+
+from nonebot_plugin_pixivbot.data_source.pixiv import LazyIllust
 
 
 def uniform(illusts: list[LazyIllust]) -> np.ndarray:

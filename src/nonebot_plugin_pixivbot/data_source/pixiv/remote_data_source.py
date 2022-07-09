@@ -1,22 +1,21 @@
 import asyncio
-from enum import auto
-from sqlite3 import NotSupportedError
 import typing
 from io import BytesIO
+from sqlite3 import NotSupportedError
 
 from nonebot import logger
 from pixivpy_async import *
 from pixivpy_async.error import TokenError
 
+from nonebot_plugin_pixivbot.data_source.local_tags import LocalTags
+from nonebot_plugin_pixivbot.model import Illust, User
+from nonebot_plugin_pixivbot.utils.config import Config
+from nonebot_plugin_pixivbot.utils.errors import QueryError
 from .abstract_data_source import AbstractDataSource
 from .cache_manager import CacheManager
 from .compressor import Compressor
-from .pkg_context import context
-from ..local_tags import LocalTags
-from ...config import Config
-from ...errors import QueryError
-from ...model import Illust, User
 from .lazy_illust import LazyIllust
+from .pkg_context import context
 
 
 def auto_retry(func):
@@ -28,13 +27,16 @@ def auto_retry(func):
             except QueryError as e:
                 raise e
             except Exception as e:
-                logger.info(f"Retrying... {t+1}/10")
+                logger.info(f"Retrying... {t + 1}/10")
                 logger.exception(e)
                 err = e
 
         raise err
 
     return wrapped
+
+
+T = typing.TypeVar("T")
 
 
 @context.register_singleton()
@@ -125,14 +127,10 @@ class RemoteDataSource(AbstractDataSource):
             raise QueryError(raw_result["error"]["user_message"]
                              or raw_result["error"]["message"] or raw_result["error"]["reason"])
 
-    T = typing.TypeVar("T")
-
-    async def _flat_page(self, papi_search_func: typing.Callable[[], typing.Awaitable[dict]],
+    async def _flat_page(self, papi_search_func: typing.Callable[..., typing.Awaitable[dict]],
                          element_list_name: str,
-                         element_mapper: typing.Optional[typing.Callable[[
-                             typing.Any], T]] = None,
-                         element_filter: typing.Optional[typing.Callable[[
-                             T], bool]] = None,
+                         element_mapper: typing.Optional[typing.Callable[[typing.Any], T]] = None,
+                         element_filter: typing.Optional[typing.Callable[[T], bool]] = None,
                          skip: int = 0,
                          limit: int = 0,
                          limit_page: int = 0,

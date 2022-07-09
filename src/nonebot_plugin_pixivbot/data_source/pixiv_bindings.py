@@ -1,26 +1,32 @@
-import typing
+from typing import TypeVar, Optional, Generic
 
-from ..global_context import global_context as context
-from .mongo_conn import db
+from nonebot_plugin_pixivbot.data_source.mongo_conn import MongoConn
+from nonebot_plugin_pixivbot.global_context import context as context
+
+UID = TypeVar("UID")
+
 
 @context.register_singleton()
-class PixivBindings:
-    async def bind(self, qq_id: int, pixiv_user_id: int) -> None:
-        await db().pixiv_binding.update_one({"qq_id": qq_id},
-                                            {"$set": {
-                                                "pixiv_user_id": pixiv_user_id
-                                            }},
-                                            upsert=True)
+class PixivBindings(Generic[UID]):
+    mongo = context.require(MongoConn)
 
-    async def unbind(self, qq_id: int) -> None:
-        await db().pixiv_binding.delete_one({"qq_id": qq_id})
+    async def bind(self, sender_user_id: UID, pixiv_user_id: int):
+        await self.mongo.db.pixiv_binding.update_one({"qq_id": sender_user_id},
+                                                     {"$set": {
+                                                               "pixiv_user_id": pixiv_user_id
+                                                           }},
+                                                     upsert=True)
 
-    async def get_binding(self, qq_id: int) -> typing.Optional[int]:
-        result = await db().pixiv_binding.find_one({"qq_id": qq_id})
+    async def unbind(self, sender_user_id: UID) -> bool:
+        cnt = await self.mongo.db.pixiv_binding.delete_one({"qq_id": sender_user_id})
+        return cnt == 1
+
+    async def get_binding(self, sender_user_id: UID) -> Optional[UID]:
+        result = await self.mongo.db.pixiv_binding.find_one({"qq_id": sender_user_id})
         if result is None:
             return None
         else:
             return result["pixiv_user_id"]
 
 
-__all__ = ("PixivBindings", )
+__all__ = ("PixivBindings",)

@@ -1,7 +1,7 @@
-from abc import ABC, abstractmethod
 import typing
+from abc import ABC, abstractmethod
 
-from ...model import Illust, User
+from nonebot_plugin_pixivbot.model import Illust, User
 from .lazy_illust import LazyIllust
 
 
