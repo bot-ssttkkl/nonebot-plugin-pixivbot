@@ -3,10 +3,10 @@ from typing import Generic, TypeVar, Sequence, Any
 from nonebot import Bot
 from nonebot.internal.adapter import Message
 
-from nonebot_plugin_pixivbot.data.pixiv_binding_repo import PixivBindingRepo
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.handler.common.common_handler import CommonHandler
 from nonebot_plugin_pixivbot.postman import PostDestination, PostIdentifier
+from nonebot_plugin_pixivbot.service.pixiv_account_binder import PixivAccountBinder
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 
 UID = TypeVar("UID")
@@ -17,7 +17,7 @@ M = TypeVar("M", bound=Message)
 
 @context.root.register_singleton()
 class RandomBookmarkHandler(CommonHandler[UID, GID, B, M], Generic[UID, GID, B, M]):
-    pixiv_bindings = context.require(PixivBindingRepo)
+    binder = context.require(PixivAccountBinder)
 
     @classmethod
     def type(cls) -> str:
@@ -45,7 +45,7 @@ class RandomBookmarkHandler(CommonHandler[UID, GID, B, M], Generic[UID, GID, B, 
                             post_dest: PostDestination[UID, GID, B, M],
                             silently: bool = False):
         if not pixiv_user_id and sender_user_id:
-            pixiv_user_id = await self.pixiv_bindings.get_binding(sender_user_id)
+            pixiv_user_id = await self.binder.get_binding(post_dest.bot, sender_user_id)
 
         if not pixiv_user_id:
             pixiv_user_id = self.conf.pixiv_random_bookmark_user_id

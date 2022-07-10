@@ -1,7 +1,8 @@
 from typing import TypeVar, Optional, Generic
 
-from nonebot_plugin_pixivbot.data.source.mongo import MongoDataSource
+from nonebot_plugin_pixivbot.data.source import MongoDataSource
 from nonebot_plugin_pixivbot.global_context import context as context
+from nonebot_plugin_pixivbot.model.pixiv_binding import PixivBinding
 
 UID = TypeVar("UID")
 
@@ -10,23 +11,25 @@ UID = TypeVar("UID")
 class PixivBindingRepo(Generic[UID]):
     mongo = context.require(MongoDataSource)
 
-    async def bind(self, sender_user_id: UID, pixiv_user_id: int):
-        await self.mongo.db.pixiv_binding.update_one({"qq_id": sender_user_id},
-                                                     {"$set": {
-                                                               "pixiv_user_id": pixiv_user_id
-                                                           }},
-                                                     upsert=True)
+    async def get(self, adapter: str, user_id: UID) -> Optional[PixivBinding]:
+        return await self.mongo.db.pixiv_binding.find_one(
+            {"adapter": adapter, "user_id": user_id}
+        )
 
-    async def unbind(self, sender_user_id: UID) -> bool:
-        cnt = await self.mongo.db.pixiv_binding.delete_one({"qq_id": sender_user_id})
+    async def update(self, binding: PixivBinding):
+        await self.mongo.db.pixiv_binding.update_one(
+            {"adapter": binding.adapter, "user_id": binding.user_id},
+            {"$set": {
+                "pixiv_user_id": binding.pixiv_user_id
+            }},
+            upsert=True
+        )
+
+    async def remove(self, adapter: str, user_id: UID) -> bool:
+        cnt = await self.mongo.db.pixiv_binding.delete_one(
+            {"adapter": adapter, "user_id": user_id}
+        )
         return cnt == 1
-
-    async def get_binding(self, sender_user_id: UID) -> Optional[UID]:
-        result = await self.mongo.db.pixiv_binding.find_one({"qq_id": sender_user_id})
-        if result is None:
-            return None
-        else:
-            return result["pixiv_user_id"]
 
 
 __all__ = ("PixivBindingRepo",)

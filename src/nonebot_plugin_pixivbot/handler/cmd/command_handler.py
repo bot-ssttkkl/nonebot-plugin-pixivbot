@@ -1,6 +1,5 @@
 from abc import ABC
 from abc import abstractmethod
-from inspect import isawaitable
 from typing import Type, Callable, Union, Awaitable, TypeVar, Generic, Sequence, Any
 
 from nonebot import Bot

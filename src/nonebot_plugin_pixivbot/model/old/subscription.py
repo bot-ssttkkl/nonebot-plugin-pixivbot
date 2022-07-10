@@ -9,8 +9,7 @@ UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
-class Subscription(GenericModel, Generic[UID, GID]):
-    adapter: str
+class SubscriptionV1(GenericModel, Generic[UID, GID]):
     user_id: Optional[UID]
     group_id: Optional[GID]
     type: str
@@ -29,7 +28,4 @@ class Subscription(GenericModel, Generic[UID, GID]):
 
     @property
     def identifier(self):
-        return PostIdentifier(self.adapter, self.user_id, self.group_id)
-
-
-__all__ = ("Subscription",)
+        return PostIdentifier(self.user_id, self.group_id)

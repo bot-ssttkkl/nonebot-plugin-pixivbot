@@ -13,6 +13,7 @@ from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.model import Subscription
 from nonebot_plugin_pixivbot.postman import PostIdentifier, PostDestinationFactory
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
+from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -66,7 +67,7 @@ class Scheduler(Generic[UID, GID]):
         return start_hour, start_minute, interval_hour, interval_minute
 
     async def start(self, bot: Bot):
-        async for subscription in self.subscriptions.get_all():
+        async for subscription in self.subscriptions.get_all(get_adapter_name(bot)):
             self._add_job(subscription, bot)
 
     async def stop(self):
@@ -94,7 +95,7 @@ class Scheduler(Generic[UID, GID]):
                                   start_date=datetime.now().replace(hour=offset_hour, minute=offset_minute,
                                                                     second=0, microsecond=0) + timedelta(days=-1))
         job_id = self._make_job_id(sub.type, sub.identifier)
-        post_dest = self.post_dest_factory.from_id(bot, PostIdentifier(sub.user_id, sub.group_id))
+        post_dest = self.post_dest_factory.from_id(bot, sub.user_id, sub.group_id)
         self.apscheduler.add_job(self._handlers[sub.type].handle, id=job_id, trigger=trigger,
                                  kwargs={"post_dest": post_dest, "silently": True, **sub.kwargs})
         logger.success(f"scheduled {job_id} {trigger}")
@@ -142,7 +143,7 @@ class Scheduler(Generic[UID, GID]):
         else:
             raise BadRequestError(f"{type}不是合法的类型")
 
-        await self.subscriptions.delete(type, identifier)
+        await self.subscriptions.delete(identifier, type)
 
     async def all_subscription(self, identifier: PostIdentifier[UID, GID]) -> List[dict]:
         return [x async for x in self.subscriptions.get(identifier)]
