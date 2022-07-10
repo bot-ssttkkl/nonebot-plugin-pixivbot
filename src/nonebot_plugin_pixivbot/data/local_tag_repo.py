@@ -2,7 +2,7 @@ import typing
 
 from pymongo import *
 
-from nonebot_plugin_pixivbot.data.source.mongo import MongoDataSource
+from nonebot_plugin_pixivbot.data.source import MongoDataSource
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.model import Tag
 

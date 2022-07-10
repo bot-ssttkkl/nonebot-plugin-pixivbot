@@ -6,9 +6,9 @@ from nonebot import get_driver
 from nonebot_plugin_pixivbot.model import Illust, User
 from nonebot_plugin_pixivbot.utils.config import Config
 from .abstract_repo import AbstractPixivRepo
-from .local_repo import LocalPixivRepo
-from .local_manager import CacheManager
 from .lazy_illust import LazyIllust
+from .local_manager import CacheManager
+from .local_repo import LocalPixivRepo
 from .pkg_context import context
 from .remote_repo import RemotePixivRepo
 

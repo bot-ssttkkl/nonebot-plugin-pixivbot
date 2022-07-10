@@ -5,6 +5,7 @@ from nonebot import Bot
 from nonebot.internal.adapter import Message
 
 from nonebot_plugin_pixivbot.postman.post_identifier import PostIdentifier
+from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -13,9 +14,9 @@ M = TypeVar("M", bound=Message)
 
 
 class PostDestination(ABC, Generic[UID, GID, B, M]):
-    def __init__(self, bot: B, identifier: PostIdentifier[UID, GID]):
+    def __init__(self, bot: B, user_id: UID, group_id: GID):
         self.bot = bot
-        self.identifier = identifier
+        self.identifier = PostIdentifier(get_adapter_name(bot), user_id, group_id)
 
     @property
     def user_id(self) -> UID:
@@ -32,5 +33,5 @@ class PostDestination(ABC, Generic[UID, GID, B, M]):
 
 class PostDestinationFactory(ABC, Generic[UID, GID, B, M]):
     @abstractmethod
-    def from_id(self, bot: B, identifier: PostIdentifier[UID, GID]) -> PostDestination[UID, GID, B, M]:
+    def from_id(self, bot: B, user_id: UID, group_id: GID) -> PostDestination[UID, GID, B, M]:
         raise NotImplementedError

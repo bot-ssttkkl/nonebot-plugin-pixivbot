@@ -7,6 +7,7 @@ GID = TypeVar("GID")
 
 @dataclass(frozen=True)
 class PostIdentifier(Generic[UID, GID]):
+    adapter: str
     user_id: Optional[UID]
     group_id: Optional[GID]
 

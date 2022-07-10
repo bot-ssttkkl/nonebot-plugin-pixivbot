@@ -5,7 +5,7 @@ import bson
 from nonebot import logger
 from pymongo import UpdateOne
 
-from nonebot_plugin_pixivbot.data.source.mongo import MongoDataSource
+from nonebot_plugin_pixivbot.data.source import MongoDataSource
 from nonebot_plugin_pixivbot.model import Illust, User
 from .abstract_repo import AbstractPixivRepo
 from .lazy_illust import LazyIllust

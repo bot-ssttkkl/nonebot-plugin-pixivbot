@@ -12,9 +12,9 @@ from nonebot_plugin_pixivbot.model import Illust, User
 from nonebot_plugin_pixivbot.utils.config import Config
 from nonebot_plugin_pixivbot.utils.errors import QueryError
 from .abstract_repo import AbstractPixivRepo
-from .local_manager import CacheManager
 from .compressor import Compressor
 from .lazy_illust import LazyIllust
+from .local_manager import CacheManager
 from .pkg_context import context
 
 
@@ -60,7 +60,7 @@ class RemotePixivRepo(AbstractPixivRepo):
             simultaneous_query=self._conf.pixiv_simultaneous_query)
 
     async def _refresh(self):
-        # Latest app version can be found using GET /v1/application-info/android
+        # Latest app version can be found using GET /old/application-info/android
         USER_AGENT = "PixivAndroidApp/5.0.234 (Android 11; Pixel 5)"
         REDIRECT_URI = "https://app-api.pixiv.net/web/v1/users/auth/pixiv/callback"
         LOGIN_URL = "https://app-api.pixiv.net/web/v1/login"
