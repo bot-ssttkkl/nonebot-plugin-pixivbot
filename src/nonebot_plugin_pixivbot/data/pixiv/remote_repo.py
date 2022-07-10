@@ -7,12 +7,12 @@ from nonebot import logger
 from pixivpy_async import *
 from pixivpy_async.error import TokenError
 
-from nonebot_plugin_pixivbot.data_source.local_tags import LocalTags
+from nonebot_plugin_pixivbot.data.local_tag_repo import LocalTagRepo
 from nonebot_plugin_pixivbot.model import Illust, User
 from nonebot_plugin_pixivbot.utils.config import Config
 from nonebot_plugin_pixivbot.utils.errors import QueryError
-from .abstract_data_source import AbstractDataSource
-from .cache_manager import CacheManager
+from .abstract_repo import AbstractPixivRepo
+from .local_manager import CacheManager
 from .compressor import Compressor
 from .lazy_illust import LazyIllust
 from .pkg_context import context
@@ -40,9 +40,9 @@ T = typing.TypeVar("T")
 
 
 @context.register_singleton()
-class RemoteDataSource(AbstractDataSource):
+class RemotePixivRepo(AbstractPixivRepo):
     _conf: Config = context.require(Config)
-    _local_tags = context.require(LocalTags)
+    _local_tags = context.require(LocalTagRepo)
 
     def __init__(self):
         self.user_id = 0

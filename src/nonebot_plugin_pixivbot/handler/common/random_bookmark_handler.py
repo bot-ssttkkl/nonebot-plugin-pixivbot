@@ -3,7 +3,7 @@ from typing import Generic, TypeVar, Sequence, Any
 from nonebot import Bot
 from nonebot.internal.adapter import Message
 
-from nonebot_plugin_pixivbot.data_source.pixiv_bindings import PixivBindings
+from nonebot_plugin_pixivbot.data.pixiv_binding_repo import PixivBindingRepo
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.handler.common.common_handler import CommonHandler
 from nonebot_plugin_pixivbot.postman import PostDestination, PostIdentifier
@@ -17,7 +17,7 @@ M = TypeVar("M", bound=Message)
 
 @context.root.register_singleton()
 class RandomBookmarkHandler(CommonHandler[UID, GID, B, M], Generic[UID, GID, B, M]):
-    pixiv_bindings = context.require(PixivBindings)
+    pixiv_bindings = context.require(PixivBindingRepo)
 
     @classmethod
     def type(cls) -> str:

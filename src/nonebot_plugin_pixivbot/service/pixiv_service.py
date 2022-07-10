@@ -2,8 +2,8 @@ from typing import List, Sequence, Union, Tuple
 
 from nonebot import logger
 
-from nonebot_plugin_pixivbot.data_source.local_tags import LocalTags
-from nonebot_plugin_pixivbot.data_source.pixiv import LazyIllust, PixivDataSource
+from nonebot_plugin_pixivbot.data.local_tag_repo import LocalTagRepo
+from nonebot_plugin_pixivbot.data.pixiv import LazyIllust, PixivRepo
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.model import Illust, User
 from nonebot_plugin_pixivbot.utils.config import Config
@@ -14,8 +14,8 @@ from .roulette import roulette
 @context.register_singleton()
 class PixivService:
     conf = context.require(Config)
-    data_source = context.require(PixivDataSource)
-    local_tags = context.require(LocalTags)
+    data_source = context.require(PixivRepo)
+    local_tags = context.require(LocalTagRepo)
 
     async def _choice_and_load(self, illusts: List[LazyIllust], random_method: str, count: int) -> List[Illust]:
         if count <= 0:

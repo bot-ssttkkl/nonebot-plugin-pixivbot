@@ -5,12 +5,12 @@ from nonebot import get_driver
 
 from nonebot_plugin_pixivbot.model import Illust, User
 from nonebot_plugin_pixivbot.utils.config import Config
-from .abstract_data_source import AbstractDataSource
-from .cache_data_source import CacheDataSource
-from .cache_manager import CacheManager
+from .abstract_repo import AbstractPixivRepo
+from .local_repo import LocalPixivRepo
+from .local_manager import CacheManager
 from .lazy_illust import LazyIllust
 from .pkg_context import context
-from .remote_data_source import RemoteDataSource
+from .remote_repo import RemotePixivRepo
 
 
 def do_skip_and_limit(items: list, skip: int, limit: int) -> list:
@@ -26,9 +26,9 @@ def do_skip_and_limit(items: list, skip: int, limit: int) -> list:
 
 
 @context.root.register_singleton()
-class PixivDataSource(AbstractDataSource):
-    remote: RemoteDataSource = context.require(RemoteDataSource)
-    cache: CacheDataSource = context.require(CacheDataSource)
+class PixivRepo(AbstractPixivRepo):
+    remote: RemotePixivRepo = context.require(RemotePixivRepo)
+    cache: LocalPixivRepo = context.require(LocalPixivRepo)
 
     _conf: Config = context.require(Config)
     timeout = _conf.pixiv_query_timeout
@@ -173,9 +173,9 @@ class PixivDataSource(AbstractDataSource):
         )
 
 
-pixiv_data_source = context.require(PixivDataSource)
+pixiv_data_source = context.require(PixivRepo)
 
 get_driver().on_startup(pixiv_data_source.start)
 get_driver().on_shutdown(pixiv_data_source.shutdown)
 
-__all__ = ('PixivDataSource',)
+__all__ = ('PixivRepo',)

@@ -1,14 +1,14 @@
 from typing import TypeVar, Optional, Generic
 
-from nonebot_plugin_pixivbot.data_source.mongo_conn import MongoConn
+from nonebot_plugin_pixivbot.data.source.mongo import MongoDataSource
 from nonebot_plugin_pixivbot.global_context import context as context
 
 UID = TypeVar("UID")
 
 
 @context.register_singleton()
-class PixivBindings(Generic[UID]):
-    mongo = context.require(MongoConn)
+class PixivBindingRepo(Generic[UID]):
+    mongo = context.require(MongoDataSource)
 
     async def bind(self, sender_user_id: UID, pixiv_user_id: int):
         await self.mongo.db.pixiv_binding.update_one({"qq_id": sender_user_id},
@@ -29,4 +29,4 @@ class PixivBindings(Generic[UID]):
             return result["pixiv_user_id"]
 
 
-__all__ = ("PixivBindings",)
+__all__ = ("PixivBindingRepo",)

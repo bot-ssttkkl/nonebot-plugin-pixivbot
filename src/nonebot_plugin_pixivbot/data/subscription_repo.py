@@ -1,6 +1,6 @@
 from typing import TypeVar, Generic, AsyncGenerator
 
-from nonebot_plugin_pixivbot.data_source.mongo_conn import MongoConn
+from nonebot_plugin_pixivbot.data.source.mongo import MongoDataSource
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.model import Subscription
 from nonebot_plugin_pixivbot.postman import PostIdentifier
@@ -13,8 +13,8 @@ ID = PostIdentifier[UID, GID]
 
 
 @context.register_singleton()
-class Subscriptions(Generic[UID, GID]):
-    mongo = context.require(MongoConn)
+class SubscriptionRepo(Generic[UID, GID]):
+    mongo = context.require(MongoDataSource)
 
     async def get(self, identifier: ID) -> AsyncGenerator[Subscription, None]:
         if identifier.group_id:
@@ -58,4 +58,4 @@ class Subscriptions(Generic[UID, GID]):
             await self.mongo.db.subscription.delete_one(query)
 
 
-__all__ = ("Subscriptions",)
+__all__ = ("SubscriptionRepo",)

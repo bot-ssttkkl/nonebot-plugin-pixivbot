@@ -10,8 +10,8 @@ class LazyIllust:
     @classmethod
     def init_src(cls):
         # 为避免循环引用，将import推迟到get的时候
-        from .pixiv_data_source import PixivDataSource
-        cls.src = context.require(PixivDataSource)
+        from .repo import PixivRepo
+        cls.src = context.require(PixivRepo)
 
     def __init__(self, id: int, content: typing.Optional[Illust] = None) -> None:
         self.id = id
