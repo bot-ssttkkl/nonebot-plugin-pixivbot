@@ -8,7 +8,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from lazy import lazy
 from nonebot import Bot, logger, get_driver
 
-from nonebot_plugin_pixivbot.data_source.subscriptions import Subscriptions
+from nonebot_plugin_pixivbot.data.subscription_repo import SubscriptionRepo
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.model import Subscription
 from nonebot_plugin_pixivbot.postman import PostIdentifier, PostDestinationFactory
@@ -25,7 +25,7 @@ ID = PostIdentifier[UID, GID]
 @context.register_singleton()
 class Scheduler(Generic[UID, GID]):
     apscheduler = context.require(AsyncIOScheduler)
-    subscriptions = context.require(Subscriptions)
+    subscriptions = context.require(SubscriptionRepo)
     post_dest_factory = context.require(PostDestinationFactory)
 
     @staticmethod

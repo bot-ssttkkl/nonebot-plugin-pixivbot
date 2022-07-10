@@ -7,7 +7,7 @@ from nonebot_plugin_pixivbot.utils.config import Config
 
 
 @context.register_singleton()
-class MongoConn:
+class MongoDataSource:
     conf = context.require(Config)
 
     def __init__(self):
@@ -93,4 +93,4 @@ class MongoConn:
         self._db = None
 
 
-__all__ = ("MongoConn",)
+__all__ = ("MongoDataSource",)

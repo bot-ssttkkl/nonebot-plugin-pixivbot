@@ -3,7 +3,7 @@ from typing import TypeVar, Generic, Sequence, Any
 from nonebot import Bot
 from nonebot.internal.adapter import Message
 
-from nonebot_plugin_pixivbot.data_source.pixiv_bindings import PixivBindings
+from nonebot_plugin_pixivbot.data.pixiv_binding_repo import PixivBindingRepo
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.handler.cmd.command_handler import SubCommandHandler, CommandHandler
 from nonebot_plugin_pixivbot.postman import PostDestination, PostIdentifier
@@ -17,7 +17,7 @@ M = TypeVar("M", bound=Message)
 
 @context.require(CommandHandler).sub_command("bind")
 class BindHandler(SubCommandHandler[UID, GID, B, M], Generic[UID, GID, B, M]):
-    pixiv_bindings = context.require(PixivBindings)
+    pixiv_bindings = context.require(PixivBindingRepo)
 
     @classmethod
     def type(cls) -> str:
@@ -52,7 +52,7 @@ class BindHandler(SubCommandHandler[UID, GID, B, M], Generic[UID, GID, B, M]):
 
 @context.require(CommandHandler).sub_command("unbind")
 class UnbindHandler(SubCommandHandler[UID, GID, B, M], Generic[UID, GID, B, M]):
-    pixiv_bindings = context.require(PixivBindings)
+    pixiv_bindings = context.require(PixivBindingRepo)
 
     @classmethod
     def type(cls) -> str:

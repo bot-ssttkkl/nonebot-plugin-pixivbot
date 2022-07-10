@@ -5,7 +5,7 @@ from nonebot_plugin_pixivbot.model import Illust, User
 from .lazy_illust import LazyIllust
 
 
-class AbstractDataSource(ABC):
+class AbstractPixivRepo(ABC):
     @abstractmethod
     async def illust_detail(self, illust_id: int) -> Illust:
         raise NotImplementedError()

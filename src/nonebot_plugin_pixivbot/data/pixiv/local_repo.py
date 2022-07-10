@@ -5,16 +5,16 @@ import bson
 from nonebot import logger
 from pymongo import UpdateOne
 
-from nonebot_plugin_pixivbot.data_source.mongo_conn import MongoConn
+from nonebot_plugin_pixivbot.data.source.mongo import MongoDataSource
 from nonebot_plugin_pixivbot.model import Illust, User
-from .abstract_data_source import AbstractDataSource
+from .abstract_repo import AbstractPixivRepo
 from .lazy_illust import LazyIllust
 from .pkg_context import context
 
 
 @context.register_singleton()
-class CacheDataSource(AbstractDataSource):
-    mongo = context.require(MongoConn)
+class LocalPixivRepo(AbstractPixivRepo):
+    mongo = context.require(MongoDataSource)
 
     def _make_illusts_cache_loader(self, collection_name: str, arg_name: str, arg: typing.Any, *, skip: int = 0,
                                    limit: int = 0):

@@ -2,14 +2,14 @@ import typing
 
 from pymongo import *
 
-from nonebot_plugin_pixivbot.data_source.mongo_conn import MongoConn
+from nonebot_plugin_pixivbot.data.source.mongo import MongoDataSource
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.model import Tag
 
 
 @context.register_singleton()
-class LocalTags:
-    mongo = context.require(MongoConn)
+class LocalTagRepo:
+    mongo = context.require(MongoDataSource)
 
     async def insert(self, tag: Tag) -> typing.NoReturn:
         await self.mongo.db.local_tags.updateOne(
@@ -46,4 +46,4 @@ class LocalTags:
             return None
 
 
-__all__ = ("LocalTags",)
+__all__ = ("LocalTagRepo",)
