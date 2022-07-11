@@ -2,9 +2,6 @@ from datetime import datetime
 from math import ceil
 from typing import TypeVar, Generic, Callable
 
-from nonebot import Bot
-from nonebot.internal.adapter import Message
-
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.handler.interceptor.interceptor import Interceptor
@@ -12,12 +9,10 @@ from nonebot_plugin_pixivbot.postman import PostDestination, Postman
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
-B = TypeVar("B", bound=Bot)
-M = TypeVar("M", bound=Message)
 
 
 @context.register_singleton()
-class CooldownInterceptor(Interceptor[UID, GID, B, M], Generic[UID, GID, B, M]):
+class CooldownInterceptor(Interceptor[UID, GID], Generic[UID, GID]):
     conf = context.require(Config)
     postman = context.require(Postman)
 
@@ -42,7 +37,7 @@ class CooldownInterceptor(Interceptor[UID, GID, B, M], Generic[UID, GID, B, M]):
                 return 0
 
     async def intercept(self, wrapped_func: Callable,
-                        post_dest: PostDestination[UID, GID, B, M],
+                        post_dest: PostDestination[UID, GID],
                         silently: bool,
                         **kwargs):
         cooldown = self.get_cooldown(post_dest.user_id)

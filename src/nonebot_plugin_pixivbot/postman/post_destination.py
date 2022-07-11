@@ -1,37 +1,28 @@
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
-from nonebot import Bot
-from nonebot.internal.adapter import Message
-
-from nonebot_plugin_pixivbot.postman.post_identifier import PostIdentifier
-from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
-
 UID = TypeVar("UID")
 GID = TypeVar("GID")
-B = TypeVar("B", bound=Bot)
-M = TypeVar("M", bound=Message)
 
 
-class PostDestination(ABC, Generic[UID, GID, B, M]):
-    def __init__(self, bot: B, user_id: UID, group_id: GID):
-        self.bot = bot
-        self.identifier = PostIdentifier(get_adapter_name(bot), user_id, group_id)
+class PostDestination(ABC, Generic[UID, GID]):
 
     @property
-    def user_id(self) -> UID:
-        return self.identifier.user_id
+    def adapter(self) -> str:
+        raise NotImplementedError()
 
     @property
-    def group_id(self) -> GID:
-        return self.identifier.group_id
-
     @abstractmethod
-    async def post(self, message: M):
+    def user_id(self) -> UID:
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def group_id(self) -> GID:
         raise NotImplementedError()
 
 
-class PostDestinationFactory(ABC, Generic[UID, GID, B, M]):
+class PostDestinationFactory(ABC, Generic[UID, GID]):
     @abstractmethod
-    def from_id(self, bot: B, user_id: UID, group_id: GID) -> PostDestination[UID, GID, B, M]:
-        raise NotImplementedError
+    def build(self, user_id: UID, group_id: GID) -> PostDestination:
+        raise NotImplementedError()

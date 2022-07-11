@@ -30,7 +30,6 @@ class MongoV1ToV2(MongoMigration):
             ]
         )
 
-
     async def migrate_subscription(self, db: AsyncIOMotorDatabase):
         try:
             await db["pixiv_binding"].drop_index("user_id_1")

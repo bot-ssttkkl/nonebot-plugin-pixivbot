@@ -1,22 +1,17 @@
 from typing import Optional, Sequence, Union, TypeVar, Generic, Any
 
-from nonebot import Bot
-from nonebot.internal.adapter import Message
-
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.handler.common.common_handler import CommonHandler
-from nonebot_plugin_pixivbot.postman import PostDestination, PostIdentifier, post_illusts
+from nonebot_plugin_pixivbot.postman import PostDestination, post_illusts
 from nonebot_plugin_pixivbot.utils.decode_integer import decode_integer
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
-B = TypeVar("B", bound=Bot)
-M = TypeVar("M", bound=Message)
 
 
 @context.root.register_singleton()
-class RankingHandler(CommonHandler[UID, GID, B, M], Generic[UID, GID, B, M]):
+class RankingHandler(CommonHandler[UID, GID], Generic[UID, GID]):
     @classmethod
     def type(cls) -> str:
         return "ranking"
@@ -47,7 +42,7 @@ class RankingHandler(CommonHandler[UID, GID, B, M], Generic[UID, GID, B, M]):
                 raise BadRequestError(
                     f'仅支持查询{self.conf.pixiv_ranking_fetch_item}名以内的插画')
 
-    def parse_args(self, args: Sequence[Any], identifier: PostIdentifier[UID, GID]) -> dict:
+    def parse_args(self, args: Sequence[Any], post_dest: PostDestination[UID, GID]) -> dict:
         mode = args[0] if len(args) > 0 else None
         range = args[1] if len(args) > 1 else None
 
@@ -74,7 +69,7 @@ class RankingHandler(CommonHandler[UID, GID, B, M], Generic[UID, GID, B, M]):
 
     async def actual_handle(self, *, mode: Optional[str] = None,
                             range: Union[Sequence[int], int, None] = None,
-                            post_dest: PostDestination[UID, GID, B, M],
+                            post_dest: PostDestination[UID, GID],
                             silently: bool = False):
         if mode is None:
             mode = self.conf.pixiv_ranking_default_mode

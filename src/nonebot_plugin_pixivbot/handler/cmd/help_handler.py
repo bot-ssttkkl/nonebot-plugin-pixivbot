@@ -1,20 +1,15 @@
 from typing import Union, Awaitable, TypeVar, Generic, Sequence, Any
 
-from nonebot import Bot
-from nonebot.internal.adapter import Message
-
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.handler.cmd.command_handler import SubCommandHandler, CommandHandler
-from nonebot_plugin_pixivbot.postman import PostDestination, PostIdentifier
+from nonebot_plugin_pixivbot.postman import PostDestination
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
-B = TypeVar("B", bound=Bot)
-M = TypeVar("M", bound=Message)
 
 
 @context.require(CommandHandler).sub_command("help")
-class HelpHandler(SubCommandHandler[UID, GID, B, M], Generic[UID, GID, B, M]):
+class HelpHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
     help_text = """常规语句：
 - 看看榜<范围>：查看pixiv榜单
 - 来张图：从推荐插画随机抽选一张插画
@@ -40,10 +35,10 @@ class HelpHandler(SubCommandHandler[UID, GID, B, M], Generic[UID, GID, B, M]):
     def enabled(cls) -> bool:
         return True
 
-    def parse_args(self, args: Sequence[Any], identifier: PostIdentifier[UID, GID]) \
+    def parse_args(self, args: Sequence[Any], post_dest: PostDestination[UID, GID]) \
             -> Union[dict, Awaitable[dict]]:
         return {}
 
-    async def actual_handle(self, *, post_dest: PostDestination[UID, GID, B, M],
+    async def actual_handle(self, *, post_dest: PostDestination[UID, GID],
                             silently: bool = False):
         await self.postman.send_plain_text(self.help_text, post_dest=post_dest)

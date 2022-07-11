@@ -3,7 +3,7 @@ from typing import TypeVar, Generic, Sequence, Dict, Any, Optional
 from pydantic import validator
 from pydantic.generics import GenericModel
 
-from nonebot_plugin_pixivbot.postman import PostIdentifier
+from nonebot_plugin_pixivbot.model import PostIdentifier
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
