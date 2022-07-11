@@ -51,11 +51,11 @@ class RandomBookmarkHandler(CommonHandler[UID, GID], Generic[UID, GID]):
         illusts = await self.service.random_bookmark(pixiv_user_id, count=count)
 
         # 记录请求
-        self.record_req(post_dest.user_id, pixiv_user_id, post_dest=post_dest, count=count)
+        self.record_req(pixiv_user_id, post_dest=post_dest, count=count)
         # 记录结果
         if len(illusts) == 1:
             self.record_resp_illust(illusts[0].id, post_dest=post_dest)
 
         await post_illusts(illusts,
-                           header=f"这是您点的私家车",
+                           header="这是您点的私家车",
                            post_dest=post_dest)
