@@ -20,10 +20,11 @@ class MoreHandler(CommonHandler[UID, GID], Generic[UID, GID]):
     def enabled(cls) -> bool:
         return cls.conf.pixiv_more_enabled
 
-    async def actual_handle(self, *, post_dest: PostDestination[UID, GID],
+    async def actual_handle(self, *, count: int = 1,
+                            post_dest: PostDestination[UID, GID],
                             silently: bool = False):
         req = self.recorder.get_req(PostIdentifier.from_post_dest(post_dest))
         if not req:
             raise BadRequestError("你还没有发送过请求")
 
-        await req(post_dest=post_dest)
+        await req(count=count, post_dest=post_dest)
