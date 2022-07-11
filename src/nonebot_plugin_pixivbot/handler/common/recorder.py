@@ -28,8 +28,12 @@ class Req(Generic[UID, GID]):
     def refresh(self):
         self.timestamp = time.time()
 
-    def __call__(self, *, post_dest: PD):
-        return self.handler.handle(*self.args, post_dest=post_dest, **self.kwargs)
+    def __call__(self, *, post_dest: PD, **kwargs):
+        actual_kwargs = self.kwargs
+        for x, y in kwargs.items():
+            actual_kwargs[x] = y
+
+        return self.handler.handle(*self.args, post_dest=post_dest, **actual_kwargs)
 
 
 class Resp:
