@@ -2,9 +2,9 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from nonebot import logger, get_driver
 from pymongo.errors import OperationFailure
 
+from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.data.source.mongo.migration import MongoMigrationManager
 from nonebot_plugin_pixivbot.global_context import context as context
-from nonebot_plugin_pixivbot.utils.config import Config
 
 
 @context.register_singleton()

@@ -5,11 +5,11 @@ from typing import Awaitable, Union, TypeVar, Generic, Optional, Sequence, Any
 from nonebot import Bot
 from nonebot.internal.adapter import Message
 
+from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.handler.interceptor.interceptor import Interceptor
 from nonebot_plugin_pixivbot.postman import Postman, PostIdentifier
 from nonebot_plugin_pixivbot.postman.post_destination import PostDestination
-from nonebot_plugin_pixivbot.utils.config import Config
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 
 UID = TypeVar("UID")

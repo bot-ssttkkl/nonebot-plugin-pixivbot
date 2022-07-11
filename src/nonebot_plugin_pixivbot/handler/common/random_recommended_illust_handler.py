@@ -5,7 +5,7 @@ from nonebot.internal.adapter import Message
 
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.handler.common.common_handler import CommonHandler
-from nonebot_plugin_pixivbot.postman import PostDestination, PostIdentifier
+from nonebot_plugin_pixivbot.postman import PostDestination, PostIdentifier, post_illusts
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -37,6 +37,6 @@ class RandomRecommendedIllustHandler(CommonHandler[UID, GID, B, M], Generic[UID,
         if len(illusts) == 1:
             self.record_resp_illust(illusts[0].id, identifier=post_dest.identifier)
 
-        await self.postman.send_illusts(illusts,
-                                        header="这是您点的图",
-                                        post_dest=post_dest)
+        await post_illusts(illusts,
+                           header="这是您点的图",
+                           post_dest=post_dest)

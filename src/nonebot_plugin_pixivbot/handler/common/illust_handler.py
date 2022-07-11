@@ -5,7 +5,7 @@ from nonebot.internal.adapter import Message
 
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.handler.common.common_handler import CommonHandler
-from nonebot_plugin_pixivbot.postman import PostIdentifier
+from nonebot_plugin_pixivbot.postman import PostIdentifier, post_illust
 from nonebot_plugin_pixivbot.postman.post_destination import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 
@@ -35,4 +35,4 @@ class IllustHandler(CommonHandler[UID, GID, B, M], Generic[UID, GID, B, M]):
                             post_dest: PostDestination[UID, GID, B, M],
                             silently: bool = False):
         illust = await self.service.illust_detail(illust_id)
-        await self.postman.send_illust(illust, post_dest=post_dest)
+        await post_illust(illust, post_dest=post_dest)

@@ -4,6 +4,7 @@ from nonebot import get_driver
 from pydantic import BaseSettings, validator
 from pydantic.fields import ModelField
 
+from nonebot_plugin_pixivbot.config.block_action import BlockAction
 from nonebot_plugin_pixivbot.global_context import context as context
 
 
@@ -28,14 +29,7 @@ class Config(BaseSettings):
     pixiv_other_cache_expires_in = 3600 * 6
 
     pixiv_block_tags: typing.List[str] = []
-    pixiv_block_action: str = "no_image"
-
-    @validator('pixiv_block_action')
-    def block_action_validator(cls, v, field: ModelField):
-        if v not in ['no_image', 'completely_block', 'no_reply']:
-            raise ValueError(
-                f'pixiv_compression_enabled is True but {field.name} got None.')
-        return v
+    pixiv_block_action: BlockAction = BlockAction.no_image
 
     pixiv_download_quantity: str = "original"
     pixiv_download_custom_domain: typing.Optional[str]

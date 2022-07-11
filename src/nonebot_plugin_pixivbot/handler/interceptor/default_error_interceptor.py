@@ -27,14 +27,14 @@ class DefaultErrorInterceptor(Interceptor[UID, GID, B, M], Generic[UID, GID, B, 
         except TimeoutError:
             logger.warning("Timeout")
             if not silently:
-                await self.postman.send_message(f"下载超时", post_dest=post_dest)
+                await self.postman.send_plain_text(f"下载超时", post_dest=post_dest)
         except BadRequestError as e:
             if not silently:
-                await self.postman.send_message(str(e), post_dest=post_dest)
+                await self.postman.send_plain_text(str(e), post_dest=post_dest)
         except QueryError as e:
             if not silently:
-                await self.postman.send_message(str(e), post_dest=post_dest)
+                await self.postman.send_plain_text(str(e), post_dest=post_dest)
         except Exception as e:
             logger.exception(e)
             if not silently:
-                await self.postman.send_message(f"内部错误：{type(e)}{e}", post_dest=post_dest)
+                await self.postman.send_plain_text(f"内部错误：{type(e)}{e}", post_dest=post_dest)

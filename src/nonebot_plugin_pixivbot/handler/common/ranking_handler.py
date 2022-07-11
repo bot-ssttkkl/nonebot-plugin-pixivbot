@@ -5,7 +5,7 @@ from nonebot.internal.adapter import Message
 
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.handler.common.common_handler import CommonHandler
-from nonebot_plugin_pixivbot.postman import PostDestination, PostIdentifier
+from nonebot_plugin_pixivbot.postman import PostDestination, PostIdentifier, post_illusts
 from nonebot_plugin_pixivbot.utils.decode_integer import decode_integer
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 
@@ -87,7 +87,7 @@ class RankingHandler(CommonHandler[UID, GID, B, M], Generic[UID, GID, B, M]):
 
         self.validate_args(mode, range)
         illusts = await self.service.illust_ranking(mode, range)
-        await self.postman.send_illusts(illusts,
-                                        header=f"这是您点的{self.mode_reversed_mapping[mode]}榜",
-                                        number=range[0],
-                                        post_dest=post_dest)
+        await post_illusts(illusts,
+                           header=f"这是您点的{self.mode_reversed_mapping[mode]}榜",
+                           number=range[0],
+                           post_dest=post_dest)

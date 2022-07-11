@@ -2,11 +2,11 @@ from typing import List, Sequence, Union, Tuple
 
 from nonebot import logger
 
+from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.data.local_tag_repo import LocalTagRepo
 from nonebot_plugin_pixivbot.data.pixiv import LazyIllust, PixivRepo
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.model import Illust, User
-from nonebot_plugin_pixivbot.utils.config import Config
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError, QueryError
 from .roulette import roulette
 
