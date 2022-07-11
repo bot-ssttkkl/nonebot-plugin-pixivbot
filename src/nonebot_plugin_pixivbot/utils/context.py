@@ -52,6 +52,15 @@ class Context:
 
         return decorator
 
+    def unregister(self, key: Type[T]):
+        """
+        unregister the bean of key
+        """
+        if key in self._container:
+            del self._container[key]
+        if key in self._lazy_container:
+            del self._container[key]
+
     # 并不好用，因为经常被优化掉import
     # def register_factory(self, key: Type[T]):
     #     """

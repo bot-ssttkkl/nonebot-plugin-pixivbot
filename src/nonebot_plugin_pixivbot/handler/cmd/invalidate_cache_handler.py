@@ -1,21 +1,18 @@
 from typing import TypeVar, Generic, Sequence, Any
 
-from nonebot import Bot
-from nonebot.internal.adapter import Message
+from nonebot import get_bot
 
 from nonebot_plugin_pixivbot.data.pixiv import PixivRepo
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.handler.cmd.command_handler import SubCommandHandler, CommandHandler
-from nonebot_plugin_pixivbot.postman import PostIdentifier, PostDestination
+from nonebot_plugin_pixivbot.postman import PostDestination
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
-B = TypeVar("B", bound=Bot)
-M = TypeVar("M", bound=Message)
 
 
 @context.require(CommandHandler).sub_command("invalidate_cache")
-class InvalidateCacheHandler(SubCommandHandler[UID, GID, B, M], Generic[UID, GID, B, M]):
+class InvalidateCacheHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
     pixiv_data_source = context.require(PixivRepo)
 
     @classmethod
@@ -26,12 +23,13 @@ class InvalidateCacheHandler(SubCommandHandler[UID, GID, B, M], Generic[UID, GID
     def enabled(cls) -> bool:
         return True
 
-    def parse_args(self, args: Sequence[Any], identifier: PostIdentifier[UID, GID]) -> dict:
+    def parse_args(self, args: Sequence[Any], post_dest: PostDestination[UID, GID]) -> dict:
         return {}
 
-    async def actual_handle(self, *, post_dest: PostDestination[UID, GID, B, M],
+    async def actual_handle(self, *, post_dest: PostDestination[UID, GID],
                             silently: bool = False):
-        if post_dest.user_id not in post_dest.bot.config.superusers:
+        bot = get_bot()
+        if post_dest.user_id not in bot.config.superusers:
             await self.postman.send_plain_text(message="只有超级用户可以调用该命令", post_dest=post_dest)
             return
 

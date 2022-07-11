@@ -1,20 +1,15 @@
 from functools import partial
-from mailbox import Message
 from typing import Callable, TypeVar, Generic, Type, Optional, Iterable
-
-from nonebot import Bot
 
 from nonebot_plugin_pixivbot.handler.interceptor.interceptor import Interceptor
 from nonebot_plugin_pixivbot.postman import PostDestination
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
-B = TypeVar("B", bound=Bot)
-M = TypeVar("M", bound=Message)
 
 
-class CombinedInterceptor(Interceptor[UID, GID, B, M], Generic[UID, GID, B, M]):
-    def __init__(self, x: Interceptor[UID, GID, B, M], y: Interceptor[UID, GID, B, M]):
+class CombinedInterceptor(Interceptor[UID, GID], Generic[UID, GID]):
+    def __init__(self, x: Interceptor[UID, GID], y: Interceptor[UID, GID]):
         self.x = x
         self.y = y
 
@@ -46,7 +41,7 @@ class CombinedInterceptor(Interceptor[UID, GID, B, M], Generic[UID, GID, B, M]):
             return result
 
     async def intercept(self, wrapped_func: Callable,
-                        post_dest: PostDestination[UID, GID, B, M],
+                        post_dest: PostDestination[UID, GID],
                         silently: bool,
                         **kwargs):
         await self.x.intercept(

@@ -1,7 +1,6 @@
 from typing import Callable, TypeVar, Generic
 
-from nonebot import Bot, logger
-from nonebot.internal.adapter import Message
+from nonebot import logger
 
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.handler.interceptor.interceptor import Interceptor
@@ -10,16 +9,14 @@ from nonebot_plugin_pixivbot.utils.errors import BadRequestError, QueryError
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
-B = TypeVar("B", bound=Bot)
-M = TypeVar("M", bound=Message)
 
 
 @context.register_singleton()
-class DefaultErrorInterceptor(Interceptor[UID, GID, B, M], Generic[UID, GID, B, M]):
+class DefaultErrorInterceptor(Interceptor[UID, GID], Generic[UID, GID]):
     postman = context.require(Postman)
 
     async def intercept(self, wrapped_func: Callable,
-                        post_dest: PostDestination[UID, GID, B, M],
+                        post_dest: PostDestination[UID, GID],
                         silently: bool,
                         **kwargs):
         try:

@@ -1,32 +1,27 @@
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, Sequence
+from typing import Generic, TypeVar
 
-from nonebot import Bot
-from nonebot.internal.adapter import Message
-
-from nonebot_plugin_pixivbot.postman.model.illust_message import IllustMessageModel
+from nonebot_plugin_pixivbot.postman.model import IllustMessageModel, IllustMessagesModel
 from nonebot_plugin_pixivbot.postman.post_destination import PostDestination
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
-B = TypeVar("B", bound=Bot)
-M = TypeVar("M", bound=Message)
 
 
-class Postman(ABC, Generic[UID, GID, B, M]):
+class Postman(ABC, Generic[UID, GID]):
     @abstractmethod
     async def send_plain_text(self, message: str,
-                              *, post_dest: PostDestination[UID, GID, B, M]):
+                              *, post_dest: PostDestination[UID, GID]):
         raise NotImplementedError()
 
     @abstractmethod
-    async def send_illust(self, message: IllustMessageModel,
-                          *, post_dest: PostDestination[UID, GID, B, M]):
+    async def send_illust(self, model: IllustMessageModel,
+                          *, post_dest: PostDestination[UID, GID]):
         raise NotImplementedError()
 
     @abstractmethod
-    async def send_illusts(self, message: Sequence[IllustMessageModel],
-                           *, post_dest: PostDestination[UID, GID, B, M]):
+    async def send_illusts(self, model: IllustMessagesModel,
+                           *, post_dest: PostDestination[UID, GID]):
         raise NotImplementedError()
 
 

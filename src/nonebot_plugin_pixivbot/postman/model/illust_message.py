@@ -27,9 +27,9 @@ class IllustMessageModel(BaseModel):
     block_message: str = ""
 
     @staticmethod
-    def from_illust(illust: Illust, *,
-                    header: Optional[str] = None,
-                    number: Optional[int] = None) -> Optional["IllustMessageModel"]:
+    async def from_illust(illust: Illust, *,
+                          header: Optional[str] = None,
+                          number: Optional[int] = None) -> Optional["IllustMessageModel"]:
         model = IllustMessageModel(header=header, number=number)
 
         if illust.has_tags(conf.pixiv_block_tags):
