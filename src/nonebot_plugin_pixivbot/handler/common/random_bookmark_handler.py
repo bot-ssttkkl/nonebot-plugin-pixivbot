@@ -5,7 +5,7 @@ from nonebot.internal.adapter import Message
 
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.handler.common.common_handler import CommonHandler
-from nonebot_plugin_pixivbot.postman import PostDestination, PostIdentifier
+from nonebot_plugin_pixivbot.postman import PostDestination, PostIdentifier, post_illusts
 from nonebot_plugin_pixivbot.service.pixiv_account_binder import PixivAccountBinder
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 
@@ -61,6 +61,6 @@ class RandomBookmarkHandler(CommonHandler[UID, GID, B, M], Generic[UID, GID, B, 
         if len(illusts) == 1:
             self.record_resp_illust(illusts[0].id, identifier=post_dest.identifier)
 
-        await self.postman.send_illusts(illusts,
-                                        header=f"这是您点的私家车",
-                                        post_dest=post_dest)
+        await post_illusts(illusts,
+                           header=f"这是您点的私家车",
+                           post_dest=post_dest)

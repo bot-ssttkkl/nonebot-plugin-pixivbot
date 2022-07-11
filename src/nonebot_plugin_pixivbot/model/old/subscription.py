@@ -28,4 +28,4 @@ class SubscriptionV1(GenericModel, Generic[UID, GID]):
 
     @property
     def identifier(self):
-        return PostIdentifier(self.user_id, self.group_id)
+        return PostIdentifier("onebot", self.user_id, self.group_id)

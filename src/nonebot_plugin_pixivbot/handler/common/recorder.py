@@ -5,9 +5,9 @@ from typing import Optional, TypeVar, Generic
 from nonebot import logger, Bot
 from nonebot.internal.adapter import Message
 
+from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.postman import PostDestination, PostIdentifier
-from nonebot_plugin_pixivbot.utils.config import Config
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")

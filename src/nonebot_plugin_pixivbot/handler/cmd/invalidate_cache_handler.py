@@ -32,8 +32,8 @@ class InvalidateCacheHandler(SubCommandHandler[UID, GID, B, M], Generic[UID, GID
     async def actual_handle(self, *, post_dest: PostDestination[UID, GID, B, M],
                             silently: bool = False):
         if post_dest.user_id not in post_dest.bot.config.superusers:
-            await self.postman.send_message(message="只有超级用户可以调用该命令", post_dest=post_dest)
+            await self.postman.send_plain_text(message="只有超级用户可以调用该命令", post_dest=post_dest)
             return
 
         await self.pixiv_data_source.invalidate_cache()
-        await self.postman.send_message(message="ok", post_dest=post_dest)
+        await self.postman.send_plain_text(message="ok", post_dest=post_dest)

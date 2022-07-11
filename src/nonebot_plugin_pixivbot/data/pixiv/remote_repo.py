@@ -7,9 +7,9 @@ from nonebot import logger
 from pixivpy_async import *
 from pixivpy_async.error import TokenError
 
+from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.data.local_tag_repo import LocalTagRepo
 from nonebot_plugin_pixivbot.model import Illust, User
-from nonebot_plugin_pixivbot.utils.config import Config
 from nonebot_plugin_pixivbot.utils.errors import QueryError
 from .abstract_repo import AbstractPixivRepo
 from .compressor import Compressor

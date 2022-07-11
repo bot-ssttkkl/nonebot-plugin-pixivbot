@@ -23,7 +23,7 @@ class SubCommandHandler(Handler[UID, GID, B, M], ABC, Generic[UID, GID, B, M]):
         raise NotImplementedError()
 
     async def handle_bad_request(self, e: BadRequestError, post_dest: PostDestination[UID, GID, B, M]):
-        self.postman.send_message(e.message, post_dest=post_dest)
+        self.postman.send_plain_text(e.message, post_dest=post_dest)
 
 
 @context.register_singleton()

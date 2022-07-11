@@ -46,4 +46,4 @@ class HelpHandler(SubCommandHandler[UID, GID, B, M], Generic[UID, GID, B, M]):
 
     async def actual_handle(self, *, post_dest: PostDestination[UID, GID, B, M],
                             silently: bool = False):
-        await self.postman.send_message(self.help_text, post_dest=post_dest)
+        await self.postman.send_plain_text(self.help_text, post_dest=post_dest)

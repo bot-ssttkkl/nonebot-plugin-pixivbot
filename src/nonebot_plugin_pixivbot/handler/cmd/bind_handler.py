@@ -38,7 +38,7 @@ class BindHandler(SubCommandHandler[UID, GID, B, M], Generic[UID, GID, B, M]):
                             post_dest: PostDestination[UID, GID, B, M],
                             silently: bool = False):
         await self.binder.bind(post_dest.bot, post_dest.user_id, pixiv_user_id)
-        await self.postman.send_message(message="Pixiv账号绑定成功", post_dest=post_dest)
+        await self.postman.send_plain_text(message="Pixiv账号绑定成功", post_dest=post_dest)
 
     async def handle_bad_request(self, e: BadRequestError, post_dest: PostDestination[UID, GID, B, M]):
         pixiv_user_id = await self.binder.get_binding(post_dest.bot, post_dest.user_id)
@@ -47,7 +47,7 @@ class BindHandler(SubCommandHandler[UID, GID, B, M], Generic[UID, GID, B, M]):
         else:
             msg = "当前未绑定Pixiv账号\n"
         msg += "命令格式：/pixivbot bind <pixiv_user_id>"
-        await self.postman.send_message(message=msg, post_dest=post_dest)
+        await self.postman.send_plain_text(message=msg, post_dest=post_dest)
 
 
 @context.require(CommandHandler).sub_command("unbind")
@@ -68,7 +68,7 @@ class UnbindHandler(SubCommandHandler[UID, GID, B, M], Generic[UID, GID, B, M]):
     async def actual_handle(self, *, post_dest: PostDestination[UID, GID, B, M],
                             silently: bool = False):
         await self.binder.unbind(post_dest.bot, post_dest.user_id)
-        await self.postman.send_message(message="Pixiv账号解绑成功", post_dest=post_dest)
+        await self.postman.send_plain_text(message="Pixiv账号解绑成功", post_dest=post_dest)
 
     async def handle_bad_request(self, e: BadRequestError, post_dest: PostDestination[UID, GID, B, M]):
-        await self.postman.send_message(message="当前未绑定Pixiv账号", post_dest=post_dest)
+        await self.postman.send_plain_text(message="当前未绑定Pixiv账号", post_dest=post_dest)

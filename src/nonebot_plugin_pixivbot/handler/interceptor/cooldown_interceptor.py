@@ -5,10 +5,10 @@ from typing import TypeVar, Generic, Callable
 from nonebot import Bot
 from nonebot.internal.adapter import Message
 
+from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.handler.interceptor.interceptor import Interceptor
 from nonebot_plugin_pixivbot.postman import PostDestination, Postman
-from nonebot_plugin_pixivbot.utils.config import Config
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -48,7 +48,7 @@ class CooldownInterceptor(Interceptor[UID, GID, B, M], Generic[UID, GID, B, M]):
         cooldown = self.get_cooldown(post_dest.user_id)
         if cooldown:
             if not silently:
-                await self.postman.send_message(f"你的CD还有{cooldown}s转好", post_dest=post_dest)
+                await self.postman.send_plain_text(f"你的CD还有{cooldown}s转好", post_dest=post_dest)
         else:
             await wrapped_func(post_dest=post_dest, silently=silently, **kwargs)
 

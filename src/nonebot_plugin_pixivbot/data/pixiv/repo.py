@@ -3,8 +3,8 @@ from functools import partial
 
 from nonebot import get_driver
 
+from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.model import Illust, User
-from nonebot_plugin_pixivbot.utils.config import Config
 from .abstract_repo import AbstractPixivRepo
 from .lazy_illust import LazyIllust
 from .local_manager import CacheManager

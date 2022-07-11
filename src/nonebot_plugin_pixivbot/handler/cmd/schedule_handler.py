@@ -38,7 +38,7 @@ class ScheduleHandler(SubCommandHandler[UID, GID, B, M], Generic[UID, GID, B, M]
                             post_dest: PostDestination[UID, GID, B, M],
                             silently: bool = False):
         await self.scheduler.schedule(type, schedule, args, bot=post_dest.bot, identifier=post_dest.identifier)
-        await self.postman.send_message(message="订阅成功", post_dest=post_dest)
+        await self.postman.send_plain_text(message="订阅成功", post_dest=post_dest)
 
     async def handle_bad_request(self, e: BadRequestError, post_dest: PostDestination[UID, GID, B, M]):
         subscription = await self.scheduler.all_subscription(post_dest.identifier)
@@ -51,7 +51,7 @@ class ScheduleHandler(SubCommandHandler[UID, GID, B, M], Generic[UID, GID, B, M]
         msg += "\n"
         msg += "命令格式：/pixivbot schedule <type> <schedule> <..args>\n"
         msg += "示例：/pixivbot schedule ranking 06:00*x day 1-5\n"
-        await self.postman.send_message(message=msg, post_dest=post_dest)
+        await self.postman.send_plain_text(message=msg, post_dest=post_dest)
 
 
 @context.require(CommandHandler).sub_command("unschedule")
@@ -73,7 +73,7 @@ class UnscheduleHandler(SubCommandHandler[UID, GID, B, M], Generic[UID, GID, B, 
                             post_dest: PostDestination[UID, GID, B, M],
                             silently: bool = False):
         await self.scheduler.unschedule(type, post_dest.identifier)
-        await self.postman.send_message(message="取消订阅成功", post_dest=post_dest)
+        await self.postman.send_plain_text(message="取消订阅成功", post_dest=post_dest)
 
     async def handle_bad_request(self, e: BadRequestError, post_dest: PostDestination[UID, GID, B, M]):
         subscription = await self.scheduler.all_subscription(post_dest.identifier)
@@ -85,4 +85,4 @@ class UnscheduleHandler(SubCommandHandler[UID, GID, B, M], Generic[UID, GID, B, 
             msg += '无\n'
         msg += "\n"
         msg += "命令格式：/pixivbot unschedule <type>"
-        await self.postman.send_message(message=msg, post_dest=post_dest)
+        await self.postman.send_plain_text(message=msg, post_dest=post_dest)
