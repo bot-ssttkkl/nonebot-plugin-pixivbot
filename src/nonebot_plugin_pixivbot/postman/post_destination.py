@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, Optional
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -13,16 +13,16 @@ class PostDestination(ABC, Generic[UID, GID]):
 
     @property
     @abstractmethod
-    def user_id(self) -> UID:
+    def user_id(self) -> Optional[UID]:
         raise NotImplementedError()
 
     @property
     @abstractmethod
-    def group_id(self) -> GID:
+    def group_id(self) -> Optional[GID]:
         raise NotImplementedError()
 
 
 class PostDestinationFactory(ABC, Generic[UID, GID]):
     @abstractmethod
-    def build(self, user_id: UID, group_id: GID) -> PostDestination:
+    def build(self, user_id: Optional[UID], group_id: Optional[GID]) -> PostDestination:
         raise NotImplementedError()
