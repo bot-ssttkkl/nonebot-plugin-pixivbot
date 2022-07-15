@@ -1,34 +1,31 @@
-[project]
+[tool.poetry]
 name = "nonebot-plugin-pixivbot"
 version = "1.1.0-alpha1"
 description = "Nonebot Plugin PixivBot"
-authors = [
-    {email = "huang.wen.long@hotmail.com", name = "ssttkkl"}
-]
+authors = ["ssttkkl <huang.wen.long@hotmail.com>"]
 readme = "README.md"
-license = {file = "LICENSE"}
-requires-python = ">=3.9"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-]
-dependencies = [
-    "nonebot2 ~= 2.0.0b4",
-    "nonebot_plugin_apscheduler ~= 0.1.3",
-    "PixivPy-Async ~= 1.2.14",
-    "Pillow ~= 9.2.0",
-    "motor ~= 3.0.0",
-    "numpy ~= 1.23.1",
-    "aiohttp-socks ~= 0.7.1",
-    "python-socks[asyncio] ~= 2.0.3",
-    "lazy ~= 1.4"
+license = "MIT"
+repository = "https://github.com/ssttkkl/nonebot-plugin-pixivbot"
+packages = [
+    { include = "nonebot_plugin_pixivbot", from = "src" },
 ]
 
-[project.urls]
-"Homepage" = "https://github.com/ssttkkl/nonebot-plugin-pixivbot"
-"Bug Tracker" = "https://github.com/ssttkkl/nonebot-plugin-pixivbot/issues"
+[tool.poetry.dependencies]
+python = "^3.9"
+nonebot2 = "^2.0.0b4"
+nonebot_plugin_apscheduler = "^0.1.3"
+PixivPy-Async = "^1.2.14"
+Pillow = "^9.2.0"
+motor = "^3.0.0"
+numpy = "^1.23.1"
+lazy = "^1.4"
+aiohttp-socks = "^0.7.1"
+python-socks = { extras = ["asyncio"], version = "^2.0.3" }
+
+[tool.poetry.dev-dependencies]
+
+
 
 [build-system]
-requires = ["setuptools~=61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
