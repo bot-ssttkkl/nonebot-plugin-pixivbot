@@ -5,10 +5,11 @@ from nonebot import logger
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.data.local_tag_repo import LocalTagRepo
 from nonebot_plugin_pixivbot.data.pixiv import LazyIllust, PixivRepo
+from nonebot_plugin_pixivbot.enums import RandomIllustMethod
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.model import Illust, User
+from nonebot_plugin_pixivbot.service.roulette import roulette
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError, QueryError
-from .roulette import roulette
 
 
 @context.register_singleton()
@@ -17,7 +18,8 @@ class PixivService:
     data_source = context.require(PixivRepo)
     local_tags = context.require(LocalTagRepo)
 
-    async def _choice_and_load(self, illusts: List[LazyIllust], random_method: str, count: int) -> List[Illust]:
+    async def _choice_and_load(self, illusts: List[LazyIllust], random_method: RandomIllustMethod, count: int) -> List[
+        Illust]:
         if count <= 0:
             raise BadRequestError("不合法的请求数量")
         if count > self.conf.pixiv_max_item_per_query:

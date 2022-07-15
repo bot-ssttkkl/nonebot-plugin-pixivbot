@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import re
 from datetime import datetime, timedelta
 from inspect import isawaitable
-from typing import TypeVar, Dict, List, Sequence, Union, Optional, Generic
+from typing import TypeVar, Dict, List, Sequence, Union, Optional, Generic, TYPE_CHECKING
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -14,6 +16,9 @@ from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier
 from nonebot_plugin_pixivbot.postman import PostDestinationFactory
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
+
+if TYPE_CHECKING:
+    from nonebot_plugin_pixivbot.handler import Handler
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -65,7 +70,7 @@ class Scheduler(Generic[UID, GID]):
         return start_hour, start_minute, interval_hour, interval_minute
 
     @lazy
-    def _handlers(self) -> Dict[str, 'Handler']:
+    def _handlers(self) -> Dict[str, Handler]:
         # 解决Handler和Scheduler的循环引用
         from nonebot_plugin_pixivbot.handler import RandomBookmarkHandler, RandomRecommendedIllustHandler, \
             RankingHandler, RandomIllustHandler, RandomUserIllustHandler
