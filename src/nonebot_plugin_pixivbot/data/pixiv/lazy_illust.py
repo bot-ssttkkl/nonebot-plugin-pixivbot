@@ -1,26 +1,28 @@
-import typing
+from __future__ import annotations
 
+from typing import Optional
+
+from nonebot_plugin_pixivbot.data.pixiv.pkg_context import context
 from nonebot_plugin_pixivbot.model import Illust
-from .pkg_context import context
+from nonebot_plugin_pixivbot.utils.lazy_delegation import LazyDelegation
+
+__all__ = ("LazyIllust",)
+
+
+def _get_src():
+    from .repo import PixivRepo
+    return context.require(PixivRepo)
 
 
 class LazyIllust:
-    src: 'PixivDataSource' = None
+    src = LazyDelegation(_get_src)
 
-    @classmethod
-    def init_src(cls):
-        # 为避免循环引用，将import推迟到get的时候
-        from .repo import PixivRepo
-        cls.src = context.require(PixivRepo)
-
-    def __init__(self, id: int, content: typing.Optional[Illust] = None) -> None:
+    def __init__(self, id: int, content: Optional[Illust] = None) -> None:
         self.id = id
         self.content = content
 
     async def get(self):
         if self.content is None:
-            if self.src is None:
-                self.init_src()
             self.content = await self.src.illust_detail(self.id)
         return self.content
 

@@ -3,6 +3,7 @@ from time import time
 import numpy as np
 
 from nonebot_plugin_pixivbot.data.pixiv import LazyIllust
+from nonebot_plugin_pixivbot.enums import RandomIllustMethod
 
 
 def uniform(illusts: list[LazyIllust]) -> np.ndarray:
@@ -60,14 +61,14 @@ def timedelta_proportion(illusts: list[LazyIllust]) -> np.ndarray:
 
 
 p_gen = {
-    "uniform": uniform,
-    "bookmark_proportion": bookmark_proportion,
-    "view_proportion": view_proportion,
-    "timedelta_proportion": timedelta_proportion,
+    RandomIllustMethod.uniform: uniform,
+    RandomIllustMethod.bookmark_proportion: bookmark_proportion,
+    RandomIllustMethod.view_proportion: view_proportion,
+    RandomIllustMethod.timedelta_proportion: timedelta_proportion,
 }
 
 
-def roulette(illusts: list[LazyIllust], random_method: str, k: int) -> list[LazyIllust]:
+def roulette(illusts: list[LazyIllust], random_method: RandomIllustMethod, k: int) -> list[LazyIllust]:
     if random_method not in p_gen:
         raise ValueError(f"illegal random_method: {random_method}")
 

@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import time
 from collections import OrderedDict
-from typing import Optional, TypeVar, Generic
+from typing import Optional, TypeVar, Generic, TYPE_CHECKING
 
 from nonebot import logger
 
@@ -8,6 +10,9 @@ from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.model import PostIdentifier
 from nonebot_plugin_pixivbot.postman import PostDestination
+
+if TYPE_CHECKING:
+    from nonebot_plugin_pixivbot.handler import Handler
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -17,7 +22,7 @@ ID = PostIdentifier[UID, GID]
 
 
 class Req(Generic[UID, GID]):
-    def __init__(self, handler: 'Handler[UID, GID]',
+    def __init__(self, handler: Handler[UID, GID],
                  *args, **kwargs):
         self.timestamp = 0
         self.handler = handler
