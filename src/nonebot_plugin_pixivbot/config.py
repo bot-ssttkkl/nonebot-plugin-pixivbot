@@ -71,6 +71,9 @@ class Config(BaseSettings):
     #         elif v["friend"] != "all":
     #             raise ValueError(f'{field}["friend"] expected "all" or a list, but got a {type(v["friend"])}.')
 
+    pixiv_query_to_me_only = False
+    pixiv_command_to_me_only = False
+
     pixiv_query_cooldown = 0
     pixiv_no_query_cooldown_users = []
     pixiv_max_item_per_query = 10
