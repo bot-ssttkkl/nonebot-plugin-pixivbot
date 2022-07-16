@@ -71,14 +71,22 @@ class Context:
         elif key in self._container:
             return self._container[key]
         elif key in self._lazy_container:
-            if key in self._lazy_container:
-                self.register(key, self._lazy_container[key]())
-                del self._lazy_container[key]
+            # TODO: Lock
+            self.register(key, self._lazy_container[key]())
+            del self._lazy_container[key]
             return self._container[key]
         elif self._parent is not None:
             return self._parent.require(key)
         else:
             raise KeyError(key)
+
+    def __contains__(self, key: Type[T]) -> bool:
+        if key in self._binding or key in self._container or key in self._lazy_container:
+            return True
+        elif self._parent is not None:
+            return self._parent.contains(key)
+        else:
+            return False
 
 
 __all__ = ("Context",)

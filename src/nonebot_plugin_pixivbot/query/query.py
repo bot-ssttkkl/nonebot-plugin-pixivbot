@@ -1,4 +1,3 @@
-# import nonebot
 from abc import ABC, abstractmethod
 
 from lazy import lazy
