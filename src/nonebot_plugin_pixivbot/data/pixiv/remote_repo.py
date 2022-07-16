@@ -10,6 +10,7 @@ from pixivpy_async.error import TokenError
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.data.local_tag_repo import LocalTagRepo
+from nonebot_plugin_pixivbot.enums import DownloadQuantity
 from nonebot_plugin_pixivbot.model import Illust, User
 from nonebot_plugin_pixivbot.utils.errors import QueryError
 from .abstract_repo import AbstractPixivRepo
@@ -48,6 +49,10 @@ class RemotePixivRepo(AbstractPixivRepo):
     def __init__(self):
         self._local_tags = context.require(LocalTagRepo)
         self._compressor = context.require(Compressor)
+
+        self._pclient = None
+        self._papi = None
+        self._refresh_daemon_task = None
 
         self.user_id = 0
 
@@ -361,13 +366,13 @@ class RemotePixivRepo(AbstractPixivRepo):
         download_quantity = self._conf.pixiv_download_quantity
         custom_domain = self._conf.pixiv_download_custom_domain
 
-        if download_quantity == "original":
+        if download_quantity == DownloadQuantity.original:
             if len(illust.meta_pages) > 0:
                 url = illust.meta_pages[0].image_urls.original
             else:
                 url = illust.meta_single_page.original_image_url
         else:
-            url = illust.image_urls.__getattribute__(download_quantity)
+            url = illust.image_urls.__getattribute__(download_quantity.name)
 
         if custom_domain is not None:
             url = url.replace("i.pximg.net", custom_domain)
