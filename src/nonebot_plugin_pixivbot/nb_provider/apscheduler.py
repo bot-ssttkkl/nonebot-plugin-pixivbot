@@ -2,7 +2,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.schedulers.base import BaseScheduler
 from nonebot import require
 
-from nonebot_plugin_pixivbot.utils.context import Context
+from nonebot_plugin_pixivbot.context import Context
 
 
 def asyncio_scheduler_provider(context: Context):

@@ -17,7 +17,7 @@ class Query(ABC):
 
     @property
     @abstractmethod
-    def matcher(self):
+    def matcher(self) -> Matcher:
         raise NotImplementedError()
 
     @abstractmethod

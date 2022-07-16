@@ -7,9 +7,10 @@ from nonebot.typing import T_State
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler import RandomRelatedIllustHandler
 from nonebot_plugin_pixivbot.query.query import Query
+from nonebot_plugin_pixivbot.query.query_manager import QueryManager
 
 
-@context.register_singleton()
+@context.require(QueryManager).query
 class RandomRelatedIllustQuery(Query):
     def __init__(self):
         super().__init__()

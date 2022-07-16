@@ -8,10 +8,11 @@ from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler import RandomBookmarkHandler
 from nonebot_plugin_pixivbot.query.query import Query
+from nonebot_plugin_pixivbot.query.query_manager import QueryManager
 from nonebot_plugin_pixivbot.query.utils import get_count
 
 
-@context.register_singleton()
+@context.require(QueryManager).query
 class RandomBookmarkQuery(Query):
     conf = context.require(Config)
 
