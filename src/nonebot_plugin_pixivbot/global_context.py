@@ -1,4 +1,4 @@
-from nonebot_plugin_pixivbot.utils.context import Context
+from nonebot_plugin_pixivbot.context import Context
 
 context = Context()
 

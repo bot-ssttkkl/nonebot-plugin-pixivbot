@@ -30,7 +30,7 @@ class Context:
         register a bean
         """
         self._container[key] = bean
-        logger.info(f"registered a bean of type {key}")
+        logger.success(f"registered bean {key}")
 
     def register_lazy(self, key: Type[T], bean_initializer: Callable[[], T]):
         """
@@ -39,7 +39,7 @@ class Context:
         if key in self._container:
             del self._container[key]
         self._lazy_container[key] = bean_initializer
-        logger.info(f"lazily registered a bean of type {key}")
+        logger.success(f"lazily registered bean {key}")
 
     def register_singleton(self, *args, **kwargs):
         """
@@ -61,21 +61,9 @@ class Context:
         if key in self._lazy_container:
             del self._container[key]
 
-    # 并不好用，因为经常被优化掉import
-    # def register_factory(self, key: Type[T]):
-    #     """
-    #     decorator for a factory method to register a bean lazily
-    #     """
-    #
-    #     def decorator(func: Callable[[], T]):
-    #         self.register_lazy(key, func)
-    #         return func
-    #
-    #     return decorator
-
     def bind(self, key, src_key):
         self._binding[key] = src_key
-        logger.info(f"bind bean type {key} to {src_key}")
+        logger.success(f"bind bean {key} to {src_key}")
 
     def require(self, key: Type[T]) -> T:
         if key in self._binding:
