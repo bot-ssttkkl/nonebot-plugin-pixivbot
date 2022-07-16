@@ -3,7 +3,7 @@ from typing import TypeVar, Generic, Sequence, Any
 from nonebot import get_bot
 
 from nonebot_plugin_pixivbot.data.pixiv import PixivRepo
-from nonebot_plugin_pixivbot.global_context import context as context
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.cmd.command_handler import SubCommandHandler, CommandHandler
 from nonebot_plugin_pixivbot.postman import PostDestination
 

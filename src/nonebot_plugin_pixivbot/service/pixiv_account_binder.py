@@ -1,7 +1,7 @@
 from typing import TypeVar, Generic, Optional
 
 from nonebot_plugin_pixivbot.data import PixivBindingRepo
-from nonebot_plugin_pixivbot.global_context import context as context
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model.pixiv_binding import PixivBinding
 from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
 

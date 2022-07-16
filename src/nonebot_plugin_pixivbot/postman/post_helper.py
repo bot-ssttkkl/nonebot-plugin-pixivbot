@@ -1,7 +1,7 @@
 from asyncio import create_task, wait
 from typing import Optional, Sequence
 
-from nonebot_plugin_pixivbot.global_context import context as context
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Illust
 from nonebot_plugin_pixivbot.postman.model.illust_message import IllustMessageModel
 from nonebot_plugin_pixivbot.postman.model.illust_messages import IllustMessagesModel

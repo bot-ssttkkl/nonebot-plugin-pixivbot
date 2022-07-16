@@ -1,6 +1,6 @@
 from typing import Optional, Sequence, Union, TypeVar, Generic, Any
 
-from nonebot_plugin_pixivbot.global_context import context as context
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.common.common_handler import CommonHandler
 from nonebot_plugin_pixivbot.postman import PostDestination, post_illusts
 from nonebot_plugin_pixivbot.utils.decode_integer import decode_integer
