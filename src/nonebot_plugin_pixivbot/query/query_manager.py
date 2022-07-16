@@ -12,12 +12,15 @@ class QueryManager:
         self.started = False
         self.t_queries: Set[Type[Query]] = set()
 
-    def query(self, cls):
+    def query(self, cls, *args, **kwargs):
+        if cls not in context:
+            context.register_singleton(*args, **kwargs)(cls)
+
+        self.t_queries.add(cls)
         if not self.started:
-            self.t_queries.add(cls)
             logger.success(f"registered a query {cls}")
         else:
-            query = cls()
+            query = context.require(cls)
             query.matcher.append_handler(query.on_match)
             logger.warning(f"registered a query {cls} after QueryManager started")
         return cls
@@ -25,7 +28,7 @@ class QueryManager:
     def start(self):
         if not self.started:
             for cls in self.t_queries:
-                query = cls()
+                query = context.require(cls)
                 query.matcher.append_handler(query.on_match)
             self.started = True
 
