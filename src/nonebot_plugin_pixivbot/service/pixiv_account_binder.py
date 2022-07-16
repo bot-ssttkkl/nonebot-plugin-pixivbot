@@ -22,4 +22,7 @@ class PixivAccountBinder(Generic[UID]):
 
     async def get_binding(self, user_id: UID) -> Optional[int]:
         binding = await self.repo.get(get_adapter_name(), user_id)
-        return binding["pixiv_user_id"]
+        if binding:
+            return binding["pixiv_user_id"]
+        else:
+            return None
