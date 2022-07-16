@@ -5,7 +5,7 @@ from pydantic import BaseSettings, validator
 from pydantic.fields import ModelField
 
 from nonebot_plugin_pixivbot.enums import *
-from nonebot_plugin_pixivbot.global_context import context as context
+from nonebot_plugin_pixivbot.global_context import context
 
 
 @context.register_singleton(**get_driver().config.dict())

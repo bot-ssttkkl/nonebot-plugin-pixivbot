@@ -6,7 +6,7 @@ from nonebot.adapters import Bot, Event
 from nonebot.matcher import Matcher
 from nonebot.typing import T_State
 
-from nonebot_plugin_pixivbot import context
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.postman import PostDestinationFactory
 
 
@@ -19,9 +19,6 @@ class Query(ABC):
     @abstractmethod
     def matcher(self):
         raise NotImplementedError()
-
-    def __init__(self):
-        self.matcher.handle()(self.on_match)
 
     @abstractmethod
     async def on_match(self, bot: Bot, event: Event, state: T_State, matcher: Matcher):

@@ -5,9 +5,9 @@ from pydantic import BaseModel
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.data import PixivRepo
+from nonebot_plugin_pixivbot.enums import BlockAction
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Illust
-from nonebot_plugin_pixivbot.enums import BlockAction
 
 conf = context.require(Config)
 

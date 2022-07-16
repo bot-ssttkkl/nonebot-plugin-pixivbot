@@ -1,7 +1,7 @@
 from abc import ABC
 from typing import TypeVar, Generic
 
-from nonebot_plugin_pixivbot.global_context import context as context
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.common.recorder import Req, Recorder
 from nonebot_plugin_pixivbot.handler.handler import Handler
 from nonebot_plugin_pixivbot.handler.interceptor.combined_interceptor import CombinedInterceptor

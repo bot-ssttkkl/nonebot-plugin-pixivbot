@@ -1,6 +1,6 @@
 from typing import Union, Awaitable, TypeVar, Generic, Sequence, Any
 
-from nonebot_plugin_pixivbot.global_context import context as context
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.cmd.command_handler import SubCommandHandler, CommandHandler
 from nonebot_plugin_pixivbot.postman import PostDestination
 

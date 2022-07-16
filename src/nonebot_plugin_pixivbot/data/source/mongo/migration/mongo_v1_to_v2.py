@@ -2,7 +2,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from nonebot_plugin_pixivbot.data.source.mongo.migration.mongo_migration import MongoMigration
 from nonebot_plugin_pixivbot.data.source.mongo.migration.mongo_migration_manager import MongoMigrationManager
-from nonebot_plugin_pixivbot.global_context import context as context
+from nonebot_plugin_pixivbot.global_context import context
 
 
 @context.require(MongoMigrationManager).register

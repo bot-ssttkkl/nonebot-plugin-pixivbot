@@ -5,7 +5,7 @@ from typing import TypeVar, Generic, Callable
 from lazy import lazy
 
 from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.global_context import context as context
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.interceptor.interceptor import Interceptor
 from nonebot_plugin_pixivbot.postman import PostDestination, Postman
 

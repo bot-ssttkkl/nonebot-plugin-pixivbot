@@ -2,7 +2,7 @@ from abc import ABC
 from abc import abstractmethod
 from typing import Type, Callable, Union, Awaitable, TypeVar, Generic, Sequence, Any
 
-from nonebot_plugin_pixivbot.global_context import context as context
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.handler import Handler
 from nonebot_plugin_pixivbot.handler.interceptor.default_error_interceptor import DefaultErrorInterceptor
 from nonebot_plugin_pixivbot.postman import PostDestination
