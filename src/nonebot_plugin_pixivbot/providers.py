@@ -1,7 +1,6 @@
-from .global_context import context
-from .nb_provider import providers as nb_providers
+from . import nb_provider
+from .context import Context
 
-providers = (*nb_providers,)
 
-for p in providers:
-    p(context)
+def provide(context: Context):
+    nb_provider.provide(context)
