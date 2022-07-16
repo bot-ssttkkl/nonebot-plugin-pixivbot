@@ -1,5 +1,6 @@
 import asyncio
 import typing
+from functools import wraps
 from io import BytesIO
 from sqlite3 import NotSupportedError
 
@@ -19,6 +20,7 @@ from .pkg_context import context
 
 
 def auto_retry(func):
+    @wraps(func)
     async def wrapped(*args, **kwargs):
         err = None
         for t in range(10):
@@ -42,9 +44,11 @@ T = typing.TypeVar("T")
 @context.register_singleton()
 class RemotePixivRepo(AbstractPixivRepo):
     _conf: Config = context.require(Config)
-    _local_tags = context.require(LocalTagRepo)
 
     def __init__(self):
+        self._local_tags = context.require(LocalTagRepo)
+        self._compressor = context.require(Compressor)
+
         self.user_id = 0
 
         self.refresh_token = self._conf.pixiv_refresh_token
@@ -52,18 +56,14 @@ class RemotePixivRepo(AbstractPixivRepo):
         self.timeout = self._conf.pixiv_query_timeout
         self.proxy = self._conf.pixiv_proxy
 
-        self._compressor = Compressor(enabled=self._conf.pixiv_compression_enabled,
-                                      max_size=self._conf.pixiv_compression_max_size,
-                                      quantity=self._conf.pixiv_compression_quantity)
-
         self._cache_manager = CacheManager(
             simultaneous_query=self._conf.pixiv_simultaneous_query)
 
     async def _refresh(self):
         # Latest app version can be found using GET /old/application-info/android
         USER_AGENT = "PixivAndroidApp/5.0.234 (Android 11; Pixel 5)"
-        REDIRECT_URI = "https://app-api.pixiv.net/web/v1/users/auth/pixiv/callback"
-        LOGIN_URL = "https://app-api.pixiv.net/web/v1/login"
+        # REDIRECT_URI = "https://app-api.pixiv.net/web/v1/users/auth/pixiv/callback"
+        # LOGIN_URL = "https://app-api.pixiv.net/web/v1/login"
         AUTH_TOKEN_URL = "https://oauth.secure.pixiv.net/auth/token"
         CLIENT_ID = "MOBrBDS8blbauoSck0ZfDbtuzpyT"
         CLIENT_SECRET = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj"

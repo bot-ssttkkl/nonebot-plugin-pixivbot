@@ -16,15 +16,16 @@ GID = TypeVar("GID")
 
 
 class CommonHandler(Handler[UID, GID], ABC, Generic[UID, GID]):
-    service = context.require(PixivService)
-    recorder = context.require(Recorder)
-
-    interceptor = CombinedInterceptor.from_iterable(
-        [
-            context.require(DefaultErrorInterceptor),
-            context.require(CooldownInterceptor)
-        ]
-    )
+    def __init__(self):
+        super().__init__()
+        self.service = context.require(PixivService)
+        self.recorder = context.require(Recorder)
+        self.interceptor = CombinedInterceptor.from_iterable(
+            [
+                context.require(DefaultErrorInterceptor),
+                context.require(CooldownInterceptor)
+            ]
+        )
 
     def record_req(self, *args,
                    post_dest: PostDestination[UID, GID],

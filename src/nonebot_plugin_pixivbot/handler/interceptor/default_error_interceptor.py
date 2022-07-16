@@ -1,5 +1,6 @@
 from typing import Callable, TypeVar, Generic
 
+from lazy import lazy
 from nonebot import logger
 
 from nonebot_plugin_pixivbot.global_context import context as context
@@ -13,7 +14,9 @@ GID = TypeVar("GID")
 
 @context.register_singleton()
 class DefaultErrorInterceptor(Interceptor[UID, GID], Generic[UID, GID]):
-    postman = context.require(Postman)
+    @lazy
+    def postman(self):
+        return context.require(Postman)
 
     async def intercept(self, wrapped_func: Callable,
                         post_dest: PostDestination[UID, GID],

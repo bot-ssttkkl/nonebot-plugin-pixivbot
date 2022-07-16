@@ -27,14 +27,12 @@ def do_skip_and_limit(items: list, skip: int, limit: int) -> list:
 
 @context.root.register_singleton()
 class PixivRepo(AbstractPixivRepo):
-    remote: RemotePixivRepo = context.require(RemotePixivRepo)
-    cache: LocalPixivRepo = context.require(LocalPixivRepo)
-
     _conf: Config = context.require(Config)
-    timeout = _conf.pixiv_query_timeout
 
     def __init__(self):
         self._cache_manager = None
+        self.remote = context.require(RemotePixivRepo)
+        self.cache = context.require(LocalPixivRepo)
 
     def start(self):
         self.remote.start()
@@ -54,7 +52,7 @@ class PixivRepo(AbstractPixivRepo):
             remote_fetcher=partial(
                 self.remote.illust_detail, illust_id=illust_id),
             cache_updater=self.cache.update_illust_detail,
-            timeout=self.timeout
+            timeout=self._conf.pixiv_query_timeout
         )
 
     async def user_detail(self, user_id: int) -> User:
@@ -65,7 +63,7 @@ class PixivRepo(AbstractPixivRepo):
             remote_fetcher=partial(
                 self.remote.user_detail, user_id=user_id),
             cache_updater=self.cache.update_user_detail,
-            timeout=self.timeout
+            timeout=self._conf.pixiv_query_timeout
         )
 
     async def search_illust(self, word: str, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
@@ -79,7 +77,7 @@ class PixivRepo(AbstractPixivRepo):
                 word, content),
             hook_on_fetch=lambda result: do_skip_and_limit(
                 result, skip, limit),
-            timeout=self.timeout
+            timeout=self._conf.pixiv_query_timeout
         )
 
     async def search_user(self, word: str, *, skip: int = 0, limit: int = 0) -> typing.List[User]:
@@ -92,7 +90,7 @@ class PixivRepo(AbstractPixivRepo):
                 word, content),
             hook_on_fetch=lambda result: do_skip_and_limit(
                 result, skip, limit),
-            timeout=self.timeout
+            timeout=self._conf.pixiv_query_timeout
         )
 
     async def user_illusts(self, user_id: int = 0, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
@@ -105,7 +103,7 @@ class PixivRepo(AbstractPixivRepo):
                 user_id, content),
             hook_on_fetch=lambda result: do_skip_and_limit(
                 result, skip, limit),
-            timeout=self.timeout
+            timeout=self._conf.pixiv_query_timeout
         )
 
     async def user_bookmarks(self, user_id: int = 0, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
@@ -119,7 +117,7 @@ class PixivRepo(AbstractPixivRepo):
                 user_id, content),
             hook_on_fetch=lambda result: do_skip_and_limit(
                 result, skip, limit),
-            timeout=self.timeout
+            timeout=self._conf.pixiv_query_timeout
         )
 
     async def recommended_illusts(self, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
@@ -131,7 +129,7 @@ class PixivRepo(AbstractPixivRepo):
             cache_updater=self.cache.update_recommended_illusts,
             hook_on_fetch=lambda result: do_skip_and_limit(
                 result, skip, limit),
-            timeout=self.timeout
+            timeout=self._conf.pixiv_query_timeout
         )
 
     async def related_illusts(self, illust_id: int, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
@@ -145,7 +143,7 @@ class PixivRepo(AbstractPixivRepo):
                 illust_id, content),
             hook_on_fetch=lambda result: do_skip_and_limit(
                 result, skip, limit),
-            timeout=self.timeout
+            timeout=self._conf.pixiv_query_timeout
         )
 
     async def illust_ranking(self, mode: str = 'day', *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
@@ -159,7 +157,7 @@ class PixivRepo(AbstractPixivRepo):
                 mode, content),
             hook_on_fetch=lambda result: do_skip_and_limit(
                 result, skip, limit),
-            timeout=self.timeout
+            timeout=self._conf.pixiv_query_timeout
         )
 
     async def image(self, illust: Illust) -> bytes:
@@ -169,12 +167,11 @@ class PixivRepo(AbstractPixivRepo):
             remote_fetcher=partial(self.remote.image, illust=illust),
             cache_updater=lambda content: self.cache.update_image(
                 illust, content),
-            timeout=self.timeout
+            timeout=self._conf.pixiv_query_timeout
         )
 
 
 pixiv_data_source = context.require(PixivRepo)
-
 get_driver().on_startup(pixiv_data_source.start)
 get_driver().on_shutdown(pixiv_data_source.shutdown)
 

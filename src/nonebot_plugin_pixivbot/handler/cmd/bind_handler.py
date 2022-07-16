@@ -12,7 +12,9 @@ GID = TypeVar("GID")
 
 @context.require(CommandHandler).sub_command("bind")
 class BindHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
-    binder = context.require(PixivAccountBinder)
+    def __init__(self):
+        super().__init__()
+        self.binder = context.require(PixivAccountBinder)
 
     @classmethod
     def type(cls) -> str:
@@ -47,7 +49,9 @@ class BindHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
 
 @context.require(CommandHandler).sub_command("unbind")
 class UnbindHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
-    binder = context.require(PixivAccountBinder)
+    def __init__(self):
+        super().__init__()
+        self.binder = context.require(PixivAccountBinder)
 
     @classmethod
     def type(cls) -> str:

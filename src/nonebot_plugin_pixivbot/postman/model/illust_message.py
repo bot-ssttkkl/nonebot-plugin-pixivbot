@@ -10,7 +10,6 @@ from nonebot_plugin_pixivbot.model import Illust
 from nonebot_plugin_pixivbot.enums import BlockAction
 
 conf = context.require(Config)
-repo = context.require(PixivRepo)
 
 
 class IllustMessageModel(BaseModel):
@@ -43,6 +42,7 @@ class IllustMessageModel(BaseModel):
                 return None
         else:
             with BytesIO() as bio:
+                repo = context.require(PixivRepo)
                 bio.write(await repo.image(illust))
                 model.image = bio.getvalue()
 

@@ -23,9 +23,9 @@ class SubCommandHandler(Handler[UID, GID], ABC, Generic[UID, GID]):
 
 @context.register_singleton()
 class CommandHandler(Handler[UID, GID], Generic[UID, GID]):
-    interceptor = context.require(DefaultErrorInterceptor)
-
     def __init__(self):
+        super().__init__()
+        self.interceptor = context.require(DefaultErrorInterceptor)
         self.handlers = dict[str, Type[SubCommandHandler[UID, GID]]]()
 
     @classmethod
