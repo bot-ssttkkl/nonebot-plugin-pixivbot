@@ -3,8 +3,8 @@ from abc import abstractmethod
 from typing import Type, Callable, Union, Awaitable, TypeVar, Generic, Sequence, Any
 
 from nonebot_plugin_pixivbot.global_context import context
+from nonebot_plugin_pixivbot.handler.entry_handler import EntryHandler
 from nonebot_plugin_pixivbot.handler.handler import Handler
-from nonebot_plugin_pixivbot.handler.interceptor.default_error_interceptor import DefaultErrorInterceptor
 from nonebot_plugin_pixivbot.postman import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 
@@ -17,15 +17,28 @@ class SubCommandHandler(Handler[UID, GID], ABC, Generic[UID, GID]):
     def parse_args(self, args: Sequence[Any], post_dest: PostDestination[UID, GID]) -> Union[dict, Awaitable[dict]]:
         raise NotImplementedError()
 
-    async def handle_bad_request(self, e: BadRequestError, post_dest: PostDestination[UID, GID]):
-        self.postman.send_plain_text(e.message, post_dest=post_dest)
+    async def handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
+                                 silently: bool = False,
+                                 err: BadRequestError):
+        if self.interceptor is not None:
+            await self.interceptor.intercept(self.actual_handle_bad_request,
+                                             post_dest=post_dest, silently=silently,
+                                             err=err)
+        else:
+            await self.actual_handle_bad_request(post_dest=post_dest, silently=silently,
+                                                 err=err)
+
+    async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
+                                        silently: bool = False,
+                                        err: BadRequestError):
+        if not silently:
+            self.postman.send_plain_text(err.message, post_dest=post_dest)
 
 
 @context.register_singleton()
-class CommandHandler(Handler[UID, GID], Generic[UID, GID]):
+class CommandHandler(EntryHandler[UID, GID], Generic[UID, GID]):
     def __init__(self):
         super().__init__()
-        self.interceptor = context.require(DefaultErrorInterceptor)
         self.handlers = dict[str, Type[SubCommandHandler[UID, GID]]]()
 
     @classmethod
@@ -59,4 +72,4 @@ class CommandHandler(Handler[UID, GID], Generic[UID, GID]):
         try:
             await handler.handle(*args[1:], post_dest=post_dest)
         except BadRequestError as e:
-            await handler.handle_bad_request(e, post_dest)
+            await handler.handle_bad_request(err=e, post_dest=post_dest, silently=silently)

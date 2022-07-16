@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from functools import wraps
 from typing import Callable, TypeVar, Generic
 
@@ -18,7 +18,8 @@ class Interceptor(ABC, Generic[UID, GID]):
 
         return wrapper
 
-    async def intercept(self, wrapped_func: Callable,
+    @abstractmethod
+    async def intercept(self, wrapped_func: Callable, *,
                         post_dest: PostDestination[UID, GID],
                         silently: bool,
                         **kwargs):

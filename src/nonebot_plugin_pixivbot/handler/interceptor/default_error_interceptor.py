@@ -18,7 +18,7 @@ class DefaultErrorInterceptor(Interceptor[UID, GID], Generic[UID, GID]):
     def postman(self):
         return context.require(Postman)
 
-    async def intercept(self, wrapped_func: Callable,
+    async def intercept(self, wrapped_func: Callable, *,
                         post_dest: PostDestination[UID, GID],
                         silently: bool,
                         **kwargs):
