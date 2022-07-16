@@ -7,7 +7,9 @@ nonebot-plugin-pixivbot
 """
 
 from .global_context import context
-from .providers import *
+from .providers import provide
 from .query import QueryManager
+
+provide(context)
 
 __all__ = ("context",)

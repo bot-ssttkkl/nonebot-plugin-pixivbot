@@ -29,7 +29,7 @@ ID = PostIdentifier[UID, GID]
 @context.register_singleton()
 class Scheduler(Generic[UID, GID]):
     def __init__(self):
-        self.apscheduler = context.require(AsyncIOScheduler)
+        self.apscheduler = None
         self.subscriptions = context.require(SubscriptionRepo)
 
     @lazy
@@ -105,6 +105,7 @@ class Scheduler(Generic[UID, GID]):
         logger.success(f"unscheduled {job_id}")
 
     async def start(self):
+        self.apscheduler = context.require(AsyncIOScheduler)
         async for subscription in self.subscriptions.get_all(get_adapter_name()):
             self._add_job(subscription)
 

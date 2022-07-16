@@ -1,5 +1,9 @@
-from .apscheduler import providers as apscheduler_providers
+from . import apscheduler
+from ..context import Context
 
-providers = [*apscheduler_providers]
 
-__all__ = ("providers",)
+def provide(context: Context):
+    apscheduler.provide(context)
+
+
+__all__ = ("provide",)

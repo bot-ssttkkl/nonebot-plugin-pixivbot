@@ -14,3 +14,11 @@ def base_scheduler_provider(context: Context):
 
 
 providers = [asyncio_scheduler_provider, base_scheduler_provider]
+
+
+def provide(context: Context):
+    for p in providers:
+        p(context)
+
+
+__all__ = ("provide",)
