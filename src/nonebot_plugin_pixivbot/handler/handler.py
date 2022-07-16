@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from inspect import isawaitable
 from typing import Awaitable, Union, TypeVar, Generic, Optional, Sequence, Any
 
+from lazy import lazy
+
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.handler.interceptor.interceptor import Interceptor
@@ -14,10 +16,13 @@ GID = TypeVar("GID")
 
 
 class Handler(ABC, Generic[UID, GID]):
-    conf = context.require(Config)
-    postman = context.require(Postman)
+    def __init__(self):
+        self.conf = context.require(Config)
+        self.interceptor: Optional[Interceptor] = None
 
-    interceptor: Optional[Interceptor] = None
+    @lazy
+    def postman(self):
+        return context.require(Postman)
 
     @classmethod
     @abstractmethod

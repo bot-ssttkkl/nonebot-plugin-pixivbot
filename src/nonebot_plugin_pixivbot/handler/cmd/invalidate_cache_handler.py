@@ -13,7 +13,9 @@ GID = TypeVar("GID")
 
 @context.require(CommandHandler).sub_command("invalidate_cache")
 class InvalidateCacheHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
-    pixiv_data_source = context.require(PixivRepo)
+    def __init__(self):
+        super().__init__()
+        self.pixiv_data_source = context.require(PixivRepo)
 
     @classmethod
     def type(cls) -> str:

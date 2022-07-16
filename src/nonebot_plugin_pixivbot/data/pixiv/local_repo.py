@@ -14,7 +14,8 @@ from .pkg_context import context
 
 @context.register_singleton()
 class LocalPixivRepo(AbstractPixivRepo):
-    mongo = context.require(MongoDataSource)
+    def __init__(self):
+        self.mongo = context.require(MongoDataSource)
 
     def _make_illusts_cache_loader(self, collection_name: str, arg_name: str, arg: typing.Any, *, skip: int = 0,
                                    limit: int = 0):

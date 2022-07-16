@@ -13,7 +13,9 @@ GID = TypeVar("GID")
 
 @context.require(CommandHandler).sub_command("schedule")
 class ScheduleHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
-    scheduler = context.require(Scheduler)
+    def __init__(self):
+        super().__init__()
+        self.scheduler = context.require(Scheduler)
 
     @classmethod
     def type(cls) -> str:
@@ -52,7 +54,9 @@ class ScheduleHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
 
 @context.require(CommandHandler).sub_command("unschedule")
 class UnscheduleHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
-    scheduler = context.require(Scheduler)
+    def __init__(self):
+        super().__init__()
+        self.scheduler = context.require(Scheduler)
 
     @classmethod
     def type(cls) -> str:

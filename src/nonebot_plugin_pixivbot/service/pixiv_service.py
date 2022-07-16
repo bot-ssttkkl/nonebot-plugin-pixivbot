@@ -15,11 +15,13 @@ from nonebot_plugin_pixivbot.utils.errors import BadRequestError, QueryError
 @context.register_singleton()
 class PixivService:
     conf = context.require(Config)
-    data_source = context.require(PixivRepo)
-    local_tags = context.require(LocalTagRepo)
 
-    async def _choice_and_load(self, illusts: List[LazyIllust], random_method: RandomIllustMethod, count: int) -> List[
-        Illust]:
+    def __init__(self):
+        self.data_source = context.require(PixivRepo)
+        self.local_tags = context.require(LocalTagRepo)
+
+    async def _choice_and_load(self, illusts: List[LazyIllust], random_method: RandomIllustMethod, count: int) \
+            -> List[Illust]:
         if count <= 0:
             raise BadRequestError("不合法的请求数量")
         if count > self.conf.pixiv_max_item_per_query:

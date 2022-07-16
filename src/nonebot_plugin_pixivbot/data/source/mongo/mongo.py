@@ -16,9 +16,6 @@ class MongoDataSource:
         self._client = None
         self._db = None
 
-        get_driver().on_startup(self.initialize)
-        get_driver().on_shutdown(self.finalize)
-
     @property
     def client(self):
         return self._client
@@ -112,12 +109,17 @@ class MongoDataSource:
 
         await self._ensure_index('other_cache', [("type", 1)], unique=True)
         await self._ensure_ttl_index('other_cache', self.conf.pixiv_other_cache_expires_in)
-        logger.success("ensure indexes completed")
+
+        logger.success("MongoDataSource Initialization Succeed.")
 
     async def finalize(self):
         self._client.close()
         self._client = None
         self._db = None
 
+
+mongo = context.require(MongoDataSource)
+get_driver().on_startup(mongo.initialize)
+get_driver().on_shutdown(mongo.finalize)
 
 __all__ = ("MongoDataSource",)

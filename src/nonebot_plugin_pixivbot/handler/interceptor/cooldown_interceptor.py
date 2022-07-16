@@ -2,6 +2,8 @@ from datetime import datetime
 from math import ceil
 from typing import TypeVar, Generic, Callable
 
+from lazy import lazy
+
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context as context
 from nonebot_plugin_pixivbot.handler.interceptor.interceptor import Interceptor
@@ -13,11 +15,13 @@ GID = TypeVar("GID")
 
 @context.register_singleton()
 class CooldownInterceptor(Interceptor[UID, GID], Generic[UID, GID]):
-    conf = context.require(Config)
-    postman = context.require(Postman)
-
     def __init__(self):
+        self.conf = context.require(Config)
         self.last_query_time = dict[UID, datetime]()
+
+    @lazy
+    def postman(self):
+        return context.require(Postman)
 
     def get_cooldown(self, user_id: UID) -> int:
         if self.conf.pixiv_query_cooldown == 0 or user_id in self.conf.pixiv_no_query_cooldown_users:

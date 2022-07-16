@@ -10,7 +10,8 @@ UID = TypeVar("UID")
 
 @context.register_singleton()
 class PixivAccountBinder(Generic[UID]):
-    repo = context.require(PixivBindingRepo)
+    def __init__(self):
+        self.repo = context.require(PixivBindingRepo)
 
     async def bind(self, user_id: UID, pixiv_user_id: int):
         binding = PixivBinding(adapter=get_adapter_name(), user_id=user_id, pixiv_user_id=pixiv_user_id)

@@ -9,4 +9,6 @@ nonebot-plugin-pixivbot
 from .global_context import context
 from .providers import *
 
+from .query import *
+
 __all__ = ("context",)

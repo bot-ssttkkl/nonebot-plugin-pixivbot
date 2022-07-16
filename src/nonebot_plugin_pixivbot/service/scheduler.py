@@ -28,9 +28,13 @@ ID = PostIdentifier[UID, GID]
 
 @context.register_singleton()
 class Scheduler(Generic[UID, GID]):
-    apscheduler = context.require(AsyncIOScheduler)
-    subscriptions = context.require(SubscriptionRepo)
-    post_dest_factory = context.require(PostDestinationFactory)
+    def __init__(self):
+        self.apscheduler = context.require(AsyncIOScheduler)
+        self.subscriptions = context.require(SubscriptionRepo)
+
+    @lazy
+    def post_dest_factory(self):
+        return context.require(PostDestinationFactory)
 
     @staticmethod
     def _make_job_id(type: str, identifier: ID):

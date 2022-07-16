@@ -6,14 +6,20 @@ from io import BytesIO
 
 from PIL import Image, ImageFile
 
+from nonebot_plugin_pixivbot.config import Config
+from .pkg_context import context
 
+
+@context.register_singleton()
 class Compressor:
-    def __init__(self, enabled, max_size, quantity) -> None:
-        self.enabled = enabled
-        self.max_size = max_size
-        self.quantity = quantity
+    _conf: Config = context.require(Config)
 
-        if enabled:
+    def __init__(self) -> None:
+        self.enabled = self._conf.pixiv_compression_enabled
+        self.max_size = self._conf.pixiv_compression_max_size
+        self.quantity = self._conf.pixiv_compression_quantity
+
+        if self.enabled:
             cpu_count = multiprocessing.cpu_count()
             self._executor = ThreadPoolExecutor(cpu_count, "compressor")
             # logger.info(f"A ThreadPool with {cpu_count} worker(s) was created for compression")

@@ -9,7 +9,8 @@ from nonebot_plugin_pixivbot.model import Tag
 
 @context.register_singleton()
 class LocalTagRepo:
-    mongo = context.require(MongoDataSource)
+    def __init__(self):
+        self.mongo = context.require(MongoDataSource)
 
     async def insert(self, tag: Tag) -> typing.NoReturn:
         await self.mongo.db.local_tags.updateOne(
