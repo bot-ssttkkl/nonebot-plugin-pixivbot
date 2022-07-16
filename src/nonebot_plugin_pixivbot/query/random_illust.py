@@ -8,7 +8,7 @@ from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler import RandomIllustHandler
 from nonebot_plugin_pixivbot.query.query import Query
 from nonebot_plugin_pixivbot.query.query_manager import QueryManager
-from nonebot_plugin_pixivbot.query.utils import get_count
+from nonebot_plugin_pixivbot.query.utils import get_count, get_common_query_rule
 
 
 @context.require(QueryManager).query
@@ -19,7 +19,7 @@ class RandomIllustQuery(Query):
 
     @lazy
     def matcher(self):
-        return on_regex("^来(.*)?张(.+)图$", priority=5)
+        return on_regex("^来(.*)?张(.+)图$", rule=get_common_query_rule(), priority=5)
 
     async def on_match(self, bot: Bot, event: Event, state: T_State, matcher: Matcher):
         word = state["_matched_groups"][1]

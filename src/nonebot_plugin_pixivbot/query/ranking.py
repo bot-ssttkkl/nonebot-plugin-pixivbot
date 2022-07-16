@@ -8,17 +8,18 @@ from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler import RankingHandler
 from nonebot_plugin_pixivbot.query.query import Query
 from nonebot_plugin_pixivbot.query.query_manager import QueryManager
+from nonebot_plugin_pixivbot.query.utils import get_common_query_rule
 
 
 @context.require(QueryManager).query
 class RankingQuery(Query):
-    @lazy
-    def matcher(self):
-        return on_regex(r"^看看(.*)?榜\s*(.*)?$", priority=4, block=True)
-
     def __init__(self):
         super().__init__()
         self.handler = context.require(RankingHandler)
+
+    @lazy
+    def matcher(self):
+        return on_regex(r"^看看(.*)?榜\s*(.*)?$", rule=get_common_query_rule(), priority=4, block=True)
 
     async def on_match(self, bot: Bot, event: Event, state: T_State, matcher: Matcher):
         if "_matched_groups" in state:

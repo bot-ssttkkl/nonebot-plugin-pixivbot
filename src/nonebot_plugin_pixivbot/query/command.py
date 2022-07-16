@@ -8,6 +8,7 @@ from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler import CommandHandler
 from nonebot_plugin_pixivbot.query.query import Query
 from nonebot_plugin_pixivbot.query.query_manager import QueryManager
+from nonebot_plugin_pixivbot.query.utils import get_command_rule
 
 
 @context.require(QueryManager).query
@@ -18,7 +19,7 @@ class CommandQuery(Query):
 
     @lazy
     def matcher(self):
-        return on_command("pixivbot", priority=5)
+        return on_command("pixivbot", rule=get_command_rule(), priority=5)
 
     async def on_match(self, bot: Bot, event: Event, state: T_State, matcher: Matcher):
         args = str(event.get_message()).strip().split()[1:]
