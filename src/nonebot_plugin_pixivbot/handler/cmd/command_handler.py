@@ -66,6 +66,10 @@ class CommandHandler(EntryHandler[UID, GID], Generic[UID, GID]):
                             silently: bool = False):
         if len(args) == 0:
             handler = context.require(self.handlers["help"])
+        elif args[0] not in self.handlers:
+            if not silently:
+                await self.postman.send_plain_text(f"不存在命令 '{args[0]}'", post_dest=post_dest)
+            return
         else:
             handler = context.require(self.handlers[args[0]])
 
