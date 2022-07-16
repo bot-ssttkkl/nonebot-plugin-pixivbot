@@ -2,6 +2,8 @@ from typing import List, TypeVar, Generic, Sequence, Any
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.cmd.command_handler import CommandHandler, SubCommandHandler
+from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import GroupAdminInterceptor, \
+    AnyPermissionInterceptor, SuperuserInterceptor
 from nonebot_plugin_pixivbot.model import PostIdentifier
 from nonebot_plugin_pixivbot.postman import PostDestination
 from nonebot_plugin_pixivbot.service.scheduler import Scheduler
@@ -16,6 +18,11 @@ class ScheduleHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
     def __init__(self):
         super().__init__()
         self.scheduler = context.require(Scheduler)
+
+        self.set_permission_interceptor(AnyPermissionInterceptor(
+            context.require(SuperuserInterceptor),
+            context.require(GroupAdminInterceptor)
+        ))
 
     @classmethod
     def type(cls) -> str:
@@ -38,7 +45,9 @@ class ScheduleHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
         await self.scheduler.schedule(type, schedule, args, identifier=PostIdentifier.from_post_dest(post_dest))
         await self.postman.send_plain_text(message="订阅成功", post_dest=post_dest)
 
-    async def handle_bad_request(self, e: BadRequestError, post_dest: PostDestination[UID, GID]):
+    async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
+                                        silently: bool = False,
+                                        err: BadRequestError):
         subscription = await self.scheduler.all_subscription(PostIdentifier.from_post_dest(post_dest))
         msg = "当前订阅：\n"
         if len(subscription) > 0:
@@ -58,6 +67,11 @@ class UnscheduleHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
         super().__init__()
         self.scheduler = context.require(Scheduler)
 
+        self.set_permission_interceptor(AnyPermissionInterceptor(
+            context.require(SuperuserInterceptor),
+            context.require(GroupAdminInterceptor)
+        ))
+
     @classmethod
     def type(cls) -> str:
         return "unschedule"
@@ -75,7 +89,9 @@ class UnscheduleHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
         await self.scheduler.unschedule(type, PostIdentifier.from_post_dest(post_dest))
         await self.postman.send_plain_text(message="取消订阅成功", post_dest=post_dest)
 
-    async def handle_bad_request(self, e: BadRequestError, post_dest: PostDestination[UID, GID]):
+    async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
+                                        silently: bool = False,
+                                        err: BadRequestError):
         subscription = await self.scheduler.all_subscription(PostIdentifier.from_post_dest(post_dest))
         msg = "当前订阅：\n"
         if len(subscription) > 0:

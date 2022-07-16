@@ -40,7 +40,7 @@ class CombinedInterceptor(Interceptor[UID, GID], Generic[UID, GID]):
                 result = self.y.find(interceptor_type)
             return result
 
-    async def intercept(self, wrapped_func: Callable,
+    async def intercept(self, wrapped_func: Callable, *,
                         post_dest: PostDestination[UID, GID],
                         silently: bool,
                         **kwargs):

@@ -10,6 +10,8 @@ from nonebot_plugin_pixivbot.global_context import context
 
 @context.register_singleton(**get_driver().config.dict())
 class Config(BaseSettings):
+    blacklist: set[str] = set()
+
     pixiv_refresh_token: str
     pixiv_mongo_conn_url: str
     pixiv_mongo_database_name: str

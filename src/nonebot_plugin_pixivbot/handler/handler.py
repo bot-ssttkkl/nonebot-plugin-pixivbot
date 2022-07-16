@@ -1,12 +1,14 @@
 from abc import ABC, abstractmethod
 from inspect import isawaitable
-from typing import Awaitable, Union, TypeVar, Generic, Optional, Sequence, Any
+from typing import Awaitable, Union, TypeVar, Generic, Sequence, Any, Optional
 
 from lazy import lazy
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
+from nonebot_plugin_pixivbot.handler.interceptor.combined_interceptor import CombinedInterceptor
 from nonebot_plugin_pixivbot.handler.interceptor.interceptor import Interceptor
+from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import PermissionInterceptor
 from nonebot_plugin_pixivbot.postman import Postman
 from nonebot_plugin_pixivbot.postman.post_destination import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
@@ -16,9 +18,13 @@ GID = TypeVar("GID")
 
 
 class Handler(ABC, Generic[UID, GID]):
-    def __init__(self):
-        self.conf = context.require(Config)
-        self.interceptor: Optional[Interceptor] = None
+    conf = context.require(Config)
+
+    def __init__(self, interceptor: Optional[Interceptor[UID, GID]] = None):
+        self.interceptor = interceptor
+
+        self.permission_interceptor_delegation = PermissionInterceptorDelegation()
+        self.add_interceptor(self.permission_interceptor_delegation)
 
     @lazy
     def postman(self):
@@ -64,7 +70,7 @@ class Handler(ABC, Generic[UID, GID]):
             await self.actual_handle(post_dest=post_dest, silently=silently, **kwargs)
 
     @abstractmethod
-    async def actual_handle(self, post_dest: PostDestination[UID, GID],
+    async def actual_handle(self, *, post_dest: PostDestination[UID, GID],
                             silently: bool = False, **kwargs):
         """
         处理指令
@@ -73,3 +79,26 @@ class Handler(ABC, Generic[UID, GID]):
         :param kwargs: 参数dict
         """
         raise NotImplementedError()
+
+    def add_interceptor(self, interceptor: Interceptor[UID, GID]):
+        if self.interceptor:
+            self.interceptor = CombinedInterceptor(self.interceptor, interceptor)
+        else:
+            self.interceptor = interceptor
+
+    def get_permission_interceptor(self):
+        return self.permission_interceptor_delegation.delegation
+
+    def set_permission_interceptor(self, interceptor: PermissionInterceptor[UID, GID]):
+        self.permission_interceptor_delegation.delegation = interceptor
+
+
+class PermissionInterceptorDelegation(PermissionInterceptor, Generic[UID, GID]):
+    def __init__(self):
+        self.delegation = None
+
+    def has_permission(self, post_dest: PostDestination[UID, GID]) -> Union[bool, Awaitable[bool]]:
+        if self.delegation:
+            return self.delegation.has_permission(post_dest)
+        else:
+            return True
