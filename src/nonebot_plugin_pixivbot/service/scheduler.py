@@ -13,7 +13,6 @@ from nonebot import logger, get_driver, Bot
 from nonebot_plugin_pixivbot.data.subscription_repo import SubscriptionRepo
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier
-from nonebot_plugin_pixivbot.postman import PostDestinationFactory
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
 
@@ -31,10 +30,6 @@ class Scheduler:
     def __init__(self):
         self.apscheduler = context.require(AsyncIOScheduler)
         self.subscriptions = context.require(SubscriptionRepo)
-
-    @lazy
-    def post_dest_factory(self):
-        return context.require(PostDestinationFactory)
 
     @staticmethod
     def _make_job_id(type: str, identifier: ID):
@@ -94,7 +89,7 @@ class Scheduler:
 
         identifier = sub.identifier
         job_id = self._make_job_id(sub.type, identifier)
-        post_dest = identifier.to_post_dest(self.post_dest_factory)
+        post_dest = identifier.to_post_dest(sub.adapter)
         self.apscheduler.add_job(self._handlers[sub.type].handle, id=job_id, trigger=trigger,
                                  kwargs={"post_dest": post_dest, "silently": True, **sub.kwargs})
         logger.success(f"scheduled {job_id} {trigger}")
@@ -125,7 +120,7 @@ class Scheduler:
         if isinstance(schedule, str):
             schedule = self._parse_schedule(schedule)
 
-        kwargs = self._handlers[type].parse_args(args, identifier.to_post_dest(self.post_dest_factory))
+        kwargs = self._handlers[type].parse_args(args, identifier.to_post_dest(identifier.adapter))
         if isawaitable(kwargs):
             kwargs = await kwargs
 

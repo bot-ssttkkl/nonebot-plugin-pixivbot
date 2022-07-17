@@ -1,10 +1,15 @@
+from asyncio import Event
+
+from nonebot import Bot
 from nonebot.rule import to_me
 from nonebot.typing import T_State
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
+from nonebot_plugin_pixivbot.postman import PostDestinationFactoryManager
 from nonebot_plugin_pixivbot.utils.decode_integer import decode_integer
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
+from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
 
 
 def get_count(state: T_State, pos: int = 0):
@@ -35,4 +40,8 @@ def get_command_rule():
     return rule
 
 
-__all__ = ("get_count", "get_common_query_rule", "get_command_rule")
+def get_post_dest(bot: Bot, event: Event):
+    return context.require(PostDestinationFactoryManager)[get_adapter_name(bot)].from_event(event)
+
+
+__all__ = ("get_count", "get_common_query_rule", "get_command_rule", "get_post_dest")

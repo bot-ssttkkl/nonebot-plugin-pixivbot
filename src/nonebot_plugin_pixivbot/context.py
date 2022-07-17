@@ -80,6 +80,9 @@ class Context:
         else:
             raise KeyError(key)
 
+    def __getitem__(self, key: Type[T]):
+        return self.require(key)
+
     def __contains__(self, key: Type[T]) -> bool:
         if key in self._binding or key in self._container or key in self._lazy_container:
             return True

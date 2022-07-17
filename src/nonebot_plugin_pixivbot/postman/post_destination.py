@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, Optional
+from typing import Generic, TypeVar, Optional, Type, Dict
 
 from nonebot.internal.adapter import Event
+
+from nonebot_plugin_pixivbot.global_context import context
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -25,6 +27,11 @@ class PostDestination(ABC, Generic[UID, GID]):
 
 
 class PostDestinationFactory(ABC, Generic[UID, GID]):
+    @classmethod
+    @abstractmethod
+    def adapter(cls) -> str:
+        raise NotImplementedError()
+
     @abstractmethod
     def build(self, user_id: Optional[UID], group_id: Optional[GID]) -> PostDestination:
         raise NotImplementedError()
@@ -32,3 +39,19 @@ class PostDestinationFactory(ABC, Generic[UID, GID]):
     @abstractmethod
     def from_event(self, event: Event) -> PostDestination:
         raise NotImplementedError()
+
+
+@context.register_singleton()
+class PostDestinationFactoryManager:
+    def __init__(self):
+        self.factories: Dict[str, Type[PostDestinationFactory]] = {}
+
+    def register(self, cls: Type[PostDestinationFactory]):
+        self.factories[cls.adapter()] = cls
+        return cls
+
+    def require(self, adapter: str):
+        return context.require(self.factories[adapter])
+
+    def __getitem__(self, adapter: str):
+        return self.require(adapter)
