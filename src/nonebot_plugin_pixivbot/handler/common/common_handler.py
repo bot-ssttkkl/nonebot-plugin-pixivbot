@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import TypeVar, Generic
+from typing import TypeVar
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.common.recorder import Req, Recorder
@@ -13,7 +13,7 @@ UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
-class CommonHandler(EntryHandler[UID, GID], ABC, Generic[UID, GID]):
+class CommonHandler(EntryHandler, ABC):
     def __init__(self):
         super().__init__()
         self.service = context.require(PixivService)

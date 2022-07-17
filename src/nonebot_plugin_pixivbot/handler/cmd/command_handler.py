@@ -1,6 +1,6 @@
 from abc import ABC
 from abc import abstractmethod
-from typing import Type, Callable, Union, Awaitable, TypeVar, Generic, Sequence, Any
+from typing import Type, Callable, Union, Awaitable, TypeVar, Sequence, Any
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.entry_handler import EntryHandler
@@ -12,7 +12,7 @@ UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
-class SubCommandHandler(Handler[UID, GID], ABC, Generic[UID, GID]):
+class SubCommandHandler(Handler, ABC):
     @abstractmethod
     def parse_args(self, args: Sequence[Any], post_dest: PostDestination[UID, GID]) -> Union[dict, Awaitable[dict]]:
         raise NotImplementedError()
@@ -36,10 +36,10 @@ class SubCommandHandler(Handler[UID, GID], ABC, Generic[UID, GID]):
 
 
 @context.register_singleton()
-class CommandHandler(EntryHandler[UID, GID], Generic[UID, GID]):
+class CommandHandler(EntryHandler):
     def __init__(self):
         super().__init__()
-        self.handlers = dict[str, Type[SubCommandHandler[UID, GID]]]()
+        self.handlers = dict[str, Type[SubCommandHandler]]()
 
     @classmethod
     def type(cls) -> str:
@@ -49,8 +49,8 @@ class CommandHandler(EntryHandler[UID, GID], Generic[UID, GID]):
         return True
 
     def sub_command(self, type: str) \
-            -> Callable[[Type[SubCommandHandler[UID, GID]]], Type[SubCommandHandler[UID, GID]]]:
-        def decorator(cls: Type[SubCommandHandler[UID, GID]]):
+            -> Callable[[Type[SubCommandHandler]], Type[SubCommandHandler]]:
+        def decorator(cls: Type[SubCommandHandler]):
             context.register_singleton()(cls)
             self.handlers[type] = cls
             return cls

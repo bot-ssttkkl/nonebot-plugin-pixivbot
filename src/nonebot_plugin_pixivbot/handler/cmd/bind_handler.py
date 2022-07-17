@@ -11,7 +11,7 @@ GID = TypeVar("GID")
 
 
 @context.require(CommandHandler).sub_command("bind")
-class BindHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
+class BindHandler(SubCommandHandler):
     def __init__(self):
         super().__init__()
         self.binder = context.require(PixivAccountBinder)
@@ -33,13 +33,13 @@ class BindHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
     async def actual_handle(self, *, pixiv_user_id: int,
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
-        await self.binder.bind(post_dest.user_id, pixiv_user_id)
+        await self.binder.bind(post_dest.adapter, post_dest.user_id, pixiv_user_id)
         await self.postman.send_plain_text(message="Pixiv账号绑定成功", post_dest=post_dest)
 
     async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
                                         silently: bool = False,
                                         err: BadRequestError):
-        pixiv_user_id = await self.binder.get_binding(post_dest.user_id)
+        pixiv_user_id = await self.binder.get_binding(post_dest.adapter, post_dest.user_id)
         if pixiv_user_id is not None:
             msg = f"当前绑定账号：{pixiv_user_id}\n"
         else:
@@ -49,7 +49,7 @@ class BindHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
 
 
 @context.require(CommandHandler).sub_command("unbind")
-class UnbindHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
+class UnbindHandler(SubCommandHandler):
     def __init__(self):
         super().__init__()
         self.binder = context.require(PixivAccountBinder)
@@ -66,7 +66,7 @@ class UnbindHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
 
     async def actual_handle(self, *, post_dest: PostDestination[UID, GID],
                             silently: bool = False):
-        await self.binder.unbind(post_dest.user_id)
+        await self.binder.unbind(post_dest.adapter, post_dest.user_id)
         await self.postman.send_plain_text(message="Pixiv账号解绑成功", post_dest=post_dest)
 
     async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],

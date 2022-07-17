@@ -16,8 +16,10 @@ from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 UID = TypeVar("UID")
 GID = TypeVar("GID")
 
+PD = PostDestination[UID, GID]
 
-class Handler(ABC, Generic[UID, GID]):
+
+class Handler(ABC):
     def __init__(self, interceptor: Optional[Interceptor[UID, GID]] = None):
         self.conf = context.require(Config)
         self.interceptor = interceptor
@@ -38,7 +40,7 @@ class Handler(ABC, Generic[UID, GID]):
     def enabled(self) -> bool:
         raise NotImplementedError()
 
-    def parse_args(self, args: Sequence[Any], post_dest: PostDestination[UID, GID]) -> Union[dict, Awaitable[dict]]:
+    def parse_args(self, args: Sequence[Any], post_dest: PD) -> Union[dict, Awaitable[dict]]:
         """
         将位置参数转化为命名参数
         :param args: 位置参数sequence
@@ -48,7 +50,7 @@ class Handler(ABC, Generic[UID, GID]):
         return {}
 
     async def handle(self, *args,
-                     post_dest: PostDestination[UID, GID],
+                     post_dest: PD,
                      silently: bool = False,
                      **kwargs):
         if not self.enabled():
@@ -71,7 +73,7 @@ class Handler(ABC, Generic[UID, GID]):
             await self.actual_handle(post_dest=post_dest, silently=silently, **kwargs)
 
     @abstractmethod
-    async def actual_handle(self, *, post_dest: PostDestination[UID, GID],
+    async def actual_handle(self, *, post_dest: PD,
                             silently: bool = False, **kwargs):
         """
         处理指令
@@ -98,7 +100,7 @@ class PermissionInterceptorDelegation(PermissionInterceptor, Generic[UID, GID]):
     def __init__(self):
         self.delegation = None
 
-    def has_permission(self, post_dest: PostDestination[UID, GID]) -> Union[bool, Awaitable[bool]]:
+    def has_permission(self, post_dest: PD) -> Union[bool, Awaitable[bool]]:
         if self.delegation:
             return self.delegation.has_permission(post_dest)
         else:

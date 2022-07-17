@@ -3,14 +3,13 @@ from inspect import isawaitable
 from typing import TypeVar, Callable, Generic, Union, Awaitable, Optional
 
 from lazy import lazy
-from nonebot import get_bot
+from nonebot import get_driver
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.interceptor.interceptor import Interceptor
 from nonebot_plugin_pixivbot.postman import PostDestination, Postman
 from nonebot_plugin_pixivbot.protocol_dep import UserAuthenticator
-from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -87,12 +86,11 @@ class AllPermissionInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID
 @context.register_singleton()
 class SuperuserInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID]):
     def __init__(self):
-        bot = get_bot()
-        self.superusers = bot.config.superusers.copy()
+        self.superusers = get_driver().config.superusers.copy()
 
     def has_permission(self, post_dest: PostDestination[UID, GID]) -> bool:
         return str(post_dest.user_id) in self.superusers \
-               or f"{get_adapter_name()}:{post_dest.user_id}" in self.superusers
+               or f"{post_dest.adapter}:{post_dest.user_id}" in self.superusers
 
 
 @context.register_singleton()
@@ -111,4 +109,4 @@ class BlacklistInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID]):
 
     def has_permission(self, post_dest: PostDestination[UID, GID]) -> bool:
         return str(post_dest.user_id) not in self.blacklist \
-               and f"{get_adapter_name()}:{post_dest.user_id}" not in self.blacklist
+               and f"{post_dest.adapter}:{post_dest.user_id}" not in self.blacklist

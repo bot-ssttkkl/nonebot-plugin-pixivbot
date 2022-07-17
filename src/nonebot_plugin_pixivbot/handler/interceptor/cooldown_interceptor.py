@@ -6,7 +6,6 @@ from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import PermissionInterceptor
 from nonebot_plugin_pixivbot.postman import PostDestination
-from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -23,7 +22,7 @@ class CooldownInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID]):
             return True
 
         if str(post_dest.user_id) in self.conf.pixiv_no_query_cooldown_users \
-                or f"{get_adapter_name()}:{post_dest.user_id}" in self.conf.pixiv_no_query_cooldown_users:
+                or f"{post_dest.adapter}:{post_dest.user_id}" in self.conf.pixiv_no_query_cooldown_users:
             return True
 
         now = datetime.now()

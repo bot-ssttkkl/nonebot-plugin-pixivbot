@@ -11,7 +11,7 @@ GID = TypeVar("GID")
 
 
 @context.root.register_singleton()
-class IllustHandler(CommonHandler[UID, GID], Generic[UID, GID]):
+class IllustHandler(CommonHandler, Generic[UID, GID]):
     @classmethod
     def type(cls) -> str:
         return "illust"

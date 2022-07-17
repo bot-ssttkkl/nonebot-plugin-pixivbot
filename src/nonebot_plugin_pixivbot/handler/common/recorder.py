@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 from collections import OrderedDict
-from typing import Optional, TypeVar, Generic, TYPE_CHECKING
+from typing import Optional, TypeVar, TYPE_CHECKING
 
 from nonebot import logger
 
@@ -21,8 +21,8 @@ PD = PostDestination[UID, GID]
 ID = PostIdentifier[UID, GID]
 
 
-class Req(Generic[UID, GID]):
-    def __init__(self, handler: Handler[UID, GID],
+class Req:
+    def __init__(self, handler: Handler,
                  *args, **kwargs):
         self.timestamp = 0
         self.handler = handler
@@ -52,12 +52,12 @@ class Resp:
 
 
 @context.register_singleton()
-class Recorder(Generic[UID, GID]):
+class Recorder:
     conf = context.require(Config)
 
     def __init__(self, max_req_size: int = 65535,
                  max_resp_size: int = 65535):
-        self._reqs = OrderedDict[ID, Req[UID, GID]]()
+        self._reqs = OrderedDict[ID, Req]()
         self._resps = OrderedDict[ID, Resp]()
 
         self.max_req_size = max_req_size

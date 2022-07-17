@@ -1,4 +1,4 @@
-from typing import Union, Awaitable, TypeVar, Generic, Sequence, Any
+from typing import Union, Awaitable, TypeVar, Sequence, Any
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.cmd.command_handler import SubCommandHandler, CommandHandler
@@ -9,7 +9,7 @@ GID = TypeVar("GID")
 
 
 @context.require(CommandHandler).sub_command("help")
-class HelpHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
+class HelpHandler(SubCommandHandler):
     help_text = """常规语句：
 - 看看榜<范围>：查看pixiv榜单
 - 来张图：从推荐插画随机抽选一张插画

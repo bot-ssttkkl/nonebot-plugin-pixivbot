@@ -1,4 +1,4 @@
-from typing import TypeVar, Generic, Sequence, Any
+from typing import TypeVar, Sequence, Any
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.common.common_handler import CommonHandler
@@ -9,7 +9,7 @@ GID = TypeVar("GID")
 
 
 @context.root.register_singleton()
-class RandomIllustHandler(CommonHandler, Generic[UID, GID]):
+class RandomIllustHandler(CommonHandler):
     @classmethod
     def type(cls) -> str:
         return "random_illust"
