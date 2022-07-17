@@ -24,5 +24,5 @@ class IllustQuery(Query):
     async def on_match(self, bot: Bot, event: Event, state: T_State, matcher: Matcher):
         illust_id = state["_matched_groups"][0]
 
-        post_dest = self.post_dest_factory.from_message_event(event)
+        post_dest = self.post_dest_factory.from_event(event)
         await self.handler.handle(illust_id, post_dest=post_dest)

@@ -23,5 +23,5 @@ class CommandQuery(Query):
 
     async def on_match(self, bot: Bot, event: Event, state: T_State, matcher: Matcher):
         args = str(event.get_message()).strip().split()[1:]
-        post_dest = self.post_dest_factory.from_message_event(event)
+        post_dest = self.post_dest_factory.from_event(event)
         await self.handler.handle(args, post_dest=post_dest)

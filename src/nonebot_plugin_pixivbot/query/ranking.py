@@ -29,5 +29,5 @@ class RankingQuery(Query):
             mode = None
             num = None
 
-        post_dest = self.post_dest_factory.from_message_event(event)
+        post_dest = self.post_dest_factory.from_event(event)
         await self.handler.handle(mode, num, post_dest=post_dest)

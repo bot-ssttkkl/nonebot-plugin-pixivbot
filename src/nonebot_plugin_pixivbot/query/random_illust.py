@@ -24,5 +24,5 @@ class RandomIllustQuery(Query):
     async def on_match(self, bot: Bot, event: Event, state: T_State, matcher: Matcher):
         word = state["_matched_groups"][1]
 
-        post_dest = self.post_dest_factory.from_message_event(event)
+        post_dest = self.post_dest_factory.from_event(event)
         await self.handler.handle(word, count=get_count(state), post_dest=post_dest)
