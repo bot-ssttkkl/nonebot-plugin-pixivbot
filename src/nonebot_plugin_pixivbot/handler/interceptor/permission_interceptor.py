@@ -3,12 +3,13 @@ from inspect import isawaitable
 from typing import TypeVar, Callable, Generic, Union, Awaitable, Optional
 
 from lazy import lazy
-from nonebot import get_bot, logger
+from nonebot import get_bot
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.interceptor.interceptor import Interceptor
 from nonebot_plugin_pixivbot.postman import PostDestination, Postman
+from nonebot_plugin_pixivbot.protocol_dep import UserAuthenticator
 from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
 
 UID = TypeVar("UID")
@@ -24,7 +25,8 @@ class PermissionInterceptor(Interceptor[UID, GID], ABC, Generic[UID, GID]):
     def has_permission(self, post_dest: PostDestination[UID, GID]) -> Union[bool, Awaitable[bool]]:
         raise NotImplementedError()
 
-    def get_permission_denied_msg(self, post_dest: PostDestination[UID, GID]) -> Union[Optional[str], Awaitable[Optional[str]]]:
+    def get_permission_denied_msg(self, post_dest: PostDestination[UID, GID]) -> Union[
+        Optional[str], Awaitable[Optional[str]]]:
         return None
 
     async def intercept(self, wrapped_func: Callable, *,
@@ -95,9 +97,11 @@ class SuperuserInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID]):
 
 @context.register_singleton()
 class GroupAdminInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID]):
-    def has_permission(self, post_dest: PostDestination[UID, GID]) -> bool:
-        logger.warning("base GroupAdminInterceptor was used, please implement it for your specific adaptor.")
-        return not post_dest.group_id
+    def has_permission(self, post_dest: PostDestination[UID, GID]) -> Union[bool, Awaitable[bool]]:
+        if not post_dest.group_id:
+            return True
+        auth = context.require(UserAuthenticator)
+        return auth.group_admin(post_dest)
 
 
 @context.register_singleton()
