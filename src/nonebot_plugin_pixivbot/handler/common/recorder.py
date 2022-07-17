@@ -55,9 +55,13 @@ class Resp:
 class Recorder(Generic[UID, GID]):
     conf = context.require(Config)
 
-    def __init__(self):
+    def __init__(self, max_req_size: int = 65535,
+                 max_resp_size: int = 65535):
         self._reqs = OrderedDict[ID, Req[UID, GID]]()
         self._resps = OrderedDict[ID, Resp]()
+
+        self.max_req_size = max_req_size
+        self.max_resp_size = max_resp_size
 
     @staticmethod
     def _key_fallback(key: ID) -> Optional[ID]:
@@ -66,24 +70,28 @@ class Recorder(Generic[UID, GID]):
         else:
             return None
 
-    def _pop_expired_req(self):
+    def _collate_req(self, ensure_size_for_put: bool):
         now = time.time()
         while len(self._reqs) > 0:
             key, req = next(iter(self._reqs.items()))
             if now - req.timestamp > self.conf.pixiv_query_expires_in:
                 self._reqs.popitem(last=False)
-                logger.info(f"expired req popped: ({key})")
+                logger.info(f"popped expired req: ({key})")
             else:
                 break
 
+        if ensure_size_for_put and len(self._reqs) == self.max_req_size:
+            key, req = self._reqs.popitem(last=False)
+            logger.info(f"popped first req: ({key})")
+
     def record_req(self, record: Req, key: ID):
-        self._pop_expired_req()
+        self._collate_req(True)
         if key in self._reqs:
             self._reqs.move_to_end(key)
         self._reqs[key] = record
 
     def get_req(self, key: ID) -> Optional[Req]:
-        self._pop_expired_req()
+        self._collate_req(False)
         if key in self._reqs:
             req = self._reqs[key]
             req.refresh()
@@ -96,24 +104,28 @@ class Recorder(Generic[UID, GID]):
             else:
                 return None
 
-    def _pop_expired_resp(self):
+    def _collate_resp(self, ensure_size_for_put: bool):
         now = time.time()
         while len(self._resps) > 0:
-            key, rec = next(iter(self._resps.items()))
-            if now - rec.timestamp > self.conf.pixiv_query_expires_in:
+            key, resp = next(iter(self._resps.items()))
+            if now - resp.timestamp > self.conf.pixiv_query_expires_in:
                 self._resps.popitem(last=False)
-                logger.info(f"expired illust popped: ({key})")
+                logger.info(f"popped expired resp illust: ({key})")
             else:
                 break
 
+        if ensure_size_for_put and len(self._resps) == self.max_resp_size:
+            key, resp = self._resps.popitem(last=False)
+            logger.info(f"popped first resp illust: ({key})")
+
     def record_resp(self, illust_id: int, key: ID):
-        self._pop_expired_resp()
+        self._collate_resp(True)
         if key in self._resps:
             self._resps.move_to_end(key)
         self._resps[key] = Resp(illust_id)
 
     def get_resp(self, key: ID) -> Optional[int]:
-        self._pop_expired_resp()
+        self._collate_resp(False)
         if key in self._resps:
             rec = self._resps[key]
             return rec.illust_id
