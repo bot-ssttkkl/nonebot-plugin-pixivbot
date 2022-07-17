@@ -10,6 +10,7 @@ from nonebot_plugin_pixivbot.model import Illust, User
 from .abstract_repo import AbstractPixivRepo
 from .lazy_illust import LazyIllust
 from .pkg_context import context
+from ...enums import RankingMode
 
 
 @context.register_singleton()
@@ -257,11 +258,11 @@ class LocalPixivRepo(AbstractPixivRepo):
     def update_related_illusts(self, illust_id: int, content: typing.List[typing.Union[Illust, LazyIllust]]):
         return self._make_illusts_cache_updater("related_illusts_cache", "original_illust_id", illust_id)(content)
 
-    def illust_ranking(self, mode: str, *, skip: int = 0, limit: int = 0):
-        return self._make_illusts_cache_loader("other_cache", "type", mode + "_ranking", skip=skip, limit=limit)()
+    def illust_ranking(self, mode: RankingMode = RankingMode.day, *, skip: int = 0, limit: int = 0):
+        return self._make_illusts_cache_loader("other_cache", "type", mode.name + "_ranking", skip=skip, limit=limit)()
 
-    def update_illust_ranking(self, mode: str, content: typing.List[typing.Union[Illust, LazyIllust]]):
-        return self._make_illusts_cache_updater("other_cache", "type", mode + "_ranking")(content)
+    def update_illust_ranking(self, mode: RankingMode, content: typing.List[typing.Union[Illust, LazyIllust]]):
+        return self._make_illusts_cache_updater("other_cache", "type", mode.name + "_ranking")(content)
 
     async def image(self, illust: Illust) -> typing.Optional[bytes]:
         cache = await self.mongo.db.download_cache.find_one({"illust_id": illust.id})

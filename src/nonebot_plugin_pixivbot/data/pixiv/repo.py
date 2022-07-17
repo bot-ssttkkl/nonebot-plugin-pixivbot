@@ -11,6 +11,7 @@ from .local_manager import CacheManager
 from .local_repo import LocalPixivRepo
 from .pkg_context import context
 from .remote_repo import RemotePixivRepo
+from ...enums import RankingMode
 
 
 def do_skip_and_limit(items: list, skip: int, limit: int) -> list:
@@ -146,7 +147,8 @@ class PixivRepo(AbstractPixivRepo):
             timeout=self._conf.pixiv_query_timeout
         )
 
-    async def illust_ranking(self, mode: str = 'day', *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
+    async def illust_ranking(self, mode: RankingMode = RankingMode.day,
+                             *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
         return await self._cache_manager.get(
             identifier=(5, mode),
             cache_loader=partial(
