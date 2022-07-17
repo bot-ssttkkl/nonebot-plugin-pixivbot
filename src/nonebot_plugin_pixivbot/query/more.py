@@ -22,5 +22,5 @@ class MoreQuery(Query):
         return on_regex("^还要((.*)张)?$", rule=get_common_query_rule(), priority=1, block=True)
 
     async def on_match(self, bot: Bot, event: Event, state: T_State, matcher: Matcher):
-        post_dest = self.post_dest_factory.from_message_event(event)
+        post_dest = self.post_dest_factory.from_event(event)
         await self.handler.handle(count=get_count(state, 1), post_dest=post_dest)
