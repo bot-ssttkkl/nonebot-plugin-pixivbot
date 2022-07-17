@@ -2,7 +2,8 @@ from typing import TypeVar, Sequence, Any
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.common.common_handler import CommonHandler
-from nonebot_plugin_pixivbot.postman import PostDestination, post_illusts
+from nonebot_plugin_pixivbot.handler.utils import post_illusts
+from nonebot_plugin_pixivbot.postman import PostDestination
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")

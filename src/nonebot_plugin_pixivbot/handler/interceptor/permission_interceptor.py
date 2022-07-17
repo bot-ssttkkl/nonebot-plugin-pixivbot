@@ -2,13 +2,13 @@ from abc import ABC, abstractmethod
 from inspect import isawaitable
 from typing import TypeVar, Callable, Generic, Union, Awaitable, Optional
 
-from lazy import lazy
 from nonebot import get_driver
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.interceptor.interceptor import Interceptor
-from nonebot_plugin_pixivbot.postman import PostDestination, Postman
+from nonebot_plugin_pixivbot.handler.utils import post_plain_text
+from nonebot_plugin_pixivbot.postman import PostDestination
 from nonebot_plugin_pixivbot.protocol_dep import UserAuthenticator
 
 UID = TypeVar("UID")
@@ -16,16 +16,13 @@ GID = TypeVar("GID")
 
 
 class PermissionInterceptor(Interceptor[UID, GID], ABC, Generic[UID, GID]):
-    @lazy
-    def postman(self):
-        return context.require(Postman)
 
     @abstractmethod
     def has_permission(self, post_dest: PostDestination[UID, GID]) -> Union[bool, Awaitable[bool]]:
         raise NotImplementedError()
 
-    def get_permission_denied_msg(self, post_dest: PostDestination[UID, GID]) -> Union[
-        Optional[str], Awaitable[Optional[str]]]:
+    def get_permission_denied_msg(self, post_dest: PostDestination[UID, GID]) \
+            -> Union[Optional[str], Awaitable[Optional[str]]]:
         return None
 
     async def intercept(self, wrapped_func: Callable, *,
@@ -42,7 +39,7 @@ class PermissionInterceptor(Interceptor[UID, GID], ABC, Generic[UID, GID]):
             if not silently:
                 msg = self.get_permission_denied_msg(post_dest)
                 if msg:
-                    await self.postman.send_plain_text(msg, post_dest=post_dest)
+                    await post_plain_text(msg, post_dest=post_dest)
 
 
 class AnyPermissionInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID]):

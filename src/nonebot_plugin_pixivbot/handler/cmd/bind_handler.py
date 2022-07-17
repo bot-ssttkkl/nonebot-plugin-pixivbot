@@ -1,7 +1,8 @@
-from typing import TypeVar, Generic, Sequence, Any
+from typing import TypeVar, Sequence, Any
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.cmd.command_handler import SubCommandHandler, CommandHandler
+from nonebot_plugin_pixivbot.handler.utils import post_plain_text
 from nonebot_plugin_pixivbot.postman import PostDestination
 from nonebot_plugin_pixivbot.service.pixiv_account_binder import PixivAccountBinder
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
@@ -34,7 +35,7 @@ class BindHandler(SubCommandHandler):
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
         await self.binder.bind(post_dest.adapter, post_dest.user_id, pixiv_user_id)
-        await self.postman.send_plain_text(message="Pixiv账号绑定成功", post_dest=post_dest)
+        await post_plain_text(message="Pixiv账号绑定成功", post_dest=post_dest)
 
     async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
                                         silently: bool = False,
@@ -45,7 +46,7 @@ class BindHandler(SubCommandHandler):
         else:
             msg = "当前未绑定Pixiv账号\n"
         msg += "命令格式：/pixivbot bind <pixiv_user_id>"
-        await self.postman.send_plain_text(message=msg, post_dest=post_dest)
+        await post_plain_text(message=msg, post_dest=post_dest)
 
 
 @context.require(CommandHandler).sub_command("unbind")
@@ -67,9 +68,9 @@ class UnbindHandler(SubCommandHandler):
     async def actual_handle(self, *, post_dest: PostDestination[UID, GID],
                             silently: bool = False):
         await self.binder.unbind(post_dest.adapter, post_dest.user_id)
-        await self.postman.send_plain_text(message="Pixiv账号解绑成功", post_dest=post_dest)
+        await post_plain_text(message="Pixiv账号解绑成功", post_dest=post_dest)
 
     async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
                                         silently: bool = False,
                                         err: BadRequestError):
-        await self.postman.send_plain_text(message="当前未绑定Pixiv账号", post_dest=post_dest)
+        await post_plain_text(message="当前未绑定Pixiv账号", post_dest=post_dest)
