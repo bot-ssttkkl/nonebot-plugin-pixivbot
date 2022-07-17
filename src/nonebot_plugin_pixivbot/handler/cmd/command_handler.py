@@ -45,8 +45,7 @@ class CommandHandler(EntryHandler[UID, GID], Generic[UID, GID]):
     def type(cls) -> str:
         return "command"
 
-    @classmethod
-    def enabled(cls) -> bool:
+    def enabled(self) -> bool:
         return True
 
     def sub_command(self, type: str) \

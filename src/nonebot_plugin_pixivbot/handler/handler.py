@@ -18,9 +18,8 @@ GID = TypeVar("GID")
 
 
 class Handler(ABC, Generic[UID, GID]):
-    conf = context.require(Config)
-
     def __init__(self, interceptor: Optional[Interceptor[UID, GID]] = None):
+        self.conf = context.require(Config)
         self.interceptor = interceptor
 
         self.permission_interceptor_delegation = PermissionInterceptorDelegation()
@@ -35,9 +34,8 @@ class Handler(ABC, Generic[UID, GID]):
     def type(cls) -> str:
         raise NotImplementedError()
 
-    @classmethod
     @abstractmethod
-    def enabled(cls) -> bool:
+    def enabled(self) -> bool:
         raise NotImplementedError()
 
     def parse_args(self, args: Sequence[Any], post_dest: PostDestination[UID, GID]) -> Union[dict, Awaitable[dict]]:
@@ -53,6 +51,9 @@ class Handler(ABC, Generic[UID, GID]):
                      post_dest: PostDestination[UID, GID],
                      silently: bool = False,
                      **kwargs):
+        if not self.enabled():
+            return
+
         try:
             parsed_kwargs = self.parse_args(args, post_dest)
             if isawaitable(parsed_kwargs):

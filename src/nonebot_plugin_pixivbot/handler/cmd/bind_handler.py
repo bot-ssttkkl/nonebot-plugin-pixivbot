@@ -20,8 +20,7 @@ class BindHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
     def type(cls) -> str:
         return "bind"
 
-    @classmethod
-    def enabled(cls) -> bool:
+    def enabled(self) -> bool:
         return True
 
     def parse_args(self, args: Sequence[Any], post_dest: PostDestination[UID, GID]) -> dict:
@@ -59,8 +58,7 @@ class UnbindHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
     def type(cls) -> str:
         return "unbind"
 
-    @classmethod
-    def enabled(cls) -> bool:
+    def enabled(self) -> bool:
         return True
 
     def parse_args(self, args: Sequence[Any], post_dest: PostDestination[UID, GID]) -> dict:

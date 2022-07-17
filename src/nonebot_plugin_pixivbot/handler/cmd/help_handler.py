@@ -31,8 +31,7 @@ class HelpHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
     def type(cls) -> str:
         return "help"
 
-    @classmethod
-    def enabled(cls) -> bool:
+    def enabled(self) -> bool:
         return True
 
     def parse_args(self, args: Sequence[Any], post_dest: PostDestination[UID, GID]) \

@@ -16,9 +16,8 @@ class MoreHandler(CommonHandler[UID, GID], Generic[UID, GID]):
     def type(cls) -> str:
         return "more"
 
-    @classmethod
-    def enabled(cls) -> bool:
-        return cls.conf.pixiv_more_enabled
+    def enabled(self) -> bool:
+        return self.conf.pixiv_more_enabled
 
     async def actual_handle(self, *, count: int = 1,
                             post_dest: PostDestination[UID, GID],

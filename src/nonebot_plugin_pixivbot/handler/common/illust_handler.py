@@ -17,8 +17,8 @@ class IllustHandler(CommonHandler[UID, GID], Generic[UID, GID]):
         return "illust"
 
     @classmethod
-    def enabled(cls) -> bool:
-        return cls.conf.pixiv_illust_query_enabled
+    def enabled(self) -> bool:
+        return self.conf.pixiv_illust_query_enabled
 
     def parse_args(self, args: Sequence[Any], post_dest: PostDestination[UID, GID]) -> dict:
         try:

@@ -28,8 +28,7 @@ class ScheduleHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
     def type(cls) -> str:
         return "schedule"
 
-    @classmethod
-    def enabled(cls) -> bool:
+    def enabled(self) -> bool:
         return True
 
     def parse_args(self, args: Sequence[Any], post_dest: PostIdentifier[UID, GID]) -> dict:
@@ -76,8 +75,7 @@ class UnscheduleHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
     def type(cls) -> str:
         return "unschedule"
 
-    @classmethod
-    def enabled(cls) -> bool:
+    def enabled(self) -> bool:
         return True
 
     def parse_args(self, args: Sequence[Any], post_dest: PostIdentifier[UID, GID]) -> dict:
