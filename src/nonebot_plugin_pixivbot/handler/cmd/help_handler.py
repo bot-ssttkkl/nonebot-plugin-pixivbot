@@ -2,6 +2,7 @@ from typing import Union, Awaitable, TypeVar, Sequence, Any
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.cmd.command_handler import SubCommandHandler, CommandHandler
+from nonebot_plugin_pixivbot.handler.utils import post_plain_text
 from nonebot_plugin_pixivbot.postman import PostDestination
 
 UID = TypeVar("UID")
@@ -40,4 +41,4 @@ class HelpHandler(SubCommandHandler):
 
     async def actual_handle(self, *, post_dest: PostDestination[UID, GID],
                             silently: bool = False):
-        await self.postman.send_plain_text(self.help_text, post_dest=post_dest)
+        await post_plain_text(self.help_text, post_dest=post_dest)

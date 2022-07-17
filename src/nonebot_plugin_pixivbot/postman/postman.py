@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import TypeVar
+from typing import TypeVar, Dict, Type, Generic
 
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.postman.model import IllustMessageModel, IllustMessagesModel
 from nonebot_plugin_pixivbot.postman.post_destination import PostDestination
 
@@ -10,7 +11,12 @@ GID = TypeVar("GID")
 PD = PostDestination[UID, GID]
 
 
-class Postman(ABC):
+class Postman(ABC, Generic[UID, GID]):
+    @classmethod
+    @abstractmethod
+    def adapter(cls) -> str:
+        raise NotImplementedError()
+
     @abstractmethod
     async def send_plain_text(self, message: str,
                               *, post_dest: PD):
@@ -27,4 +33,22 @@ class Postman(ABC):
         raise NotImplementedError()
 
 
-__all__ = ("Postman",)
+@context.register_singleton()
+class PostmanManager:
+    def __init__(self):
+        self.postmen: Dict[str, Type[Postman]] = {}
+
+    def register(self, cls: Type[Postman]):
+        self.postmen[cls.adapter()] = cls
+        if cls not in context:
+            context.register_singleton()(cls)
+        return cls
+
+    def require(self, adapter: str):
+        return context.require(self.postmen[adapter])
+
+    def __getitem__(self, adapter: str):
+        return self.require(adapter)
+
+
+__all__ = ("Postman", "PostmanManager")

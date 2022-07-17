@@ -48,6 +48,8 @@ class PostDestinationFactoryManager:
 
     def register(self, cls: Type[PostDestinationFactory]):
         self.factories[cls.adapter()] = cls
+        if cls not in context:
+            context.register_singleton()(cls)
         return cls
 
     def require(self, adapter: str):

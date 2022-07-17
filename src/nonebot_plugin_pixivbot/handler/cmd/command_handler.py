@@ -5,6 +5,7 @@ from typing import Type, Callable, Union, Awaitable, TypeVar, Sequence, Any
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.entry_handler import EntryHandler
 from nonebot_plugin_pixivbot.handler.handler import Handler
+from nonebot_plugin_pixivbot.handler.utils import post_plain_text
 from nonebot_plugin_pixivbot.postman import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 
@@ -32,7 +33,7 @@ class SubCommandHandler(Handler, ABC):
                                         silently: bool = False,
                                         err: BadRequestError):
         if not silently:
-            self.postman.send_plain_text(err.message, post_dest=post_dest)
+            await post_plain_text(err.message, post_dest=post_dest)
 
 
 @context.register_singleton()
@@ -67,7 +68,7 @@ class CommandHandler(EntryHandler):
             handler = context.require(self.handlers["help"])
         elif args[0] not in self.handlers:
             if not silently:
-                await self.postman.send_plain_text(f"不存在命令 '{args[0]}'", post_dest=post_dest)
+                await post_plain_text(f"不存在命令 '{args[0]}'", post_dest=post_dest)
             return
         else:
             handler = context.require(self.handlers[args[0]])

@@ -2,14 +2,11 @@ from abc import ABC, abstractmethod
 from inspect import isawaitable
 from typing import Awaitable, Union, TypeVar, Generic, Sequence, Any, Optional
 
-from lazy import lazy
-
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.interceptor.combined_interceptor import CombinedInterceptor
 from nonebot_plugin_pixivbot.handler.interceptor.interceptor import Interceptor
 from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import PermissionInterceptor
-from nonebot_plugin_pixivbot.postman import Postman
 from nonebot_plugin_pixivbot.postman.post_destination import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 
@@ -26,10 +23,6 @@ class Handler(ABC):
 
         self.permission_interceptor_delegation = PermissionInterceptorDelegation()
         self.add_interceptor(self.permission_interceptor_delegation)
-
-    @lazy
-    def postman(self):
-        return context.require(Postman)
 
     @classmethod
     @abstractmethod

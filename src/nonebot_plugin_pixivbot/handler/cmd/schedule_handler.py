@@ -4,6 +4,7 @@ from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.cmd.command_handler import CommandHandler, SubCommandHandler
 from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import GroupAdminInterceptor, \
     AnyPermissionInterceptor, SuperuserInterceptor
+from nonebot_plugin_pixivbot.handler.utils import post_plain_text
 from nonebot_plugin_pixivbot.model import PostIdentifier
 from nonebot_plugin_pixivbot.postman import PostDestination
 from nonebot_plugin_pixivbot.service.scheduler import Scheduler
@@ -42,7 +43,7 @@ class ScheduleHandler(SubCommandHandler):
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
         await self.scheduler.schedule(type, schedule, args, identifier=PostIdentifier.from_post_dest(post_dest))
-        await self.postman.send_plain_text(message="订阅成功", post_dest=post_dest)
+        await post_plain_text(message="订阅成功", post_dest=post_dest)
 
     async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
                                         silently: bool = False,
@@ -57,7 +58,7 @@ class ScheduleHandler(SubCommandHandler):
         msg += "\n"
         msg += "命令格式：/pixivbot schedule <type> <schedule> <..args>\n"
         msg += "示例：/pixivbot schedule ranking 06:00*x day 1-5\n"
-        await self.postman.send_plain_text(message=msg, post_dest=post_dest)
+        await post_plain_text(message=msg, post_dest=post_dest)
 
 
 @context.require(CommandHandler).sub_command("unschedule")
@@ -85,7 +86,7 @@ class UnscheduleHandler(SubCommandHandler):
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
         await self.scheduler.unschedule(type, PostIdentifier.from_post_dest(post_dest))
-        await self.postman.send_plain_text(message="取消订阅成功", post_dest=post_dest)
+        await post_plain_text(message="取消订阅成功", post_dest=post_dest)
 
     async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
                                         silently: bool = False,
@@ -99,4 +100,4 @@ class UnscheduleHandler(SubCommandHandler):
             msg += '无\n'
         msg += "\n"
         msg += "命令格式：/pixivbot unschedule <type>"
-        await self.postman.send_plain_text(message=msg, post_dest=post_dest)
+        await post_plain_text(message=msg, post_dest=post_dest)

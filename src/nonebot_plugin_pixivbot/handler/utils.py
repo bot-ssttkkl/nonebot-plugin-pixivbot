@@ -6,14 +6,19 @@ from nonebot_plugin_pixivbot.model import Illust
 from nonebot_plugin_pixivbot.postman.model.illust_message import IllustMessageModel
 from nonebot_plugin_pixivbot.postman.model.illust_messages import IllustMessagesModel
 from nonebot_plugin_pixivbot.postman.post_destination import PostDestination
-from nonebot_plugin_pixivbot.postman.postman import Postman
+from nonebot_plugin_pixivbot.postman.postman import PostmanManager
+
+
+async def post_plain_text(message: str, post_dest: PostDestination):
+    postman = context.require(PostmanManager)[post_dest.adapter]
+    await postman.send_plain_text(message, post_dest)
 
 
 async def post_illust(illust: Illust, *,
                       header: Optional[str] = None,
                       number: Optional[int] = None,
                       post_dest: PostDestination):
-    postman = context.require(Postman)
+    postman = context.require(PostmanManager)[post_dest.adapter]
     model = await IllustMessageModel.from_illust(illust, header=header, number=number)
     if model is not None:
         await postman.send_illust(model, post_dest=post_dest)
@@ -23,7 +28,7 @@ async def post_illusts(illusts: Sequence[Illust], *,
                        header: Optional[str] = None,
                        number: Optional[int] = None,
                        post_dest: PostDestination):
-    postman = context.require(Postman)
+    postman = context.require(PostmanManager)[post_dest.adapter]
     tasks = [
         create_task(
             IllustMessageModel.from_illust(x, number=number + i if number is not None else None)
@@ -41,4 +46,4 @@ async def post_illusts(illusts: Sequence[Illust], *,
     await postman.send_illusts(model, post_dest=post_dest)
 
 
-__all__ = ("post_illust", "post_illusts")
+__all__ = ("post_plain_text", "post_illust", "post_illusts")
