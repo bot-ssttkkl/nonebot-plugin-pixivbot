@@ -133,14 +133,6 @@ class Config(BaseSettings):
     pixiv_random_bookmark_max_page = 2 ** 31
     pixiv_random_bookmark_max_item = 2 ** 31
 
-    pixiv_poke_action: Optional[str] = "random_recommended_illust"
-
-    @validator('pixiv_poke_action')
-    def pixiv_poke_action_validator(cls, v, field: ModelField):
-        if v not in [None, "", "ranking", "random_recommended_illust", "random_bookmark"]:
-            raise ValueError(f'illegal {field.name} value: {v}')
-        return v
-
     class Config:
         extra = "ignore"
 
