@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from typing import TypeVar, Generic, Optional
 
-from nonebot_plugin_pixivbot.postman import PostDestination, PostDestinationFactory
+from nonebot_plugin_pixivbot.global_context import context
+from nonebot_plugin_pixivbot.postman import PostDestination, PostDestinationFactoryManager
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -21,8 +22,7 @@ class PostIdentifier(Generic[UID, GID]):
     def from_post_dest(post_dest: PostDestination):
         return PostIdentifier(post_dest.adapter, post_dest.user_id, post_dest.group_id)
 
-    def to_post_dest(self, factory: PostDestinationFactory):
+    def to_post_dest(self, adapter: str):
+        factory = context.require(PostDestinationFactoryManager)[adapter]
         post_dest = factory.build(self.user_id, self.group_id)
-        if post_dest.adapter != self.adapter:
-            raise ValueError("PostDestination.adapter != PostIdentifier.adapter")
         return post_dest

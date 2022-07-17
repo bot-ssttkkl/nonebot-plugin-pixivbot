@@ -8,7 +8,7 @@ from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler import RankingHandler
 from nonebot_plugin_pixivbot.query.query import Query
 from nonebot_plugin_pixivbot.query.query_manager import QueryManager
-from nonebot_plugin_pixivbot.query.utils import get_common_query_rule
+from nonebot_plugin_pixivbot.query.utils import get_common_query_rule, get_post_dest
 
 
 @context.require(QueryManager).query
@@ -29,5 +29,4 @@ class RankingQuery(Query):
             mode = None
             num = None
 
-        post_dest = self.post_dest_factory.from_event(event)
-        await self.handler.handle(mode, num, post_dest=post_dest)
+        await self.handler.handle(mode, num, post_dest=get_post_dest(bot, event))

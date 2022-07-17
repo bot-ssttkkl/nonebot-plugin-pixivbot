@@ -8,7 +8,7 @@ from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler import IllustHandler
 from nonebot_plugin_pixivbot.query.query import Query
 from nonebot_plugin_pixivbot.query.query_manager import QueryManager
-from nonebot_plugin_pixivbot.query.utils import get_common_query_rule
+from nonebot_plugin_pixivbot.query.utils import get_common_query_rule, get_post_dest
 
 
 @context.require(QueryManager).query
@@ -24,5 +24,4 @@ class IllustQuery(Query):
     async def on_match(self, bot: Bot, event: Event, state: T_State, matcher: Matcher):
         illust_id = state["_matched_groups"][0]
 
-        post_dest = self.post_dest_factory.from_event(event)
-        await self.handler.handle(illust_id, post_dest=post_dest)
+        await self.handler.handle(illust_id, post_dest=get_post_dest(bot, event))
