@@ -1,55 +1,49 @@
 from datetime import datetime
 from math import ceil
-from typing import TypeVar, Generic, Callable
-
-from lazy import lazy
+from typing import TypeVar, Generic
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.handler.interceptor.interceptor import Interceptor
-from nonebot_plugin_pixivbot.postman import PostDestination, Postman
+from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import PermissionInterceptor
+from nonebot_plugin_pixivbot.postman import PostDestination
+from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
 @context.register_singleton()
-class CooldownInterceptor(Interceptor[UID, GID], Generic[UID, GID]):
+class CooldownInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID]):
     def __init__(self):
         self.conf = context.require(Config)
         self.last_query_time = dict[UID, datetime]()
 
-    @lazy
-    def postman(self):
-        return context.require(Postman)
+    def has_permission(self, post_dest: PostDestination[UID, GID]) -> bool:
+        if self.conf.pixiv_query_cooldown == 0:
+            return True
 
-    def get_cooldown(self, user_id: UID) -> int:
-        if self.conf.pixiv_query_cooldown == 0 or user_id in self.conf.pixiv_no_query_cooldown_users:
-            return 0
+        if str(post_dest.user_id) in self.conf.pixiv_no_query_cooldown_users \
+                or f"{get_adapter_name()}:{post_dest.user_id}" in self.conf.pixiv_no_query_cooldown_users:
+            return True
 
         now = datetime.now()
-        if user_id not in self.last_query_time:
-            self.last_query_time[user_id] = now
-            return 0
+        if post_dest.user_id not in self.last_query_time:
+            self.last_query_time[post_dest.user_id] = now
+            return True
         else:
-            delta = now - self.last_query_time[user_id]
+            delta = now - self.last_query_time[post_dest.user_id]
             cooldown = self.conf.pixiv_query_cooldown - ceil(delta.total_seconds())
             if cooldown > 0:
-                return cooldown
+                return False
             else:
-                self.last_query_time[user_id] = now
-                return 0
+                self.last_query_time[post_dest.user_id] = now
+                return True
 
-    async def intercept(self, wrapped_func: Callable, *,
-                        post_dest: PostDestination[UID, GID],
-                        silently: bool,
-                        **kwargs):
-        cooldown = self.get_cooldown(post_dest.user_id)
-        if cooldown:
-            if not silently:
-                await self.postman.send_plain_text(f"你的CD还有{cooldown}s转好", post_dest=post_dest)
-        else:
-            await wrapped_func(post_dest=post_dest, silently=silently, **kwargs)
+    def get_permission_denied_msg(self, post_dest: PostDestination[UID, GID]) -> str:
+        now = datetime.now()
+        delta = now - self.last_query_time[post_dest.user_id]
+        cooldown = self.conf.pixiv_query_cooldown - ceil(delta.total_seconds())
+        return f"你的CD还有{cooldown}s转好"
 
 
 __all__ = ("CooldownInterceptor",)
