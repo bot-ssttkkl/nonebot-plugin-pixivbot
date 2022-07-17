@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from inspect import isawaitable
-from typing import TypeVar, Callable, Generic, Union, Awaitable
+from typing import TypeVar, Callable, Generic, Union, Awaitable, Optional
 
 from lazy import lazy
 from nonebot import get_bot, logger
@@ -16,8 +16,6 @@ GID = TypeVar("GID")
 
 
 class PermissionInterceptor(Interceptor[UID, GID], ABC, Generic[UID, GID]):
-    permission_denied_reply = None
-
     @lazy
     def postman(self):
         return context.require(Postman)
@@ -25,6 +23,9 @@ class PermissionInterceptor(Interceptor[UID, GID], ABC, Generic[UID, GID]):
     @abstractmethod
     def has_permission(self, post_dest: PostDestination[UID, GID]) -> Union[bool, Awaitable[bool]]:
         raise NotImplementedError()
+
+    def get_permission_denied_msg(self, post_dest: PostDestination[UID, GID]) -> Union[Optional[str], Awaitable[Optional[str]]]:
+        return None
 
     async def intercept(self, wrapped_func: Callable, *,
                         post_dest: PostDestination[UID, GID],
@@ -37,8 +38,10 @@ class PermissionInterceptor(Interceptor[UID, GID], ABC, Generic[UID, GID]):
         if p:
             await wrapped_func(post_dest=post_dest, silently=silently, **kwargs)
         else:
-            if not silently and self.permission_denied_reply:
-                await self.postman.send_plain_text(self.permission_denied_reply, post_dest=post_dest)
+            if not silently:
+                msg = self.get_permission_denied_msg(post_dest)
+                if msg:
+                    await self.postman.send_plain_text(msg, post_dest=post_dest)
 
 
 class AnyPermissionInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID]):

@@ -1,4 +1,4 @@
-import typing
+from typing import Optional, List
 
 from nonebot import get_driver
 from pydantic import BaseSettings, validator
@@ -15,7 +15,7 @@ class Config(BaseSettings):
     pixiv_refresh_token: str
     pixiv_mongo_conn_url: str
     pixiv_mongo_database_name: str
-    pixiv_proxy: typing.Optional[str]
+    pixiv_proxy: Optional[str]
     pixiv_query_timeout: int = 60
     pixiv_simultaneous_query: int = 8
 
@@ -30,15 +30,15 @@ class Config(BaseSettings):
     pixiv_related_illusts_cache_expires_in = 3600 * 24
     pixiv_other_cache_expires_in = 3600 * 6
 
-    pixiv_block_tags: typing.List[str] = []
+    pixiv_block_tags: List[str] = []
     pixiv_block_action: BlockAction = BlockAction.no_image
 
     pixiv_download_quantity: DownloadQuantity = DownloadQuantity.original
-    pixiv_download_custom_domain: typing.Optional[str]
+    pixiv_download_custom_domain: Optional[str]
 
     pixiv_compression_enabled: bool = False
-    pixiv_compression_max_size: typing.Optional[int]
-    pixiv_compression_quantity: typing.Optional[float]
+    pixiv_compression_max_size: Optional[int]
+    pixiv_compression_quantity: Optional[float]
 
     @validator('pixiv_compression_max_size', 'pixiv_compression_quantity')
     def compression_validator(cls, v, values, field: ModelField):
@@ -75,7 +75,7 @@ class Config(BaseSettings):
     pixiv_command_to_me_only = False
 
     pixiv_query_cooldown = 0
-    pixiv_no_query_cooldown_users = []
+    pixiv_no_query_cooldown_users: List[str] = []
     pixiv_max_item_per_query = 10
 
     pixiv_tag_translation_enabled = True
@@ -126,14 +126,14 @@ class Config(BaseSettings):
     pixiv_random_user_illust_max_item = 2 ** 31
 
     pixiv_random_bookmark_query_enabled = True
-    pixiv_random_bookmark_user_id: typing.Optional[int] = None
+    pixiv_random_bookmark_user_id: Optional[int] = None
     pixiv_random_bookmark_method = RandomIllustMethod.uniform
     pixiv_random_bookmark_min_bookmark = 0
     pixiv_random_bookmark_min_view = 0
     pixiv_random_bookmark_max_page = 2 ** 31
     pixiv_random_bookmark_max_item = 2 ** 31
 
-    pixiv_poke_action: typing.Optional[str] = "random_recommended_illust"
+    pixiv_poke_action: Optional[str] = "random_recommended_illust"
 
     @validator('pixiv_poke_action')
     def pixiv_poke_action_validator(cls, v, field: ModelField):
