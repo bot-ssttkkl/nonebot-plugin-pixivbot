@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 
 from nonebot_plugin_pixivbot.model import Illust, User
 from .lazy_illust import LazyIllust
+from ...enums import RankingMode
 
 
 class AbstractPixivRepo(ABC):
@@ -39,7 +40,8 @@ class AbstractPixivRepo(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def illust_ranking(self, mode: str = 'day', *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
+    async def illust_ranking(self, mode: RankingMode = RankingMode.day,
+                             *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
         raise NotImplementedError()
 
     @abstractmethod

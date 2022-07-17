@@ -1,5 +1,6 @@
 from typing import Optional, Sequence, Union, TypeVar, Generic, Any
 
+from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.common.common_handler import CommonHandler
 from nonebot_plugin_pixivbot.postman import PostDestination, post_illusts
@@ -16,21 +17,19 @@ class RankingHandler(CommonHandler[UID, GID], Generic[UID, GID]):
     def type(cls) -> str:
         return "ranking"
 
-    mode_mapping = {"日": "day", "周": "week", "月": "month", "男性": "day_male",
-                    "女性": "day_female", "原创": "week_original", "新人": "week_rookie", "漫画": "day_manga"}
+    mode_mapping = {RankingMode.day: "日", RankingMode.week: "周", RankingMode.month: "月",
+                    RankingMode.day_male: "男性", RankingMode.day_female: "女性", RankingMode.week_original: "原创",
+                    RankingMode.week_rookie: "新人", RankingMode.day_manga: "漫画"}
 
-    mode_reversed_mapping = {"day": "日", "week": "周", "month": "月", "day_male": "男性",
-                             "day_female": "女性", "week_original": "原创", "week_rookie": "新人", "day_manga": "漫画"}
+    mode_rev_mapping = {}
+    for mode, text in mode_mapping.items():
+        mode_rev_mapping[text] = mode
 
     @classmethod
     def enabled(cls) -> bool:
         return cls.conf.pixiv_ranking_query_enabled
 
-    def validate_args(self, mode: Optional[str] = None,
-                      range: Optional[Sequence[int]] = None):
-        if mode and mode not in self.mode_reversed_mapping:
-            raise BadRequestError(f"{mode}不是合法的榜单类型")
-
+    def validate_range(self, range: Optional[Sequence[int]] = None):
         if range:
             start, end = range
             if end - start + 1 > self.conf.pixiv_ranking_max_item_per_query:
@@ -48,8 +47,13 @@ class RankingHandler(CommonHandler[UID, GID], Generic[UID, GID]):
 
         if not mode:  # 判断是不是空字符串
             mode = None
-        elif mode in self.mode_mapping:
-            mode = self.mode_mapping[mode]
+        elif mode in self.mode_rev_mapping:
+            mode = self.mode_rev_mapping[mode]
+        elif isinstance(mode, str):
+            try:
+                mode = RankingMode[mode]
+            except:
+                raise BadRequestError(f"{mode}不是合法的榜单类型")
 
         if not range:
             range = None
@@ -64,10 +68,9 @@ class RankingHandler(CommonHandler[UID, GID], Generic[UID, GID]):
             except ValueError:
                 raise BadRequestError(f"{range}不是合法的范围")
 
-        self.validate_args(mode, range)
         return {"mode": mode, "range": range}
 
-    async def actual_handle(self, *, mode: Optional[str] = None,
+    async def actual_handle(self, *, mode: Union[str, RankingMode, None] = None,
                             range: Union[Sequence[int], int, None] = None,
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
@@ -80,9 +83,9 @@ class RankingHandler(CommonHandler[UID, GID], Generic[UID, GID]):
         if isinstance(range, int):
             range = range, range
 
-        self.validate_args(mode, range)
+        self.validate_range(range)
         illusts = await self.service.illust_ranking(mode, range)
         await post_illusts(illusts,
-                           header=f"这是您点的{self.mode_reversed_mapping[mode]}榜",
+                           header=f"这是您点的{self.mode_mapping[mode]}榜",
                            number=range[0],
                            post_dest=post_dest)

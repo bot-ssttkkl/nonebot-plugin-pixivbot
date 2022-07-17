@@ -10,7 +10,7 @@ from pixivpy_async.error import TokenError
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.data.local_tag_repo import LocalTagRepo
-from nonebot_plugin_pixivbot.enums import DownloadQuantity
+from nonebot_plugin_pixivbot.enums import DownloadQuantity, RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User
 from nonebot_plugin_pixivbot.utils.errors import QueryError
 from .abstract_repo import AbstractPixivRepo
@@ -350,7 +350,8 @@ class RemotePixivRepo(AbstractPixivRepo):
                                        illust_id=illust_id)
 
     @auto_retry
-    async def illust_ranking(self, mode: str = 'day', *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
+    async def illust_ranking(self, mode: RankingMode = RankingMode.day,
+                             *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
         if not limit:
             limit = self._conf.pixiv_ranking_fetch_item
 
@@ -359,7 +360,7 @@ class RemotePixivRepo(AbstractPixivRepo):
         logger.info(f"[remote] illust_ranking {mode}")
         return await self._get_illusts(self._papi.illust_ranking, "illusts",
                                        block_tags, 0, 0, skip, limit, 0,
-                                       mode=mode)
+                                       mode=mode.name)
 
     @auto_retry
     async def image(self, illust: Illust) -> bytes:
