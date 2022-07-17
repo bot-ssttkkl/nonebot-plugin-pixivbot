@@ -14,9 +14,8 @@ class RandomRecommendedIllustHandler(CommonHandler[UID, GID], Generic[UID, GID])
     def type(cls) -> str:
         return "random_recommended_illust"
 
-    @classmethod
-    def enabled(cls) -> bool:
-        return cls.conf.pixiv_random_recommended_illust_query_enabled
+    def enabled(self) -> bool:
+        return self.conf.pixiv_random_recommended_illust_query_enabled
 
     async def actual_handle(self, *, count: int = 1,
                             post_dest: PostDestination[UID, GID],

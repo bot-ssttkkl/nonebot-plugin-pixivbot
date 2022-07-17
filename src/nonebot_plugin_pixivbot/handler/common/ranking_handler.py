@@ -25,9 +25,8 @@ class RankingHandler(CommonHandler[UID, GID], Generic[UID, GID]):
     for mode, text in mode_mapping.items():
         mode_rev_mapping[text] = mode
 
-    @classmethod
-    def enabled(cls) -> bool:
-        return cls.conf.pixiv_ranking_query_enabled
+    def enabled(self) -> bool:
+        return self.conf.pixiv_ranking_query_enabled
 
     def validate_range(self, range: Optional[Sequence[int]] = None):
         if range:
