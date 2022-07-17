@@ -1,4 +1,4 @@
-from typing import TypeVar, Generic, Sequence, Any
+from typing import TypeVar, Sequence, Any
 
 from nonebot_plugin_pixivbot.data.pixiv import PixivRepo
 from nonebot_plugin_pixivbot.global_context import context
@@ -11,7 +11,7 @@ GID = TypeVar("GID")
 
 
 @context.require(CommandHandler).sub_command("invalidate_cache")
-class InvalidateCacheHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
+class InvalidateCacheHandler(SubCommandHandler):
     def __init__(self):
         super().__init__()
         self.pixiv_data_source = context.require(PixivRepo)

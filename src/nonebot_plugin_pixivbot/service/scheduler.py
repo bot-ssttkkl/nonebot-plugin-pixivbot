@@ -3,12 +3,12 @@ from __future__ import annotations
 import re
 from datetime import datetime, timedelta
 from inspect import isawaitable
-from typing import TypeVar, Dict, List, Sequence, Union, Optional, Generic, TYPE_CHECKING
+from typing import TypeVar, Dict, List, Sequence, Union, Optional, TYPE_CHECKING
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from lazy import lazy
-from nonebot import logger, get_driver
+from nonebot import logger, get_driver, Bot
 
 from nonebot_plugin_pixivbot.data.subscription_repo import SubscriptionRepo
 from nonebot_plugin_pixivbot.global_context import context
@@ -27,9 +27,9 @@ ID = PostIdentifier[UID, GID]
 
 
 @context.register_singleton()
-class Scheduler(Generic[UID, GID]):
+class Scheduler:
     def __init__(self):
-        self.apscheduler = None
+        self.apscheduler = context.require(AsyncIOScheduler)
         self.subscriptions = context.require(SubscriptionRepo)
 
     @lazy
@@ -104,16 +104,13 @@ class Scheduler(Generic[UID, GID]):
         self.apscheduler.remove_job(job_id)
         logger.success(f"unscheduled {job_id}")
 
-    async def start(self):
-        self.apscheduler = context.require(AsyncIOScheduler)
-        async for subscription in self.subscriptions.get_all(get_adapter_name()):
+    async def on_bot_connect(self, bot: Bot):
+        async for subscription in self.subscriptions.get_all(get_adapter_name(bot)):
             self._add_job(subscription)
 
-    async def stop(self):
-        jobs = self.apscheduler.get_jobs()
-        for j in jobs:
-            if j.id.startswith("scheduled"):
-                j.remove()
+    async def on_bot_disconnect(self, bot: Bot):
+        async for subscription in self.subscriptions.get_all(get_adapter_name(bot)):
+            self._remove_job(subscription.type, subscription.identifier)
 
     async def schedule(self, type: str,
                        schedule: Union[str, Sequence[int]],
@@ -161,7 +158,7 @@ class Scheduler(Generic[UID, GID]):
 
 
 scheduler = context.require(Scheduler)
-get_driver().on_bot_connect(scheduler.start)
-get_driver().on_bot_disconnect(scheduler.stop)
+get_driver().on_bot_connect(scheduler.on_bot_connect)
+get_driver().on_bot_disconnect(scheduler.on_bot_disconnect)
 
 __all__ = ("Scheduler",)

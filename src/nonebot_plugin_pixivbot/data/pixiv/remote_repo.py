@@ -1,8 +1,8 @@
-import asyncio
-import typing
+from asyncio import sleep, create_task, CancelledError
 from functools import wraps
 from io import BytesIO
 from sqlite3 import NotSupportedError
+from typing import TypeVar, Optional, Awaitable, List, Any, Callable, Union
 
 from nonebot import logger
 from pixivpy_async import *
@@ -39,7 +39,7 @@ def auto_retry(func):
     return wrapped
 
 
-T = typing.TypeVar("T")
+T = TypeVar("T")
 
 
 @context.register_singleton()
@@ -106,21 +106,21 @@ class RemotePixivRepo(AbstractPixivRepo):
         while True:
             try:
                 result = await self._refresh()
-                await asyncio.sleep(result.expires_in * 0.8)
-            except asyncio.CancelledError as e:
+                await sleep(result.expires_in * 0.8)
+            except CancelledError as e:
                 raise e
             except Exception as e:
                 logger.error(
                     "failed to refresh access token, will retry in 60s.")
                 logger.exception(e)
-                await asyncio.sleep(60)
+                await sleep(60)
 
     def start(self):
         self._cache_manager = CacheManager(self.simultaneous_query)
         self._pclient = PixivClient(proxy=self.proxy)
         self._papi = AppPixivAPI(client=self._pclient.start())
         self._papi.set_additional_headers({'Accept-Language': 'zh-CN'})
-        self._refresh_daemon_task = asyncio.create_task(self._refresh_daemon())
+        self._refresh_daemon_task = create_task(self._refresh_daemon())
 
     async def shutdown(self):
         await self._pclient.close()
@@ -132,14 +132,14 @@ class RemotePixivRepo(AbstractPixivRepo):
             raise QueryError(raw_result["error"]["user_message"]
                              or raw_result["error"]["message"] or raw_result["error"]["reason"])
 
-    async def _flat_page(self, papi_search_func: typing.Callable[..., typing.Awaitable[dict]],
+    async def _flat_page(self, papi_search_func: Callable[..., Awaitable[dict]],
                          element_list_name: str,
-                         element_mapper: typing.Optional[typing.Callable[[typing.Any], T]] = None,
-                         element_filter: typing.Optional[typing.Callable[[T], bool]] = None,
+                         element_mapper: Optional[Callable[[Any], T]] = None,
+                         element_filter: Optional[Callable[[T], bool]] = None,
                          skip: int = 0,
                          limit: int = 0,
                          limit_page: int = 0,
-                         **kwargs) -> typing.List[T]:
+                         **kwargs) -> List[T]:
         cur_page = 0
         items = []
 
@@ -175,7 +175,7 @@ class RemotePixivRepo(AbstractPixivRepo):
 
         return items
 
-    async def _add_to_local_tags(self, illusts: typing.List[LazyIllust]):
+    async def _add_to_local_tags(self, illusts: List[Union[LazyIllust, Illust]]):
         try:
             tags = {}
             for x in illusts:
@@ -191,9 +191,9 @@ class RemotePixivRepo(AbstractPixivRepo):
         except Exception as e:
             logger.exception(e)
 
-    async def _get_illusts(self, papi_search_func: typing.Callable[[], typing.Awaitable[dict]],
+    async def _get_illusts(self, papi_search_func: Callable[[], Awaitable[dict]],
                            element_list_name: str,
-                           block_tags: typing.Optional[typing.List[str]],
+                           block_tags: Optional[List[str]],
                            min_bookmark: int = 0,
                            min_view: int = 0,
                            skip: int = 0,
@@ -232,7 +232,7 @@ class RemotePixivRepo(AbstractPixivRepo):
             f"[remote] {len(illusts)} got, illust_detail of {detail_missing} are missed")
 
         if self._conf.pixiv_tag_translation_enabled:
-            asyncio.create_task(self._add_to_local_tags(illusts))
+            create_task(self._add_to_local_tags(illusts))
 
         return illusts
 
@@ -245,7 +245,7 @@ class RemotePixivRepo(AbstractPixivRepo):
         illust = Illust.parse_obj(raw_result["illust"])
 
         if self._conf.pixiv_tag_translation_enabled:
-            asyncio.create_task(self._add_to_local_tags([illust]))
+            create_task(self._add_to_local_tags([illust]))
 
         return illust
 
@@ -258,7 +258,7 @@ class RemotePixivRepo(AbstractPixivRepo):
         return User.parse_obj(raw_result["user"])
 
     @auto_retry
-    async def search_illust(self, word: str, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
+    async def search_illust(self, word: str, *, skip: int = 0, limit: int = 0) -> List[LazyIllust]:
         if not limit:
             limit = self._conf.pixiv_random_illust_max_item
         limit_page = self._conf.pixiv_random_illust_max_page
@@ -272,7 +272,7 @@ class RemotePixivRepo(AbstractPixivRepo):
                                        word=word)
 
     @auto_retry
-    async def search_user(self, word: str, *, skip: int = 0, limit: int = 20) -> typing.List[User]:
+    async def search_user(self, word: str, *, skip: int = 0, limit: int = 20) -> List[User]:
         logger.info(f"[remote] search_user {word}")
         content = await self._flat_page(self._papi.search_user, "user_previews",
                                         lambda x: User.parse_obj(
@@ -282,7 +282,7 @@ class RemotePixivRepo(AbstractPixivRepo):
         return content
 
     @auto_retry
-    async def user_illusts(self, user_id: int = 0, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
+    async def user_illusts(self, user_id: int = 0, *, skip: int = 0, limit: int = 0) -> List[LazyIllust]:
         if user_id == 0:
             user_id = self.user_id
 
@@ -300,7 +300,7 @@ class RemotePixivRepo(AbstractPixivRepo):
                                        user_id=user_id)
 
     @auto_retry
-    async def user_bookmarks(self, user_id: int = 0, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
+    async def user_bookmarks(self, user_id: int = 0, *, skip: int = 0, limit: int = 0) -> List[LazyIllust]:
         if user_id == 0:
             user_id = self.user_id
 
@@ -321,7 +321,7 @@ class RemotePixivRepo(AbstractPixivRepo):
                                        user_id=user_id)
 
     @auto_retry
-    async def recommended_illusts(self, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
+    async def recommended_illusts(self, *, skip: int = 0, limit: int = 0) -> List[LazyIllust]:
         if not limit:
             limit = self._conf.pixiv_random_recommended_illust_max_item
 
@@ -335,7 +335,7 @@ class RemotePixivRepo(AbstractPixivRepo):
                                        block_tags, min_bookmark, min_view, skip, limit, limit_page)
 
     @auto_retry
-    async def related_illusts(self, illust_id: int, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
+    async def related_illusts(self, illust_id: int, *, skip: int = 0, limit: int = 0) -> List[LazyIllust]:
         if not limit:
             limit = self._conf.pixiv_random_related_illust_max_item
 
@@ -351,7 +351,7 @@ class RemotePixivRepo(AbstractPixivRepo):
 
     @auto_retry
     async def illust_ranking(self, mode: RankingMode = RankingMode.day,
-                             *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
+                             *, skip: int = 0, limit: int = 0) -> List[LazyIllust]:
         if not limit:
             limit = self._conf.pixiv_ranking_fetch_item
 

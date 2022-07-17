@@ -1,4 +1,4 @@
-from typing import TypeVar, Optional, Generic
+from typing import TypeVar, Optional
 
 from nonebot_plugin_pixivbot.data.source import MongoDataSource
 from nonebot_plugin_pixivbot.global_context import context
@@ -8,7 +8,7 @@ UID = TypeVar("UID")
 
 
 @context.register_singleton()
-class PixivBindingRepo(Generic[UID]):
+class PixivBindingRepo:
     def __init__(self):
         self.mongo = context.require(MongoDataSource)
 

@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar, Sequence, Any
+from typing import TypeVar, Sequence, Any
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.common.common_handler import CommonHandler
@@ -11,7 +11,7 @@ GID = TypeVar("GID")
 
 
 @context.root.register_singleton()
-class RandomBookmarkHandler(CommonHandler[UID, GID], Generic[UID, GID]):
+class RandomBookmarkHandler(CommonHandler):
     def __init__(self):
         super().__init__()
         self.binder = context.require(PixivAccountBinder)

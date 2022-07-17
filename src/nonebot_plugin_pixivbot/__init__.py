@@ -6,10 +6,13 @@ nonebot-plugin-pixivbot
 @GitHub         : https://github.com/ssttkkl/nonebot-plugin-pixivbot
 """
 
+# ================= provide beans =================
 from .global_context import context
 from .providers import provide
-from .query import QueryManager
 
 provide(context)
+
+# ================ register command ================
+from .query import *
 
 __all__ = ("context",)

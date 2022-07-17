@@ -1,4 +1,4 @@
-from typing import TypeVar, Generic, AsyncGenerator
+from typing import TypeVar, AsyncGenerator
 
 from pymongo import ReturnDocument
 
@@ -14,7 +14,7 @@ ID = PostIdentifier[UID, GID]
 
 
 @context.register_singleton()
-class SubscriptionRepo(Generic[UID, GID]):
+class SubscriptionRepo:
     def __init__(self):
         self.mongo = context.require(MongoDataSource)
 

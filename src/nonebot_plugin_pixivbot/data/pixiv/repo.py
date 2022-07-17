@@ -173,8 +173,8 @@ class PixivRepo(AbstractPixivRepo):
         )
 
 
-pixiv_data_source = context.require(PixivRepo)
-get_driver().on_startup(pixiv_data_source.start)
-get_driver().on_shutdown(pixiv_data_source.shutdown)
+repo = context.require(PixivRepo)
+get_driver().on_startup(repo.start)
+get_driver().on_shutdown(repo.shutdown)
 
 __all__ = ('PixivRepo',)

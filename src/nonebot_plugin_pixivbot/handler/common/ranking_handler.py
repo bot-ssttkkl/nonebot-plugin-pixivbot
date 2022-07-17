@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Union, TypeVar, Generic, Any
+from typing import Optional, Sequence, Union, TypeVar, Any
 
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.global_context import context
@@ -12,7 +12,7 @@ GID = TypeVar("GID")
 
 
 @context.root.register_singleton()
-class RankingHandler(CommonHandler[UID, GID], Generic[UID, GID]):
+class RankingHandler(CommonHandler):
     @classmethod
     def type(cls) -> str:
         return "ranking"

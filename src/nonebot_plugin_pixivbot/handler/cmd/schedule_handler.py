@@ -1,4 +1,4 @@
-from typing import List, TypeVar, Generic, Sequence, Any
+from typing import List, TypeVar, Sequence, Any
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.cmd.command_handler import CommandHandler, SubCommandHandler
@@ -14,7 +14,7 @@ GID = TypeVar("GID")
 
 
 @context.require(CommandHandler).sub_command("schedule")
-class ScheduleHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
+class ScheduleHandler(SubCommandHandler):
     def __init__(self):
         super().__init__()
         self.scheduler = context.require(Scheduler)
@@ -61,7 +61,7 @@ class ScheduleHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
 
 
 @context.require(CommandHandler).sub_command("unschedule")
-class UnscheduleHandler(SubCommandHandler[UID, GID], Generic[UID, GID]):
+class UnscheduleHandler(SubCommandHandler):
     def __init__(self):
         super().__init__()
         self.scheduler = context.require(Scheduler)
