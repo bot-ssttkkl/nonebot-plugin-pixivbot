@@ -1,6 +1,6 @@
-from . import nb_provider
+from . import nb_providers
 from .context import Context
 
 
 def provide(context: Context):
-    nb_provider.provide(context)
+    nb_providers.provide(context)
