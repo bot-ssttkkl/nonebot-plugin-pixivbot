@@ -4,7 +4,7 @@ from nonebot.adapters import Bot, Event
 from nonebot.matcher import Matcher
 from nonebot.typing import T_State
 
-from . import Query
+from .query import Query
 
 
 class DelegationQuery(Query, ABC):
