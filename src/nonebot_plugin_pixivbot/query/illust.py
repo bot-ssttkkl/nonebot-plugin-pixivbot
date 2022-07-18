@@ -6,12 +6,11 @@ from nonebot.typing import T_State
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.common import IllustHandler
-from .query import Query
-from .query_manager import QueryManager
+from .query import Query, register_query
 from .utils import get_common_query_rule, get_post_dest
 
 
-@context.require(QueryManager).query
+@register_query(context)
 class IllustQuery(Query):
     def __init__(self):
         super().__init__()

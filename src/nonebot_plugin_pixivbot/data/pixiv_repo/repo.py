@@ -1,8 +1,6 @@
 import typing
 from functools import partial
 
-from nonebot import get_driver
-
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User
@@ -12,6 +10,7 @@ from .local_repo import LocalPixivRepo
 from .mediator import Mediator
 from .pkg_context import context
 from .remote_repo import RemotePixivRepo
+from ...utils.lifecycler import on_startup, on_shutdown
 
 
 def do_skip_and_limit(items: list, skip: int, limit: int) -> list:
@@ -34,6 +33,9 @@ class PixivRepo(AbstractPixivRepo):
         self._mediator = None
         self.remote = context.require(RemotePixivRepo)
         self.cache = context.require(LocalPixivRepo)
+
+        on_startup(self.start, replay=True)
+        on_shutdown(self.shutdown)
 
     async def start(self):
         await self.remote.start()
@@ -172,9 +174,5 @@ class PixivRepo(AbstractPixivRepo):
             timeout=self._conf.pixiv_query_timeout
         )
 
-
-repo = context.require(PixivRepo)
-get_driver().on_startup(repo.start)
-get_driver().on_shutdown(repo.shutdown)
 
 __all__ = ('PixivRepo',)

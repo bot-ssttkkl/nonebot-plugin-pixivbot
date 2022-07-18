@@ -15,4 +15,7 @@ provide(context)
 # ================= register query =================
 from .query import *
 
+# =============== register scheduler ===============
+from .service.scheduler import Scheduler
+
 __all__ = ("context",)

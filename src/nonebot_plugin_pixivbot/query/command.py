@@ -6,12 +6,11 @@ from nonebot.typing import T_State
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.command import CommandHandler
-from .query import Query
-from .query_manager import QueryManager
+from .query import Query, register_query
 from .utils import get_command_rule, get_post_dest
 
 
-@context.require(QueryManager).query
+@register_query(context)
 class CommandQuery(Query):
     def __init__(self):
         super().__init__()

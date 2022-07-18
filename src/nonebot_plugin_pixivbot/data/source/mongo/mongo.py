@@ -1,11 +1,12 @@
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-from nonebot import logger, get_driver
+from nonebot import logger
 from pymongo.errors import OperationFailure
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.data.errors import DataSourceNotReadyError
 from nonebot_plugin_pixivbot.data.source.mongo.migration import MongoMigrationManager
 from nonebot_plugin_pixivbot.global_context import context
+from nonebot_plugin_pixivbot.utils.lifecycler import on_startup, on_shutdown
 
 
 @context.register_singleton()
@@ -16,6 +17,9 @@ class MongoDataSource:
     def __init__(self):
         self._client = None
         self._db = None
+
+        on_startup(self.initialize, replay=True)
+        on_shutdown(self.finalize)
 
     @property
     def client(self):
@@ -127,9 +131,5 @@ class MongoDataSource:
         self._client = None
         self._db = None
 
-
-mongo = context.require(MongoDataSource)
-get_driver().on_startup(mongo.initialize)
-get_driver().on_shutdown(mongo.finalize)
 
 __all__ = ("MongoDataSource",)
