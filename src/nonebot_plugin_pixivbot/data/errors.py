@@ -1,0 +1,2 @@
+class DataSourceNotReadyError(RuntimeError):
+    pass
