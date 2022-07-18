@@ -38,9 +38,9 @@ class Scheduler:
     @staticmethod
     def _make_job_id(type: str, identifier: ID):
         if identifier.group_id:
-            return f'scheduled {type} g{identifier.group_id}'
+            return f'scheduled {type} {identifier.adapter}:g{identifier.group_id}'
         else:
-            return f'scheduled {type} u{identifier.user_id}'
+            return f'scheduled {type} {identifier.adapter}:u{identifier.user_id}'
 
     @staticmethod
     def _parse_schedule(raw_schedule: str) -> Sequence[int]:
