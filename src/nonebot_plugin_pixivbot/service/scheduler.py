@@ -10,6 +10,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from lazy import lazy
 from nonebot import logger, get_driver, Bot
 
+from nonebot_plugin_pixivbot.data.errors import DataSourceNotReadyError
 from nonebot_plugin_pixivbot.data.subscription_repo import SubscriptionRepo
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier
@@ -104,8 +105,11 @@ class Scheduler:
             self._add_job(subscription)
 
     async def on_bot_disconnect(self, bot: Bot):
-        async for subscription in self.subscriptions.get_all(get_adapter_name(bot)):
-            self._remove_job(subscription.type, subscription.identifier)
+        try:
+            async for subscription in self.subscriptions.get_all(get_adapter_name(bot)):
+                self._remove_job(subscription.type, subscription.identifier)
+        except DataSourceNotReadyError:
+            pass  # 可能数据源先断开连接了，不管它
 
     async def schedule(self, type: str,
                        schedule: Union[str, Sequence[int]],
