@@ -4,7 +4,7 @@ from nonebot.adapters import Bot, Event
 from nonebot.matcher import Matcher
 from nonebot.typing import T_State
 
-from nonebot_plugin_pixivbot.query import Query
+from . import Query
 
 
 class DelegationQuery(Query, ABC):

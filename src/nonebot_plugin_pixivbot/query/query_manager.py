@@ -3,7 +3,7 @@ from typing import Set, Type
 from nonebot import logger, get_driver
 
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.query.query import Query
+from .query import Query
 
 
 @context.register_singleton()
@@ -18,11 +18,11 @@ class QueryManager:
 
         self.t_queries.add(cls)
         if not self.started:
-            logger.success(f"registered a query {cls}")
+            logger.success(f"registered query {cls}")
         else:
             query = context.require(cls)
             query.matcher.append_handler(query.on_match)
-            logger.warning(f"registered a query {cls} after QueryManager started")
+            logger.warning(f"registered query {cls} after QueryManager started")
         return cls
 
     def start(self):

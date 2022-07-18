@@ -3,11 +3,13 @@ nonebot_plugin_pixivbot
 
 PixivBot中协议无关的通用部分。
 请使用具体协议版本的插件：
+
 - [nonebot-plugin-pixivbot-onebot-v11 (Onebot V11)](https://github.com/ssttkkl/nonebot-plugin-pixivbot-onebot-v11)
 
 ## 配置
 
 最小配置：
+
 ```
 pixiv_refresh_token=  # 前面获取的REFRESH_TOKEN
 pixiv_mongo_conn_url=  # MongoDB连接URL，格式：mongodb://<用户名>:<密码>@<主机>:<端口>/<数据库>
@@ -15,6 +17,7 @@ pixiv_mongo_database_name=  # 连接的MongoDB数据库
 ```
 
 完整配置（除最小配置出现的配置项以外都是可选项，给出的是默认值）：
+
 ```
 pixiv_refresh_token=  # 前面获取的REFRESH_TOKEN
 pixiv_mongo_conn_url=  # MongoDB连接URL，格式：mongodb://<用户名>:<密码>@<主机>:<端口>/<数据库>
@@ -105,7 +108,6 @@ pixiv_poke_action=random_recommended_illust  # 戳一戳的功能，可选值：
 [Mikubill/pixivpy-async](https://github.com/Mikubill/pixivpy-async)
 
 [nonebot/nonebot2](https://github.com/nonebot/nonebot2)
-
 
 ## LICENSE
 

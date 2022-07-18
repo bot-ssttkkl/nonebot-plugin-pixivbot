@@ -2,9 +2,9 @@ import typing
 
 from pymongo import *
 
-from nonebot_plugin_pixivbot.data.source import MongoDataSource
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Tag
+from .source import MongoDataSource
 
 
 @context.register_singleton()

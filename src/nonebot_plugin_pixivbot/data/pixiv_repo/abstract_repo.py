@@ -1,9 +1,9 @@
 import typing
 from abc import ABC, abstractmethod
 
+from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User
 from .lazy_illust import LazyIllust
-from ...enums import RankingMode
 
 
 class AbstractPixivRepo(ABC):

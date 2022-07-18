@@ -2,7 +2,7 @@ from time import time
 
 import numpy as np
 
-from nonebot_plugin_pixivbot.data.pixiv import LazyIllust
+from nonebot_plugin_pixivbot.data.pixiv_repo import LazyIllust
 from nonebot_plugin_pixivbot.enums import RandomIllustMethod
 
 

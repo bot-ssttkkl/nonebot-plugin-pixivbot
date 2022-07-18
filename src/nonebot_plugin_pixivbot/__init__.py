@@ -12,7 +12,7 @@ from .providers import provide
 
 provide(context)
 
-# ================ register command ================
+# ================= register query =================
 from .query import *
 
 __all__ = ("context",)

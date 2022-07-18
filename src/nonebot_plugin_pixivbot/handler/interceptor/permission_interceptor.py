@@ -6,10 +6,10 @@ from nonebot import get_driver
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.handler.interceptor.interceptor import Interceptor
-from nonebot_plugin_pixivbot.handler.utils import post_plain_text
 from nonebot_plugin_pixivbot.postman import PostDestination
-from nonebot_plugin_pixivbot.protocol_dep import UserAuthenticator
+from nonebot_plugin_pixivbot.protocol_dep.user_authenticator import UserAuthenticator
+from .interceptor import Interceptor
+from ..utils import post_plain_text
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")

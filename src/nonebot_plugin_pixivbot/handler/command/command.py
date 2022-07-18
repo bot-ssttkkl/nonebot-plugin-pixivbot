@@ -2,12 +2,14 @@ from abc import ABC
 from abc import abstractmethod
 from typing import Type, Callable, Union, Awaitable, TypeVar, Sequence, Any
 
+from nonebot import logger
+
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.handler.entry_handler import EntryHandler
-from nonebot_plugin_pixivbot.handler.handler import Handler
-from nonebot_plugin_pixivbot.handler.utils import post_plain_text
 from nonebot_plugin_pixivbot.postman import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
+from ..entry_handler import EntryHandler
+from ..handler import Handler
+from ..utils import post_plain_text
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -52,8 +54,10 @@ class CommandHandler(EntryHandler):
     def sub_command(self, type: str) \
             -> Callable[[Type[SubCommandHandler]], Type[SubCommandHandler]]:
         def decorator(cls: Type[SubCommandHandler]):
-            context.register_singleton()(cls)
+            if cls not in context:
+                context.register_singleton()(cls)
             self.handlers[type] = cls
+            logger.success(f"registered subcommand {type}")
             return cls
 
         return decorator

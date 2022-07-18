@@ -1,11 +1,11 @@
 from typing import TypeVar, Sequence, Any
 
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.handler.common.common_handler import CommonHandler
 from nonebot_plugin_pixivbot.handler.utils import post_illusts
 from nonebot_plugin_pixivbot.postman import PostDestination
 from nonebot_plugin_pixivbot.service.pixiv_account_binder import PixivAccountBinder
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
+from .common import CommonHandler
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -42,7 +42,7 @@ class RandomBookmarkHandler(CommonHandler):
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
         if not pixiv_user_id and sender_user_id:
-            pixiv_user_id = await self.binder.get_binding(sender_user_id)
+            pixiv_user_id = await self.binder.get_binding(post_dest.adapter, sender_user_id)
 
         if not pixiv_user_id:
             pixiv_user_id = self.conf.pixiv_random_bookmark_user_id

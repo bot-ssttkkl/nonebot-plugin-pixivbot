@@ -12,7 +12,7 @@ from nonebot_plugin_pixivbot.model import PostIdentifier
 from nonebot_plugin_pixivbot.postman import PostDestination
 
 if TYPE_CHECKING:
-    from nonebot_plugin_pixivbot.handler import Handler
+    from ..handler import Handler
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")

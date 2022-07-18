@@ -4,11 +4,11 @@ from typing import Awaitable, Union, TypeVar, Generic, Sequence, Any, Optional
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.handler.interceptor.combined_interceptor import CombinedInterceptor
-from nonebot_plugin_pixivbot.handler.interceptor.interceptor import Interceptor
-from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import PermissionInterceptor
 from nonebot_plugin_pixivbot.postman.post_destination import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
+from .interceptor.combined_interceptor import CombinedInterceptor
+from .interceptor.interceptor import Interceptor
+from .interceptor.permission_interceptor import PermissionInterceptor
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")

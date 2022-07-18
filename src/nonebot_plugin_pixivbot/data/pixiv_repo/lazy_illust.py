@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Optional
 
-from nonebot_plugin_pixivbot.data.pixiv.pkg_context import context
 from nonebot_plugin_pixivbot.model import Illust
 from nonebot_plugin_pixivbot.utils.lazy_delegation import LazyDelegation
+from .pkg_context import context
 
 __all__ = ("LazyIllust",)
 

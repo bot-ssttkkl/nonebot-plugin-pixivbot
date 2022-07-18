@@ -11,7 +11,7 @@ from nonebot_plugin_pixivbot.postman.postman import PostmanManager
 
 async def post_plain_text(message: str, post_dest: PostDestination):
     postman = context.require(PostmanManager)[post_dest.adapter]
-    await postman.send_plain_text(message, post_dest)
+    await postman.send_plain_text(message, post_dest=post_dest)
 
 
 async def post_illust(illust: Illust, *,
