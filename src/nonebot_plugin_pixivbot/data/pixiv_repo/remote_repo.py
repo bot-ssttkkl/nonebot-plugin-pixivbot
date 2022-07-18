@@ -115,7 +115,7 @@ class RemotePixivRepo(AbstractPixivRepo):
                 logger.exception(e)
                 await sleep(60)
 
-    def start(self):
+    async def start(self):
         self._cache_manager = Mediator(self.simultaneous_query)
         self._pclient = PixivClient(proxy=self.proxy)
         self._papi = AppPixivAPI(client=self._pclient.start())
