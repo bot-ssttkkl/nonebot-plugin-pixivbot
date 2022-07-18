@@ -2,9 +2,9 @@ from abc import ABC
 from typing import TypeVar
 
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.handler.handler import Handler
-from nonebot_plugin_pixivbot.handler.interceptor.default_error_interceptor import DefaultErrorInterceptor
-from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import BlacklistInterceptor
+from .handler import Handler
+from .interceptor.default_error_interceptor import DefaultErrorInterceptor
+from .interceptor.permission_interceptor import BlacklistInterceptor
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")

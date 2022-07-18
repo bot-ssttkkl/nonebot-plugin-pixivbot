@@ -61,9 +61,23 @@ class Context:
         if key in self._lazy_container:
             del self._container[key]
 
-    def bind(self, key, src_key):
+    def bind_to(self, key, src_key):
+        """
+        bind key (usually the implementation class) to src_key (usually the base class)
+        """
         self._binding[key] = src_key
         logger.success(f"bind bean {key} to {src_key}")
+
+    def bind_singleton_to(self, key, *args, **kwargs):
+        """
+        decorator for a class (usually the implementation class) to bind to another class (usually the base class)
+        """
+        def decorator(cls):
+            self.register_singleton(*args, **kwargs)(cls)
+            self.bind_to(key, cls)
+            return cls
+
+        return decorator
 
     def require(self, key: Type[T]) -> T:
         if key in self._binding:

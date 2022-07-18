@@ -4,14 +4,14 @@ from functools import partial
 from nonebot import get_driver
 
 from nonebot_plugin_pixivbot.config import Config
+from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User
 from .abstract_repo import AbstractPixivRepo
 from .lazy_illust import LazyIllust
-from .local_manager import CacheManager
 from .local_repo import LocalPixivRepo
+from .mediator import Mediator
 from .pkg_context import context
 from .remote_repo import RemotePixivRepo
-from ...enums import RankingMode
 
 
 def do_skip_and_limit(items: list, skip: int, limit: int) -> list:
@@ -37,7 +37,7 @@ class PixivRepo(AbstractPixivRepo):
 
     def start(self):
         self.remote.start()
-        self._cache_manager = CacheManager()
+        self._cache_manager = Mediator()
 
     async def shutdown(self):
         await self.remote.shutdown()

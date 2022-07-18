@@ -1,7 +1,6 @@
 from typing import List, TypeVar, Sequence, Any
 
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.handler.cmd.command_handler import CommandHandler, SubCommandHandler
 from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import GroupAdminInterceptor, \
     AnyPermissionInterceptor, SuperuserInterceptor
 from nonebot_plugin_pixivbot.handler.utils import post_plain_text
@@ -9,6 +8,7 @@ from nonebot_plugin_pixivbot.model import PostIdentifier
 from nonebot_plugin_pixivbot.postman import PostDestination
 from nonebot_plugin_pixivbot.service.scheduler import Scheduler
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
+from .command import CommandHandler, SubCommandHandler
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")

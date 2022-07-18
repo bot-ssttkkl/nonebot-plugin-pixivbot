@@ -71,7 +71,7 @@ class Scheduler:
     @lazy
     def _handlers(self) -> Dict[str, Handler]:
         # 解决Handler和Scheduler的循环引用
-        from nonebot_plugin_pixivbot.handler import RandomBookmarkHandler, RandomRecommendedIllustHandler, \
+        from nonebot_plugin_pixivbot.handler.common import RandomBookmarkHandler, RandomRecommendedIllustHandler, \
             RankingHandler, RandomIllustHandler, RandomUserIllustHandler
         return {
             RandomBookmarkHandler.type(): context.require(RandomBookmarkHandler),

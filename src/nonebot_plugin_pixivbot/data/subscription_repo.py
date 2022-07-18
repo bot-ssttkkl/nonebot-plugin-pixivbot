@@ -2,10 +2,10 @@ from typing import TypeVar, AsyncGenerator
 
 from pymongo import ReturnDocument
 
-from nonebot_plugin_pixivbot.data.source import MongoDataSource
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Subscription
 from nonebot_plugin_pixivbot.model.post_identifier import PostIdentifier
+from .source import MongoDataSource
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")

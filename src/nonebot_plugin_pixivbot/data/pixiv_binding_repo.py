@@ -1,8 +1,8 @@
 from typing import TypeVar, Optional
 
-from nonebot_plugin_pixivbot.data.source import MongoDataSource
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.model.pixiv_binding import PixivBinding
+from nonebot_plugin_pixivbot.model import PixivBinding
+from .source import MongoDataSource
 
 UID = TypeVar("UID")
 

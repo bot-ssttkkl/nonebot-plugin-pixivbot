@@ -4,8 +4,8 @@ from typing import TypeVar, Generic
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import PermissionInterceptor
 from nonebot_plugin_pixivbot.postman import PostDestination
+from .permission_interceptor import PermissionInterceptor
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")

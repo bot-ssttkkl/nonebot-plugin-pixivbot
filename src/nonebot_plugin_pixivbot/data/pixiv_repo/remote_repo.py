@@ -9,15 +9,15 @@ from pixivpy_async import *
 from pixivpy_async.error import TokenError
 
 from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.data.local_tag_repo import LocalTagRepo
 from nonebot_plugin_pixivbot.enums import DownloadQuantity, RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User
 from nonebot_plugin_pixivbot.utils.errors import QueryError
 from .abstract_repo import AbstractPixivRepo
 from .compressor import Compressor
 from .lazy_illust import LazyIllust
-from .local_manager import CacheManager
+from .mediator import Mediator
 from .pkg_context import context
+from ..local_tag_repo import LocalTagRepo
 
 
 def auto_retry(func):
@@ -61,7 +61,7 @@ class RemotePixivRepo(AbstractPixivRepo):
         self.timeout = self._conf.pixiv_query_timeout
         self.proxy = self._conf.pixiv_proxy
 
-        self._cache_manager = CacheManager(
+        self._cache_manager = Mediator(
             simultaneous_query=self._conf.pixiv_simultaneous_query)
 
     async def _refresh(self):
@@ -116,7 +116,7 @@ class RemotePixivRepo(AbstractPixivRepo):
                 await sleep(60)
 
     def start(self):
-        self._cache_manager = CacheManager(self.simultaneous_query)
+        self._cache_manager = Mediator(self.simultaneous_query)
         self._pclient = PixivClient(proxy=self.proxy)
         self._papi = AppPixivAPI(client=self._pclient.start())
         self._papi.set_additional_headers({'Accept-Language': 'zh-CN'})

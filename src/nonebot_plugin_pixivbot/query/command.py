@@ -5,10 +5,10 @@ from nonebot.matcher import Matcher
 from nonebot.typing import T_State
 
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.handler import CommandHandler
-from nonebot_plugin_pixivbot.query.query import Query
-from nonebot_plugin_pixivbot.query.query_manager import QueryManager
-from nonebot_plugin_pixivbot.query.utils import get_command_rule, get_post_dest
+from nonebot_plugin_pixivbot.handler.command import CommandHandler
+from .query import Query
+from .query_manager import QueryManager
+from .utils import get_command_rule, get_post_dest
 
 
 @context.require(QueryManager).query

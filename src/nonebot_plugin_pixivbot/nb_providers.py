@@ -10,7 +10,7 @@ def asyncio_scheduler_provider(context: Context):
 
 
 def base_scheduler_provider(context: Context):
-    context.bind(BaseScheduler, AsyncIOScheduler)
+    context.bind_to(BaseScheduler, AsyncIOScheduler)
 
 
 providers = [asyncio_scheduler_provider, base_scheduler_provider]
