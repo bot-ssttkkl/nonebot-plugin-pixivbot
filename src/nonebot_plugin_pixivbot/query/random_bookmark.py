@@ -7,12 +7,11 @@ from nonebot.typing import T_State
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.common import RandomBookmarkHandler
-from .query import Query
-from .query_manager import QueryManager
+from .query import Query, register_query
 from .utils import get_count, get_common_query_rule, get_post_dest
 
 
-@context.require(QueryManager).query
+@register_query(context)
 class RandomBookmarkQuery(Query):
     conf = context.require(Config)
 

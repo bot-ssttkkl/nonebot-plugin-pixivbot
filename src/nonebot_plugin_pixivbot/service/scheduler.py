@@ -8,13 +8,13 @@ from typing import TypeVar, Dict, List, Sequence, Union, Optional, TYPE_CHECKING
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from lazy import lazy
-from nonebot import logger, get_driver, Bot
+from nonebot import logger, Bot
 
-from nonebot_plugin_pixivbot.data.errors import DataSourceNotReadyError
 from nonebot_plugin_pixivbot.data.subscription_repo import SubscriptionRepo
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
+from nonebot_plugin_pixivbot.utils.lifecycler import on_bot_connect, on_bot_disconnect
 from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
 
 if TYPE_CHECKING:
@@ -26,11 +26,14 @@ GID = TypeVar("GID")
 ID = PostIdentifier[UID, GID]
 
 
-@context.register_singleton()
+@context.register_eager_singleton()
 class Scheduler:
     def __init__(self):
         self.apscheduler = context.require(AsyncIOScheduler)
         self.subscriptions = context.require(SubscriptionRepo)
+
+        on_bot_connect(self.on_bot_connect, replay=True)
+        on_bot_disconnect(self.on_bot_disconnect)
 
     @staticmethod
     def _make_job_id(type: str, identifier: ID):
@@ -105,11 +108,13 @@ class Scheduler:
             self._add_job(subscription)
 
     async def on_bot_disconnect(self, bot: Bot):
-        try:
-            async for subscription in self.subscriptions.get_all(get_adapter_name(bot)):
+        async for subscription in self.subscriptions.get_all(get_adapter_name(bot)):
+            try:
                 self._remove_job(subscription.type, subscription.identifier)
-        except DataSourceNotReadyError:
-            pass  # 可能数据源先断开连接了，不管它
+            except Exception as e:
+                logger.error(
+                    f"error occurred when remove job {self._make_job_id(subscription.type, subscription.identifier)}")
+                logger.exception(e)
 
     async def schedule(self, type: str,
                        schedule: Union[str, Sequence[int]],
@@ -155,9 +160,5 @@ class Scheduler:
     async def all_subscription(self, identifier: PostIdentifier[UID, GID]) -> List[dict]:
         return [x async for x in self.subscriptions.get(identifier)]
 
-
-scheduler = context.require(Scheduler)
-get_driver().on_bot_connect(scheduler.on_bot_connect)
-get_driver().on_bot_disconnect(scheduler.on_bot_disconnect)
 
 __all__ = ("Scheduler",)

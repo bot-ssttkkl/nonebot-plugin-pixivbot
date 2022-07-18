@@ -52,6 +52,18 @@ class Context:
 
         return decorator
 
+    def register_eager_singleton(self, *args, **kwargs):
+        """
+        decorator for a class to register a bean lazily
+        """
+
+        def decorator(cls):
+            bean = cls(*args, **kwargs)
+            self.register(cls, bean)
+            return cls
+
+        return decorator
+
     def unregister(self, key: Type[T]):
         """
         unregister the bean of key
@@ -72,6 +84,7 @@ class Context:
         """
         decorator for a class (usually the implementation class) to bind to another class (usually the base class)
         """
+
         def decorator(cls):
             self.register_singleton(*args, **kwargs)(cls)
             self.bind_to(key, cls)
