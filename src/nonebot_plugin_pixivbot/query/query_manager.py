@@ -25,7 +25,7 @@ class QueryManager:
             logger.warning(f"registered query {cls} after QueryManager started")
         return cls
 
-    def start(self):
+    async def start(self):
         if not self.started:
             for cls in self.t_queries:
                 query = context.require(cls)
