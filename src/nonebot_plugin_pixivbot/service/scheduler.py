@@ -13,6 +13,7 @@ from nonebot import logger, Bot
 from nonebot_plugin_pixivbot.data.subscription_repo import SubscriptionRepo
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier
+from nonebot_plugin_pixivbot.postman.post_destination import PostDestination, PostDestinationFactoryManager
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from nonebot_plugin_pixivbot.utils.lifecycler import on_bot_connect, on_bot_disconnect
 from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
@@ -85,7 +86,7 @@ class Scheduler:
             RandomUserIllustHandler.type(): context.require(RandomUserIllustHandler),
         }
 
-    def _add_job(self, sub: Subscription[UID, GID]):
+    def _add_job(self, post_dest: PostDestination[UID, GID], sub: Subscription[UID, GID]):
         offset_hour, offset_minute, hours, minutes = sub.schedule
         trigger = IntervalTrigger(hours=hours, minutes=minutes,
                                   start_date=datetime.now().replace(hour=offset_hour, minute=offset_minute,
@@ -93,7 +94,6 @@ class Scheduler:
 
         identifier = sub.identifier
         job_id = self._make_job_id(sub.type, identifier)
-        post_dest = identifier.to_post_dest(sub.adapter)
         self.apscheduler.add_job(self._handlers[sub.type].handle, id=job_id, trigger=trigger,
                                  kwargs={"post_dest": post_dest, "silently": True, **sub.kwargs})
         logger.success(f"scheduled {job_id} {trigger}")
@@ -104,8 +104,10 @@ class Scheduler:
         logger.success(f"unscheduled {job_id}")
 
     async def on_bot_connect(self, bot: Bot):
-        async for subscription in self.subscriptions.get_all(get_adapter_name(bot)):
-            self._add_job(subscription)
+        adapter = get_adapter_name(bot)
+        async for subscription in self.subscriptions.get_all(adapter):
+            post_dest = context.require(PostDestinationFactoryManager)[adapter].build(bot, subscription.user_id, subscription.group_id)
+            self._add_job(post_dest, subscription)
 
     async def on_bot_disconnect(self, bot: Bot):
         async for subscription in self.subscriptions.get_all(get_adapter_name(bot)):
@@ -119,7 +121,7 @@ class Scheduler:
     async def schedule(self, type: str,
                        schedule: Union[str, Sequence[int]],
                        args: Optional[list] = None,
-                       *, identifier: PostIdentifier[UID, GID]):
+                       *, post_dest: PostDestination[UID, GID]):
         if type not in self._handlers:
             raise BadRequestError(f"{type}不是合法的类型")
 
@@ -129,13 +131,13 @@ class Scheduler:
         if isinstance(schedule, str):
             schedule = self._parse_schedule(schedule)
 
-        kwargs = self._handlers[type].parse_args(args, identifier.to_post_dest(identifier.adapter))
+        kwargs = self._handlers[type].parse_args(args, post_dest)
         if isawaitable(kwargs):
             kwargs = await kwargs
 
-        sub = Subscription(adapter=identifier.adapter,
-                           user_id=identifier.user_id,
-                           group_id=identifier.group_id,
+        sub = Subscription(adapter=post_dest.adapter,
+                           user_id=post_dest.user_id,
+                           group_id=post_dest.group_id,
                            type=type,
                            schedule=schedule,
                            kwargs=kwargs)
@@ -143,7 +145,7 @@ class Scheduler:
         old_sub = await self.subscriptions.update(sub)
         if old_sub is not None:
             self._remove_job(sub.type, sub.identifier)
-        self._add_job(sub)
+        self._add_job(post_dest, sub)
 
     async def unschedule(self, type: str,
                          identifier: PostIdentifier[UID, GID]):
