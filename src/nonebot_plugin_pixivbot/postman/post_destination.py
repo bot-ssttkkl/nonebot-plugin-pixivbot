@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar, Optional, Type, Dict
-from nonebot import Bot
 
+from nonebot import Bot
 from nonebot.internal.adapter import Event
 
 from nonebot_plugin_pixivbot.global_context import context
@@ -24,6 +24,14 @@ class PostDestination(ABC, Generic[UID, GID]):
     @property
     @abstractmethod
     def group_id(self) -> Optional[GID]:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def normalize(self) -> "PostDestination[UID, GID]":
+        """
+        返回一个不含任何附加信息（如引用消息）的PostDestination
+        :return:
+        """
         raise NotImplementedError()
 
 
