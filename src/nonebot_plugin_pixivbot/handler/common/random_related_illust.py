@@ -2,7 +2,6 @@ from typing import TypeVar
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.utils import post_illusts
-from nonebot_plugin_pixivbot.model import PostIdentifier
 from nonebot_plugin_pixivbot.postman import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .common import CommonHandler
@@ -23,7 +22,7 @@ class RandomRelatedIllustHandler(CommonHandler):
     async def actual_handle(self, *, count: int = 1,
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
-        illust_id = self.recorder.get_resp(PostIdentifier.from_post_dest(post_dest))
+        illust_id = self.recorder.get_resp(post_dest.identifier)
         if not illust_id:
             raise BadRequestError("你还没有发送过请求")
 

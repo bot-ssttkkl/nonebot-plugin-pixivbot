@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from inspect import isawaitable
-from typing import Awaitable, Union, TypeVar, Generic, Sequence, Any, Optional
+from typing import Awaitable, Union, TypeVar, Sequence, Any, Collection, Type, Optional
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
@@ -8,7 +8,6 @@ from nonebot_plugin_pixivbot.postman.post_destination import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .interceptor.combined_interceptor import CombinedInterceptor
 from .interceptor.interceptor import Interceptor
-from .interceptor.permission_interceptor import PermissionInterceptor
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -17,12 +16,9 @@ PD = PostDestination[UID, GID]
 
 
 class Handler(ABC):
-    def __init__(self, interceptor: Optional[Interceptor[UID, GID]] = None):
+    def __init__(self):
         self.conf = context.require(Config)
-        self.interceptor = interceptor
-
-        self.permission_interceptor_delegation = PermissionInterceptorDelegation()
-        self.add_interceptor(self.permission_interceptor_delegation)
+        self.interceptor = None
 
     @classmethod
     @abstractmethod
@@ -45,6 +41,7 @@ class Handler(ABC):
     async def handle(self, *args,
                      post_dest: PD,
                      silently: bool = False,
+                     disabled_interceptors: bool = False,
                      **kwargs):
         if not self.enabled():
             return
@@ -53,14 +50,16 @@ class Handler(ABC):
             parsed_kwargs = self.parse_args(args, post_dest)
             if isawaitable(parsed_kwargs):
                 parsed_kwargs = await parsed_kwargs
-        except:
-            raise BadRequestError("参数错误")
+        except Exception as e:
+            raise BadRequestError("参数错误") from e
 
         kwargs = {**kwargs, **parsed_kwargs}
 
         if self.interceptor is not None:
             await self.interceptor.intercept(self.actual_handle,
-                                             post_dest=post_dest, silently=silently,
+                                             post_dest=post_dest,
+                                             silently=silently,
+                                             disabled_interceptors=disabled_interceptors,
                                              **kwargs)
         else:
             await self.actual_handle(post_dest=post_dest, silently=silently, **kwargs)
@@ -78,23 +77,17 @@ class Handler(ABC):
 
     def add_interceptor(self, interceptor: Interceptor[UID, GID]):
         if self.interceptor:
-            self.interceptor = CombinedInterceptor(self.interceptor, interceptor)
+            self.interceptor = CombinedInterceptor(
+                self.interceptor, interceptor)
         else:
             self.interceptor = interceptor
 
-    def get_permission_interceptor(self):
-        return self.permission_interceptor_delegation.delegation
-
-    def set_permission_interceptor(self, interceptor: PermissionInterceptor[UID, GID]):
-        self.permission_interceptor_delegation.delegation = interceptor
-
-
-class PermissionInterceptorDelegation(PermissionInterceptor, Generic[UID, GID]):
-    def __init__(self):
-        self.delegation = None
-
-    def has_permission(self, post_dest: PD) -> Union[bool, Awaitable[bool]]:
-        if self.delegation:
-            return self.delegation.has_permission(post_dest)
-        else:
-            return True
+# class PermissionInterceptorDelegation(PermissionInterceptor, Generic[UID, GID]):
+#     def __init__(self):
+#         self.delegation = None
+#
+#     def has_permission(self, post_dest: PD) -> Union[bool, Awaitable[bool]]:
+#         if self.delegation:
+#             return self.delegation.has_permission(post_dest)
+#         else:
+#             return True

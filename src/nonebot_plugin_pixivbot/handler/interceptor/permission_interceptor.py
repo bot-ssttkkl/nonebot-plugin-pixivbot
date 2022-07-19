@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from inspect import isawaitable
 from typing import TypeVar, Callable, Generic, Union, Awaitable, Optional
 
-from nonebot import get_driver
+from nonebot import get_driver, logger
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
@@ -25,10 +25,10 @@ class PermissionInterceptor(Interceptor[UID, GID], ABC, Generic[UID, GID]):
             -> Union[Optional[str], Awaitable[Optional[str]]]:
         return None
 
-    async def intercept(self, wrapped_func: Callable, *,
-                        post_dest: PostDestination[UID, GID],
-                        silently: bool,
-                        **kwargs):
+    async def actual_intercept(self, wrapped_func: Callable, *,
+                               post_dest: PostDestination[UID, GID],
+                               silently: bool,
+                               **kwargs):
         p = self.has_permission(post_dest)
         if isawaitable(p):
             p = await p
@@ -36,8 +36,11 @@ class PermissionInterceptor(Interceptor[UID, GID], ABC, Generic[UID, GID]):
         if p:
             await wrapped_func(post_dest=post_dest, silently=silently, **kwargs)
         else:
+            logger.debug(f"permission denied {post_dest}")
             if not silently:
                 msg = self.get_permission_denied_msg(post_dest)
+                if isawaitable(msg):
+                    await msg
                 if msg:
                     await post_plain_text(msg, post_dest=post_dest)
 

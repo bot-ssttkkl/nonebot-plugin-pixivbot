@@ -5,6 +5,8 @@ from nonebot import Bot
 from nonebot.internal.adapter import Event
 
 from nonebot_plugin_pixivbot.global_context import context
+from nonebot_plugin_pixivbot.model.identifier import PostIdentifier
+from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -13,18 +15,24 @@ GID = TypeVar("GID")
 class PostDestination(ABC, Generic[UID, GID]):
 
     @property
+    @abstractmethod
+    def identifier(self) -> PostIdentifier:
+        raise NotImplementedError()
+
+    @property
     def adapter(self) -> str:
-        raise NotImplementedError()
+        return self.identifier.adapter
 
     @property
-    @abstractmethod
     def user_id(self) -> Optional[UID]:
-        raise NotImplementedError()
+        return self.identifier.user_id
 
     @property
-    @abstractmethod
     def group_id(self) -> Optional[GID]:
-        raise NotImplementedError()
+        return self.identifier.group_id
+
+    def __str__(self) -> str:
+        return str(self.identifier)
 
     @abstractmethod
     def normalize(self) -> "PostDestination[UID, GID]":
@@ -66,3 +74,9 @@ class PostDestinationFactoryManager:
 
     def __getitem__(self, adapter: str):
         return self.require(adapter)
+
+    def build(self, bot: Bot, user_id: Optional[UID], group_id: Optional[GID]) -> PostDestination:
+        return self[get_adapter_name(bot)].build(bot, user_id, group_id)
+
+    def from_event(self, bot: Bot, event: Event) -> PostDestination:
+        return self[get_adapter_name(bot)].from_event(bot, event)

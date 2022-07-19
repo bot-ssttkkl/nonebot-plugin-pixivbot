@@ -2,7 +2,6 @@ from abc import ABC
 from typing import TypeVar
 
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.model import PostIdentifier
 from nonebot_plugin_pixivbot.postman import PostDestination
 from nonebot_plugin_pixivbot.service.pixiv_service import PixivService
 from .recorder import Req, Recorder
@@ -24,8 +23,8 @@ class CommonHandler(EntryHandler, ABC):
     def record_req(self, *args,
                    post_dest: PostDestination[UID, GID],
                    **kwargs):
-        self.recorder.record_req(Req(self, *args, **kwargs), PostIdentifier.from_post_dest(post_dest))
+        self.recorder.record_req(Req(self, *args, **kwargs), post_dest.identifier)
 
     def record_resp_illust(self, illust_id: int,
                            post_dest: PostDestination[UID, GID]):
-        self.recorder.record_resp(illust_id, PostIdentifier.from_post_dest(post_dest))
+        self.recorder.record_resp(illust_id, post_dest.identifier)

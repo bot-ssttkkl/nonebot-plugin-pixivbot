@@ -20,7 +20,7 @@ class ScheduleHandler(SubCommandHandler):
         super().__init__()
         self.scheduler = context.require(Scheduler)
 
-        self.set_permission_interceptor(AnyPermissionInterceptor(
+        self.add_interceptor(AnyPermissionInterceptor(
             context.require(SuperuserInterceptor),
             context.require(GroupAdminInterceptor)
         ))
@@ -48,7 +48,7 @@ class ScheduleHandler(SubCommandHandler):
     async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
                                         silently: bool = False,
                                         err: BadRequestError):
-        subscription = await self.scheduler.all_subscription(PostIdentifier.from_post_dest(post_dest))
+        subscription = await self.scheduler.all_subscription(post_dest.identifier)
         msg = "当前订阅：\n"
         if len(subscription) > 0:
             for x in subscription:
@@ -67,7 +67,7 @@ class UnscheduleHandler(SubCommandHandler):
         super().__init__()
         self.scheduler = context.require(Scheduler)
 
-        self.set_permission_interceptor(AnyPermissionInterceptor(
+        self.add_interceptor(AnyPermissionInterceptor(
             context.require(SuperuserInterceptor),
             context.require(GroupAdminInterceptor)
         ))
@@ -85,13 +85,13 @@ class UnscheduleHandler(SubCommandHandler):
     async def actual_handle(self, *, type: str,
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
-        await self.scheduler.unschedule(type, PostIdentifier.from_post_dest(post_dest))
+        await self.scheduler.unschedule(type, post_dest.identifier)
         await post_plain_text(message="取消订阅成功", post_dest=post_dest)
 
     async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
                                         silently: bool = False,
                                         err: BadRequestError):
-        subscription = await self.scheduler.all_subscription(PostIdentifier.from_post_dest(post_dest))
+        subscription = await self.scheduler.all_subscription(post_dest.identifier)
         msg = "当前订阅：\n"
         if len(subscription) > 0:
             for x in subscription:
