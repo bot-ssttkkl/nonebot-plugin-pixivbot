@@ -145,7 +145,7 @@ class Scheduler:
         old_sub = await self.subscriptions.update(sub)
         if old_sub is not None:
             self._remove_job(sub.type, sub.identifier)
-        self._add_job(post_dest, sub)
+        self._add_job(post_dest.normalize(), sub)
 
     async def unschedule(self, type: str,
                          identifier: PostIdentifier[UID, GID]):
