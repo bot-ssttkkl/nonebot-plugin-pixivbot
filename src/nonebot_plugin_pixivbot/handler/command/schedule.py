@@ -42,7 +42,7 @@ class ScheduleHandler(SubCommandHandler):
                             args: List,
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
-        await self.scheduler.schedule(type, schedule, args, identifier=PostIdentifier.from_post_dest(post_dest))
+        await self.scheduler.schedule(type, schedule, args, post_dest=post_dest)
         await post_plain_text(message="订阅成功", post_dest=post_dest)
 
     async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],

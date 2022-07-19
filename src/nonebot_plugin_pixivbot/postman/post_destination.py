@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar, Optional, Type, Dict
+from nonebot import Bot
 
 from nonebot.internal.adapter import Event
 
@@ -33,11 +34,11 @@ class PostDestinationFactory(ABC, Generic[UID, GID]):
         raise NotImplementedError()
 
     @abstractmethod
-    def build(self, user_id: Optional[UID], group_id: Optional[GID]) -> PostDestination:
+    def build(self, bot: Bot, user_id: Optional[UID], group_id: Optional[GID]) -> PostDestination:
         raise NotImplementedError()
 
     @abstractmethod
-    def from_event(self, event: Event) -> PostDestination:
+    def from_event(self, bot: Bot, event: Event) -> PostDestination:
         raise NotImplementedError()
 
 

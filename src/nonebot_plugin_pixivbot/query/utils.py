@@ -41,7 +41,7 @@ def get_command_rule():
 
 
 def get_post_dest(bot: Bot, event: Event):
-    return context.require(PostDestinationFactoryManager)[get_adapter_name(bot)].from_event(event)
+    return context.require(PostDestinationFactoryManager)[get_adapter_name(bot)].from_event(bot, event)
 
 
 __all__ = ("get_count", "get_common_query_rule", "get_command_rule", "get_post_dest")
