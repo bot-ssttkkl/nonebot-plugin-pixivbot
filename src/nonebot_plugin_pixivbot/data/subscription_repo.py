@@ -4,7 +4,7 @@ from pymongo import ReturnDocument
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Subscription
-from nonebot_plugin_pixivbot.model.post_identifier import PostIdentifier
+from nonebot_plugin_pixivbot.model.identifier import PostIdentifier
 from .source import MongoDataSource
 
 UID = TypeVar("UID")

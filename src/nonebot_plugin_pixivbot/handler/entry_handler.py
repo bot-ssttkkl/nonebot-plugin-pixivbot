@@ -12,5 +12,6 @@ GID = TypeVar("GID")
 
 class EntryHandler(Handler, ABC):
     def __init__(self):
-        super().__init__(context.require(DefaultErrorInterceptor))
-        self.set_permission_interceptor(context.require(BlacklistInterceptor))
+        super().__init__()
+        self.add_interceptor(context.require(DefaultErrorInterceptor))
+        self.add_interceptor(context.require(BlacklistInterceptor))

@@ -50,5 +50,17 @@ class PostmanManager:
     def __getitem__(self, adapter: str):
         return self.require(adapter)
 
+    async def send_plain_text(self, message: str,
+                              *, post_dest: PD):
+        return await self[post_dest.adapter].send_plain_text(message, post_dest=post_dest)
+
+    async def send_illust(self, model: IllustMessageModel,
+                          *, post_dest: PD):
+        return await self[post_dest.adapter].send_illust(model, post_dest=post_dest)
+
+    async def send_illusts(self, model: IllustMessagesModel,
+                           *, post_dest: PD):
+        return await self[post_dest.adapter].send_illusts(model, post_dest=post_dest)
+
 
 __all__ = ("Postman", "PostmanManager")

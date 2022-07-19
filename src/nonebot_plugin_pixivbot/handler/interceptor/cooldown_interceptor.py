@@ -2,8 +2,11 @@ from datetime import datetime
 from math import ceil
 from typing import TypeVar, Generic
 
+from nonebot import logger
+
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
+from nonebot_plugin_pixivbot.model import UserIdentifier
 from nonebot_plugin_pixivbot.postman import PostDestination
 from .permission_interceptor import PermissionInterceptor
 
@@ -15,33 +18,42 @@ GID = TypeVar("GID")
 class CooldownInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID]):
     def __init__(self):
         self.conf = context.require(Config)
-        self.last_query_time = dict[UID, datetime]()
+        self.last_query_time = dict[UserIdentifier[UID], datetime]()
 
     def has_permission(self, post_dest: PostDestination[UID, GID]) -> bool:
         if self.conf.pixiv_query_cooldown == 0:
             return True
 
+        if not post_dest.user_id:
+            logger.debug("cooldown intercept was skipped for group post")
+            return True
+
+        identifier = UserIdentifier(post_dest.adapter, post_dest.user_id)
+
         if str(post_dest.user_id) in self.conf.pixiv_no_query_cooldown_users \
-                or f"{post_dest.adapter}:{post_dest.user_id}" in self.conf.pixiv_no_query_cooldown_users:
+                or str(identifier) in self.conf.pixiv_no_query_cooldown_users:
             return True
 
         now = datetime.now()
-        if post_dest.user_id not in self.last_query_time:
-            self.last_query_time[post_dest.user_id] = now
+        if identifier not in self.last_query_time:
+            self.last_query_time[identifier] = now
             return True
         else:
-            delta = now - self.last_query_time[post_dest.user_id]
-            cooldown = self.conf.pixiv_query_cooldown - ceil(delta.total_seconds())
+            logger.debug(f"last query time ({identifier}): {self.last_query_time[identifier]}")
+            delta = now - self.last_query_time[identifier]
+            cooldown = self.conf.pixiv_query_cooldown - delta.total_seconds()
             if cooldown > 0:
+                logger.debug(f"cooldown ({identifier}): {cooldown}s")
                 return False
             else:
-                self.last_query_time[post_dest.user_id] = now
+                self.last_query_time[identifier] = now
                 return True
 
     def get_permission_denied_msg(self, post_dest: PostDestination[UID, GID]) -> str:
+        identifier = UserIdentifier(post_dest.adapter, post_dest.user_id)
         now = datetime.now()
-        delta = now - self.last_query_time[post_dest.user_id]
-        cooldown = self.conf.pixiv_query_cooldown - ceil(delta.total_seconds())
+        delta = now - self.last_query_time[identifier]
+        cooldown = ceil(self.conf.pixiv_query_cooldown - delta.total_seconds())
         return f"你的CD还有{cooldown}s转好"
 
 

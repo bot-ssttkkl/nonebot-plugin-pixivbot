@@ -17,7 +17,7 @@ class InvalidateCacheHandler(SubCommandHandler):
         super().__init__()
         self.pixiv_data_source = context.require(PixivRepo)
 
-        self.set_permission_interceptor(context.require(SuperuserInterceptor))
+        self.add_interceptor(context.require(SuperuserInterceptor))
 
     @classmethod
     def type(cls) -> str:

@@ -105,9 +105,9 @@ class Scheduler:
 
     async def on_bot_connect(self, bot: Bot):
         adapter = get_adapter_name(bot)
-        async for subscription in self.subscriptions.get_all(adapter):
-            post_dest = context.require(PostDestinationFactoryManager)[adapter].build(bot, subscription.user_id, subscription.group_id)
-            self._add_job(post_dest, subscription)
+        async for sub in self.subscriptions.get_all(adapter):
+            post_dest = context.require(PostDestinationFactoryManager).build(bot, sub.user_id, sub.group_id)
+            self._add_job(post_dest, sub)
 
     async def on_bot_disconnect(self, bot: Bot):
         async for subscription in self.subscriptions.get_all(get_adapter_name(bot)):

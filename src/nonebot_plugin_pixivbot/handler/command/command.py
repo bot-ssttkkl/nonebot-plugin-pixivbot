@@ -68,6 +68,7 @@ class CommandHandler(EntryHandler):
     async def actual_handle(self, *, args: Sequence[Any],
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
+        logger.debug("args: " + " ".join(map(str, args)))
         if len(args) == 0:
             handler = context.require(self.handlers["help"])
         elif args[0] not in self.handlers:
