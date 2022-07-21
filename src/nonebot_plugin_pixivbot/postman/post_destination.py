@@ -35,7 +35,7 @@ class PostDestination(ABC, Generic[UID, GID]):
         return str(self.identifier)
 
     @abstractmethod
-    def normalize(self) -> "PostDestination[UID, GID]":
+    def normalized(self) -> "PostDestination[UID, GID]":
         """
         返回一个不含任何附加信息（如引用消息）的PostDestination
         :return:
