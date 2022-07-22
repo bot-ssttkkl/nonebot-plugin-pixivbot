@@ -73,7 +73,7 @@ class Recorder:
     @staticmethod
     def _key_fallback(key: ID) -> Optional[ID]:
         if key.user_id is not None and key.group_id is not None:
-            return ID(None, key.group_id)
+            return ID(key.adapter, None, key.group_id)
         else:
             return None
 
