@@ -16,7 +16,6 @@ class IllustHandler(CommonHandler, Generic[UID, GID]):
     def type(cls) -> str:
         return "illust"
 
-    @classmethod
     def enabled(self) -> bool:
         return self.conf.pixiv_illust_query_enabled
 
