@@ -7,7 +7,7 @@ from nonebot import get_driver, logger
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.postman import PostDestination
-from nonebot_plugin_pixivbot.protocol_dep.user_authenticator import UserAuthenticator
+from nonebot_plugin_pixivbot.authenticator.authenticator import AuthenticatorManager
 from .interceptor import Interceptor
 from ..utils import post_plain_text
 
@@ -98,7 +98,7 @@ class GroupAdminInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID]):
     def has_permission(self, post_dest: PostDestination[UID, GID]) -> Union[bool, Awaitable[bool]]:
         if not post_dest.group_id:
             return True
-        auth = context.require(UserAuthenticator)
+        auth = context.require(AuthenticatorManager)
         return auth.group_admin(post_dest)
 
 
