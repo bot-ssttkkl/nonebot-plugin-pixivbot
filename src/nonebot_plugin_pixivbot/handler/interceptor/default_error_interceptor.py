@@ -3,7 +3,7 @@ from typing import Callable, TypeVar, Generic
 from nonebot import logger
 
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.postman import PostDestination
+from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError, QueryError
 from .interceptor import Interceptor
 from ..utils import post_plain_text

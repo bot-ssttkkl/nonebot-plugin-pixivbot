@@ -9,7 +9,7 @@ from nonebot import logger
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import PostIdentifier
-from nonebot_plugin_pixivbot.postman import PostDestination
+from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 
 if TYPE_CHECKING:
     from ..handler import Handler

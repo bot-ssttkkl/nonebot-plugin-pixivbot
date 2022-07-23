@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import TypeVar, Dict, Type, Generic
+from typing import TypeVar, Generic
 
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.postman.model import IllustMessageModel, IllustMessagesModel
-from nonebot_plugin_pixivbot.postman.post_destination import PostDestination
+from nonebot_plugin_pixivbot.model.message import IllustMessageModel, IllustMessagesModel
+from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
+from nonebot_plugin_pixivbot.protocol_dep.protocol_dep import ProtocolDep, ProtocolDepManager
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -11,12 +12,7 @@ GID = TypeVar("GID")
 PD = PostDestination[UID, GID]
 
 
-class Postman(ABC, Generic[UID, GID]):
-    @classmethod
-    @abstractmethod
-    def adapter(cls) -> str:
-        raise NotImplementedError()
-
+class Postman(ProtocolDep, ABC, Generic[UID, GID]):
     @abstractmethod
     async def send_plain_text(self, message: str,
                               *, post_dest: PD):
@@ -34,22 +30,7 @@ class Postman(ABC, Generic[UID, GID]):
 
 
 @context.register_singleton()
-class PostmanManager:
-    def __init__(self):
-        self.postmen: Dict[str, Type[Postman]] = {}
-
-    def register(self, cls: Type[Postman]):
-        self.postmen[cls.adapter()] = cls
-        if cls not in context:
-            context.register_singleton()(cls)
-        return cls
-
-    def require(self, adapter: str):
-        return context.require(self.postmen[adapter])
-
-    def __getitem__(self, adapter: str):
-        return self.require(adapter)
-
+class PostmanManager(ProtocolDepManager[Postman]):
     async def send_plain_text(self, message: str,
                               *, post_dest: PD):
         return await self[post_dest.adapter].send_plain_text(message, post_dest=post_dest)

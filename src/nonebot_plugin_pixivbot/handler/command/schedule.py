@@ -5,7 +5,7 @@ from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import G
     AnyPermissionInterceptor, SuperuserInterceptor
 from nonebot_plugin_pixivbot.handler.utils import post_plain_text
 from nonebot_plugin_pixivbot.model import PostIdentifier
-from nonebot_plugin_pixivbot.postman import PostDestination
+from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.service.scheduler import Scheduler
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .command import CommandHandler, SubCommandHandler

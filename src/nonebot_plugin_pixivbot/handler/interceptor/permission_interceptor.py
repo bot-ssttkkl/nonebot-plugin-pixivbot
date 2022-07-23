@@ -6,8 +6,8 @@ from nonebot import get_driver, logger
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.postman import PostDestination
-from nonebot_plugin_pixivbot.authenticator.authenticator import AuthenticatorManager
+from nonebot_plugin_pixivbot.protocol_dep.authenticator import AuthenticatorManager
+from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .interceptor import Interceptor
 from ..utils import post_plain_text
 
@@ -95,11 +95,13 @@ class SuperuserInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID]):
 
 @context.register_singleton()
 class GroupAdminInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID]):
+    def __init__(self):
+        self.auth = context.require(AuthenticatorManager)
+
     def has_permission(self, post_dest: PostDestination[UID, GID]) -> Union[bool, Awaitable[bool]]:
         if not post_dest.group_id:
             return True
-        auth = context.require(AuthenticatorManager)
-        return auth.group_admin(post_dest)
+        return self.auth.group_admin(post_dest)
 
 
 @context.register_singleton()

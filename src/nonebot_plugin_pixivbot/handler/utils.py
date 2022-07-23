@@ -3,10 +3,10 @@ from typing import Optional, Sequence
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Illust
-from nonebot_plugin_pixivbot.postman.model.illust_message import IllustMessageModel
-from nonebot_plugin_pixivbot.postman.model.illust_messages import IllustMessagesModel
-from nonebot_plugin_pixivbot.postman.post_destination import PostDestination
-from nonebot_plugin_pixivbot.postman.postman import PostmanManager
+from nonebot_plugin_pixivbot.model.message.illust_message import IllustMessageModel
+from nonebot_plugin_pixivbot.model.message.illust_messages import IllustMessagesModel
+from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
+from nonebot_plugin_pixivbot.protocol_dep.postman import PostmanManager
 
 
 async def post_plain_text(message: str, post_dest: PostDestination):

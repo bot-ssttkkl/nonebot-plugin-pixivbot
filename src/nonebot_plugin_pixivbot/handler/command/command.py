@@ -5,7 +5,7 @@ from typing import Type, Callable, Union, Awaitable, TypeVar, Sequence, Any
 from nonebot import logger
 
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.postman import PostDestination
+from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from ..entry_handler import EntryHandler
 from ..handler import Handler

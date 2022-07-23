@@ -6,7 +6,7 @@ from nonebot.typing import T_State
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.postman import PostDestinationFactoryManager
+from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestinationFactoryManager
 from nonebot_plugin_pixivbot.utils.decode_integer import decode_integer
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 
