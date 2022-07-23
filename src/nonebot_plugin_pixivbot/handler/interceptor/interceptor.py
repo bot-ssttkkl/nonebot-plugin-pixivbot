@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from functools import wraps
 from typing import Callable, TypeVar, Generic
 
-from nonebot_plugin_pixivbot.postman import PostDestination
+from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")

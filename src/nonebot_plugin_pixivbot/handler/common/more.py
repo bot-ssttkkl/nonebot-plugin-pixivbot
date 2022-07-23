@@ -1,7 +1,7 @@
 from typing import TypeVar
 
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.postman import PostDestination
+from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .common import CommonHandler
 

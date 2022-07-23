@@ -10,6 +10,7 @@ from .random_related_illust import RandomRelatedIllustQuery
 from .random_user_illust import RandomUserIllustQuery
 from .ranking import RankingQuery
 
-__all__ = ("CommandQuery", "DelegationQuery", "IllustQuery", "MoreQuery", "Query", "RandomBookmarkQuery", "RandomIllustQuery",
-           "RandomRecommendedIllustQuery", "RandomRelatedIllustQuery", "RandomUserIllustQuery", "RankingQuery",
-           "register_query")
+__all__ = (
+"CommandQuery", "DelegationQuery", "IllustQuery", "MoreQuery", "Query", "RandomBookmarkQuery", "RandomIllustQuery",
+"RandomRecommendedIllustQuery", "RandomRelatedIllustQuery", "RandomUserIllustQuery", "RankingQuery",
+"register_query")
