@@ -2,7 +2,6 @@ from typing import Optional, Sequence, Union, TypeVar, Any
 
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.handler.utils import post_illusts
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.decode_integer import decode_integer
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
@@ -85,7 +84,7 @@ class RankingHandler(CommonHandler):
 
         self.validate_range(range)
         illusts = await self.service.illust_ranking(mode, range)
-        await post_illusts(illusts,
-                           header=f"这是您点的{self.mode_mapping[mode]}榜",
-                           number=range[0],
-                           post_dest=post_dest)
+        await self.post_illusts(illusts,
+                                header=f"这是您点的{self.mode_mapping[mode]}榜",
+                                number=range[0],
+                                post_dest=post_dest)

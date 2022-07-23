@@ -8,8 +8,8 @@ UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
-class CombinedInterceptor(Interceptor[UID, GID], Generic[UID, GID]):
-    def __init__(self, x: Interceptor[UID, GID], y: Interceptor[UID, GID]):
+class CombinedInterceptor(Interceptor):
+    def __init__(self, x: Interceptor, y: Interceptor):
         self.x = x
         self.y = y
 

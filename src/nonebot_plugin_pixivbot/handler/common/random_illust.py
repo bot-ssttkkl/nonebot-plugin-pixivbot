@@ -1,9 +1,9 @@
 from typing import TypeVar, Sequence, Any
 
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.handler.utils import post_illusts
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .common import CommonHandler
+from ..interceptor.record_req_interceptor import RecordReqInterceptor
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -11,6 +11,10 @@ GID = TypeVar("GID")
 
 @context.root.register_singleton()
 class RandomIllustHandler(CommonHandler):
+    def __init__(self):
+        super().__init__()
+        self.add_interceptor(context.require(RecordReqInterceptor))
+
     @classmethod
     def type(cls) -> str:
         return "random_illust"
@@ -27,12 +31,6 @@ class RandomIllustHandler(CommonHandler):
                             silently: bool = False):
         illusts = await self.service.random_illust(word, count=count)
 
-        # 记录请求
-        self.record_req(word, post_dest=post_dest, count=count)
-        # 记录结果
-        if len(illusts) == 1:
-            self.record_resp_illust(illusts[0].id, post_dest=post_dest)
-
-        await post_illusts(illusts,
-                           header=f"这是您点的{word}图",
-                           post_dest=post_dest)
+        await self.post_illusts(illusts,
+                                header=f"这是您点的{word}图",
+                                post_dest=post_dest)

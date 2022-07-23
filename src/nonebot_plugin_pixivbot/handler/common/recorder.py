@@ -12,7 +12,7 @@ from nonebot_plugin_pixivbot.model import PostIdentifier
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 
 if TYPE_CHECKING:
-    from ..handler import Handler
+    pass
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -22,10 +22,10 @@ ID = PostIdentifier[UID, GID]
 
 
 class Req:
-    def __init__(self, handler: Handler,
+    def __init__(self, func,
                  *args, **kwargs):
         self.timestamp = 0
-        self.handler = handler
+        self.func = func
         self.args = args
         self.kwargs = kwargs
         self.refresh()
@@ -33,19 +33,12 @@ class Req:
     def refresh(self):
         self.timestamp = time.time()
 
-    def __call__(self, *,
-                 post_dest: PD,
-                 silently: bool = False,
-                 disabled_interceptors: bool = False,
-                 **kwargs):
+    def __call__(self, **kwargs):
         actual_kwargs = self.kwargs.copy()
-        actual_kwargs["post_dest"] = post_dest
-        actual_kwargs["silently"] = silently
-        actual_kwargs["disabled_interceptors"] = disabled_interceptors
         for x, y in kwargs.items():
             actual_kwargs[x] = y
 
-        return self.handler.handle(*self.args, **actual_kwargs)
+        return self.func(*self.args, **actual_kwargs)
 
 
 class Resp:

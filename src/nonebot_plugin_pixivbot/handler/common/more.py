@@ -4,6 +4,7 @@ from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .common import CommonHandler
+from .recorder import Recorder
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -11,6 +12,10 @@ GID = TypeVar("GID")
 
 @context.root.register_singleton()
 class MoreHandler(CommonHandler):
+    def __init__(self):
+        super().__init__()
+        self.recorder = context.require(Recorder)
+
     @classmethod
     def type(cls) -> str:
         return "more"
@@ -25,4 +30,4 @@ class MoreHandler(CommonHandler):
         if not req:
             raise BadRequestError("你还没有发送过请求")
 
-        await req(count=count, post_dest=post_dest, disabled_interceptors=True)
+        await req(count=count, post_dest=post_dest, silently=silently)

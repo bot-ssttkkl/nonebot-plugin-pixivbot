@@ -9,7 +9,6 @@ from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from ..entry_handler import EntryHandler
 from ..handler import Handler
-from ..utils import post_plain_text
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -35,7 +34,7 @@ class SubCommandHandler(Handler, ABC):
                                         silently: bool = False,
                                         err: BadRequestError):
         if not silently:
-            await post_plain_text(err.message, post_dest=post_dest)
+            await self.post_plain_text(err.message, post_dest=post_dest)
 
 
 @context.register_singleton()
@@ -73,7 +72,7 @@ class CommandHandler(EntryHandler):
             handler = context.require(self.handlers["help"])
         elif args[0] not in self.handlers:
             if not silently:
-                await post_plain_text(f"不存在命令 '{args[0]}'", post_dest=post_dest)
+                await self.post_plain_text(f"不存在命令 '{args[0]}'", post_dest=post_dest)
             return
         else:
             handler = context.require(self.handlers[args[0]])

@@ -13,6 +13,7 @@ conf = context.require(Config)
 
 
 class IllustMessageModel(BaseModel):
+    id: int = 0
     title: str = ""
     author: str = ""
     create_time: str = ""
@@ -29,7 +30,7 @@ class IllustMessageModel(BaseModel):
     async def from_illust(illust: Illust, *,
                           header: Optional[str] = None,
                           number: Optional[int] = None) -> Optional["IllustMessageModel"]:
-        model = IllustMessageModel(header=header, number=number)
+        model = IllustMessageModel(id=illust.id, header=header, number=number)
 
         if illust.has_tags(conf.pixiv_block_tags):
             model.block_action = conf.pixiv_block_action
