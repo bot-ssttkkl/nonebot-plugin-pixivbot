@@ -9,13 +9,19 @@ from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.authenticator import AuthenticatorManager
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .interceptor import Interceptor
-from ..utils import post_plain_text
+from ...protocol_dep.postman import PostmanManager
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
-class PermissionInterceptor(Interceptor[UID, GID], ABC, Generic[UID, GID]):
+class PermissionInterceptor(Interceptor, ABC):
+    def __init__(self):
+        self.postman_manager = context.require(PostmanManager)
+
+    async def post_plain_text(self, message: str,
+                              post_dest: PostDestination):
+        await self.postman_manager.send_plain_text(message, post_dest=post_dest)
 
     @abstractmethod
     def has_permission(self, post_dest: PostDestination[UID, GID]) -> Union[bool, Awaitable[bool]]:
@@ -42,11 +48,12 @@ class PermissionInterceptor(Interceptor[UID, GID], ABC, Generic[UID, GID]):
                 if isawaitable(msg):
                     await msg
                 if msg:
-                    await post_plain_text(msg, post_dest=post_dest)
+                    await self.post_plain_text(msg, post_dest=post_dest)
 
 
-class AnyPermissionInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID]):
+class AnyPermissionInterceptor(PermissionInterceptor):
     def __init__(self, *interceptors: PermissionInterceptor):
+        super().__init__()
         self.interceptors = list(interceptors)
 
     def append(self, interceptor: PermissionInterceptor):
@@ -64,8 +71,9 @@ class AnyPermissionInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID
         return False
 
 
-class AllPermissionInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID]):
+class AllPermissionInterceptor(PermissionInterceptor):
     def __init__(self, *interceptors: PermissionInterceptor):
+        super().__init__()
         self.interceptors = list(interceptors)
 
     def append(self, interceptor: PermissionInterceptor):
@@ -84,8 +92,9 @@ class AllPermissionInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID
 
 
 @context.register_singleton()
-class SuperuserInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID]):
+class SuperuserInterceptor(PermissionInterceptor):
     def __init__(self):
+        super().__init__()
         self.superusers = get_driver().config.superusers.copy()
 
     def has_permission(self, post_dest: PostDestination[UID, GID]) -> bool:
@@ -94,8 +103,9 @@ class SuperuserInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID]):
 
 
 @context.register_singleton()
-class GroupAdminInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID]):
+class GroupAdminInterceptor(PermissionInterceptor):
     def __init__(self):
+        super().__init__()
         self.auth = context.require(AuthenticatorManager)
 
     def has_permission(self, post_dest: PostDestination[UID, GID]) -> Union[bool, Awaitable[bool]]:
@@ -105,8 +115,9 @@ class GroupAdminInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID]):
 
 
 @context.register_singleton()
-class BlacklistInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID]):
+class BlacklistInterceptor(PermissionInterceptor):
     def __init__(self):
+        super().__init__()
         self.blacklist = context.require(Config).blacklist
 
     def has_permission(self, post_dest: PostDestination[UID, GID]) -> bool:

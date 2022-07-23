@@ -4,7 +4,6 @@ from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .common import CommonHandler
-from ..utils import post_illust
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -29,4 +28,4 @@ class IllustHandler(CommonHandler, Generic[UID, GID]):
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
         illust = await self.service.illust_detail(illust_id)
-        await post_illust(illust, post_dest=post_dest)
+        await self.post_illust(illust, post_dest=post_dest)

@@ -5,7 +5,6 @@ from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.service.pixiv_account_binder import PixivAccountBinder
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .command import SubCommandHandler, CommandHandler
-from ..utils import post_plain_text
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -35,7 +34,7 @@ class BindHandler(SubCommandHandler):
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
         await self.binder.bind(post_dest.adapter, post_dest.user_id, pixiv_user_id)
-        await post_plain_text(message="Pixiv账号绑定成功", post_dest=post_dest)
+        await self.post_plain_text(message="Pixiv账号绑定成功", post_dest=post_dest)
 
     async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
                                         silently: bool = False,
@@ -46,7 +45,7 @@ class BindHandler(SubCommandHandler):
         else:
             msg = "当前未绑定Pixiv账号\n"
         msg += "命令格式：/pixivbot bind <pixiv_user_id>"
-        await post_plain_text(message=msg, post_dest=post_dest)
+        await self.post_plain_text(message=msg, post_dest=post_dest)
 
 
 @context.require(CommandHandler).sub_command("unbind")
@@ -68,9 +67,9 @@ class UnbindHandler(SubCommandHandler):
     async def actual_handle(self, *, post_dest: PostDestination[UID, GID],
                             silently: bool = False):
         await self.binder.unbind(post_dest.adapter, post_dest.user_id)
-        await post_plain_text(message="Pixiv账号解绑成功", post_dest=post_dest)
+        await self.post_plain_text(message="Pixiv账号解绑成功", post_dest=post_dest)
 
     async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
                                         silently: bool = False,
                                         err: BadRequestError):
-        await post_plain_text(message="当前未绑定Pixiv账号", post_dest=post_dest)
+        await self.post_plain_text(message="当前未绑定Pixiv账号", post_dest=post_dest)

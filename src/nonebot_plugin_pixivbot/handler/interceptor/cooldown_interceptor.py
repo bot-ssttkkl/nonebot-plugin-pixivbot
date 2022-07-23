@@ -15,8 +15,9 @@ GID = TypeVar("GID")
 
 
 @context.register_singleton()
-class CooldownInterceptor(PermissionInterceptor[UID, GID], Generic[UID, GID]):
+class CooldownInterceptor(PermissionInterceptor):
     def __init__(self):
+        super().__init__()
         self.conf = context.require(Config)
         self.last_query_time = dict[UserIdentifier[UID], datetime]()
 

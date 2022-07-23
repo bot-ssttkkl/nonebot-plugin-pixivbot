@@ -3,7 +3,6 @@ from typing import TypeVar, Sequence, Any
 from nonebot_plugin_pixivbot.data.pixiv_repo import PixivRepo
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import SuperuserInterceptor
-from nonebot_plugin_pixivbot.handler.utils import post_plain_text
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .command import SubCommandHandler, CommandHandler
 
@@ -32,4 +31,4 @@ class InvalidateCacheHandler(SubCommandHandler):
     async def actual_handle(self, *, post_dest: PostDestination[UID, GID],
                             silently: bool = False):
         await self.pixiv_data_source.invalidate_cache()
-        await post_plain_text(message="ok", post_dest=post_dest)
+        await self.post_plain_text(message="ok", post_dest=post_dest)

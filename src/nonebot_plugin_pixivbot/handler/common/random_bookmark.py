@@ -1,11 +1,11 @@
 from typing import TypeVar, Sequence, Any
 
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.handler.utils import post_illusts
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.service.pixiv_account_binder import PixivAccountBinder
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .common import CommonHandler
+from ..interceptor.record_req_interceptor import RecordReqInterceptor
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -16,6 +16,7 @@ class RandomBookmarkHandler(CommonHandler):
     def __init__(self):
         super().__init__()
         self.binder = context.require(PixivAccountBinder)
+        self.add_interceptor(context.require(RecordReqInterceptor))
 
     @classmethod
     def type(cls) -> str:
@@ -52,12 +53,6 @@ class RandomBookmarkHandler(CommonHandler):
 
         illusts = await self.service.random_bookmark(pixiv_user_id, count=count)
 
-        # 记录请求
-        self.record_req(pixiv_user_id, post_dest=post_dest, count=count)
-        # 记录结果
-        if len(illusts) == 1:
-            self.record_resp_illust(illusts[0].id, post_dest=post_dest)
-
-        await post_illusts(illusts,
-                           header="这是您点的私家车",
-                           post_dest=post_dest)
+        await self.post_illusts(illusts,
+                                header="这是您点的私家车",
+                                post_dest=post_dest)

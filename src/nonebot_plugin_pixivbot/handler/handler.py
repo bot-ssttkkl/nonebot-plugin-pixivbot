@@ -8,6 +8,7 @@ from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .interceptor.combined_interceptor import CombinedInterceptor
 from .interceptor.interceptor import Interceptor
+from ..protocol_dep.postman import PostmanManager
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -18,7 +19,12 @@ PD = PostDestination[UID, GID]
 class Handler(ABC):
     def __init__(self):
         self.conf = context.require(Config)
+        self.postman_manager = context.require(PostmanManager)
         self.interceptor = None
+
+    async def post_plain_text(self, message: str,
+                              post_dest: PostDestination):
+        await self.postman_manager.send_plain_text(message, post_dest=post_dest)
 
     @classmethod
     @abstractmethod
@@ -55,11 +61,10 @@ class Handler(ABC):
 
         kwargs = {**kwargs, **parsed_kwargs}
 
-        if self.interceptor is not None:
+        if self.interceptor is not None and not disabled_interceptors:
             await self.interceptor.intercept(self.actual_handle,
                                              post_dest=post_dest,
                                              silently=silently,
-                                             disabled_interceptors=disabled_interceptors,
                                              **kwargs)
         else:
             await self.actual_handle(post_dest=post_dest, silently=silently, **kwargs)
@@ -75,7 +80,7 @@ class Handler(ABC):
         """
         raise NotImplementedError()
 
-    def add_interceptor(self, interceptor: Interceptor[UID, GID]):
+    def add_interceptor(self, interceptor: Interceptor):
         if self.interceptor:
             self.interceptor = CombinedInterceptor(
                 self.interceptor, interceptor)
