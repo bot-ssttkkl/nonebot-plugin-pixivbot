@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TypeVar, Union, Awaitable
+from typing import TypeVar, Union, Awaitable, Generic
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
@@ -9,7 +9,7 @@ UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
-class Authenticator(ProtocolDep, ABC):
+class Authenticator(ProtocolDep, ABC, Generic[UID, GID]):
     @abstractmethod
     def group_admin(self, post_dest: PostDestination[UID, GID]) -> Union[bool, Awaitable[bool]]:
         raise NotImplementedError()
