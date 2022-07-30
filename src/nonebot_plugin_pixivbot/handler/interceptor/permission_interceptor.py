@@ -115,10 +115,8 @@ class GroupAdminInterceptor(PermissionInterceptor):
 
 @context.register_singleton()
 class BlacklistInterceptor(PermissionInterceptor):
-    def __init__(self):
-        super().__init__()
-        self.blacklist = context.require(Config).blacklist
+    conf: Config
 
     def has_permission(self, post_dest: PostDestination[UID, GID]) -> bool:
-        return str(post_dest.user_id) not in self.blacklist \
-               and f"{post_dest.adapter}:{post_dest.user_id}" not in self.blacklist
+        return str(post_dest.user_id) not in self.conf.blacklist \
+               and f"{post_dest.adapter}:{post_dest.user_id}" not in self.conf.blacklist

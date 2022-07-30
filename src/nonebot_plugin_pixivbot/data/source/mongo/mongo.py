@@ -13,6 +13,7 @@ from nonebot_plugin_pixivbot.utils.lifecycler import on_shutdown, on_startup
 @context.register_eager_singleton()
 class MongoDataSource:
     conf: Config
+    mongo_migration_mgr: MongoMigrationManager
     app_db_version = 2
 
     def __init__(self):
@@ -79,7 +80,7 @@ class MongoDataSource:
 
         # migrate
         db_version = await self._get_db_version(db)
-        await context.require(MongoMigrationManager).perform_migration(db, db_version, self.app_db_version)
+        await self.mongo_migration_mgr.perform_migration(db, db_version, self.app_db_version)
         await self._set_db_version(self.app_db_version, db)
 
         # ensure index
