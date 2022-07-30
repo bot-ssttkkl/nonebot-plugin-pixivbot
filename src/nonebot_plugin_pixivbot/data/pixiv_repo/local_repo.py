@@ -79,6 +79,23 @@ class LocalPixivRepo(AbstractPixivRepo):
         finally:
             logger.debug(f"[local] {total} got, illust_detail of {broken} are missed")
 
+    async def _check_illusts_exists(self, collection_name: str,
+                                    query: dict,
+                                    illust_id: Union[int, Sequence[int]]):
+        if isinstance(illust_id, int):
+            return await self.mongo.db[collection_name].count_documents({**query, "illust_id": illust_id}) != 0
+        else:
+            agg = [
+                {'$match': query},
+                {'$unwind': {'path': '$illust_id'}},
+                {'$match': {'illust_id': {'$in': illust_id}}},
+                {'$count': 'count'}
+            ]
+
+            async for x in self.mongo.db[collection_name].aggregate(agg):
+                exists = x["count"]
+                return exists != 0
+
     async def _update_illusts(self, collection_name: str,
                               arg_name: str,
                               arg: Any,
@@ -129,6 +146,7 @@ class LocalPixivRepo(AbstractPixivRepo):
         if len(opt) != 0:
             await self.mongo.db.illust_detail_cache.bulk_write(opt, ordered=False)
 
+    # ================ illust_detail ================
     async def illust_detail(self, illust_id: int) -> Optional[Illust]:
         logger.debug(f"[local] illust_detail {illust_id}")
         cache = await self.mongo.db.illust_detail_cache.find_one({"illust.id": illust_id})
@@ -148,6 +166,7 @@ class LocalPixivRepo(AbstractPixivRepo):
             upsert=True
         )
 
+    # ================ user_detail ================
     async def user_detail(self, user_id: int) -> Optional[User]:
         logger.debug(f"[local] user_detail {user_id}")
         cache = await self.mongo.db.user_detail_cache.find_one({"user.id": user_id})
@@ -167,6 +186,7 @@ class LocalPixivRepo(AbstractPixivRepo):
             upsert=True
         )
 
+    # ================ search_illust ================
     async def search_illust(self, word: str) -> AsyncGenerator[LazyIllust, None]:
         logger.debug(f"[local] search_illust {word}")
         async for x in self._illusts_agen("search_illust_cache", "word", word):
@@ -176,10 +196,11 @@ class LocalPixivRepo(AbstractPixivRepo):
         logger.debug(f"[local] update search_illust {word} ({len(content)} illusts)")
         await self._update_illusts("search_illust_cache", "word", word, content)
 
+    # ================ search_user ================
     async def search_user(self, word: str) -> AsyncGenerator[User, None]:
         logger.debug(f"[local] search_user {word}")
 
-        exists = await self.mongo.db.search_user_cache.find({"word": word}).count(True)
+        exists = await self.mongo.db.search_user_cache.count_documents({"word": word})
         if not exists:
             raise NoSuchItemError()
 
@@ -251,15 +272,33 @@ class LocalPixivRepo(AbstractPixivRepo):
         if len(opt) != 0:
             await self.mongo.db.user_detail_cache.bulk_write(opt, ordered=False)
 
+    # ================ user_illusts ================
     async def user_illusts(self, user_id: int) -> AsyncGenerator[LazyIllust, None]:
         logger.debug(f"[local] user_illusts {user_id}")
         async for x in self._illusts_agen("user_illusts_cache", "user_id", user_id):
             yield x
 
-    async def update_user_illusts(self, user_id: int, content: List[Union[Illust, LazyIllust]]):
-        logger.debug(f"[local] update user_illusts {user_id} ({len(content)} illusts)")
-        await self._update_illusts("user_illusts_cache", "user_id", user_id, content)
+    async def update_user_illusts(self, user_id: int,
+                                  content: List[Union[Illust, LazyIllust]],
+                                  append: bool = False):
+        if not append:
+            logger.debug(f"[local] update user_illusts {user_id} ({len(content)} illusts)")
+        else:
+            logger.debug(f"[local] append user_illusts {user_id} ({len(content)} illusts)")
+        await self._update_illusts("user_illusts_cache", "user_id", user_id, content, append)
 
+    async def user_illusts_exists(self, user_id: int, illust_id: Union[int, Sequence[int]]) -> bool:
+        return await self._check_illusts_exists("user_illusts_cache", {"user_id": user_id}, illust_id)
+
+    async def user_illusts_update_time(self, user_id: int) -> Optional[datetime]:
+        result = await self.mongo.db.user_illusts_cache.find_one({"user_id": user_id}, {"update_time": 1})
+        if result:
+            update_time = result["update_time"]
+            return update_time
+        else:
+            return None
+
+    # ================ user_bookmarks ================
     async def user_bookmarks(self, user_id: int = 0) -> AsyncGenerator[LazyIllust, None]:
         logger.debug(f"[local] user_bookmarks {user_id}")
         async for x in self._illusts_agen("user_bookmarks_cache", "user_id", user_id):
@@ -275,35 +314,7 @@ class LocalPixivRepo(AbstractPixivRepo):
         await self._update_illusts("user_bookmarks_cache", "user_id", user_id, content, append)
 
     async def user_bookmarks_exists(self, user_id: int, illust_id: Union[int, Sequence[int]]) -> bool:
-        if isinstance(illust_id, int):
-            return await self.mongo.db.user_bookmarks_cache.count_documents({
-                'user_id': user_id,
-                "illust_id": illust_id
-            }) != 0
-        else:
-            agg = [
-                {
-                    '$match': {
-                        'user_id': user_id
-                    }
-                }, {
-                    '$unwind': {
-                        'path': '$illust_id'
-                    }
-                }, {
-                    '$match': {
-                        'illust_id': {
-                            '$in': illust_id
-                        }
-                    }
-                }, {
-                    '$count': 'count'
-                }
-            ]
-
-            async for x in self.mongo.db.user_bookmarks_cache.aggregate(agg):
-                exists = x["count"]
-                return exists != 0
+        return await self._check_illusts_exists("user_bookmarks_cache", {"user_id": user_id}, illust_id)
 
     async def user_bookmarks_update_time(self, user_id: int) -> Optional[datetime]:
         result = await self.mongo.db.user_bookmarks_cache.find_one({"user_id": user_id}, {"update_time": 1})
@@ -313,6 +324,7 @@ class LocalPixivRepo(AbstractPixivRepo):
         else:
             return None
 
+    # ================ recommended_illusts ================
     async def recommended_illusts(self) -> AsyncGenerator[LazyIllust, None]:
         logger.debug(f"[local] recommended_illusts")
         async for x in self._illusts_agen("other_cache", "type", "recommended_illusts"):
@@ -322,6 +334,7 @@ class LocalPixivRepo(AbstractPixivRepo):
         logger.debug(f"[local] update recommended_illusts ({len(content)} illusts)")
         await self._update_illusts("other_cache", "type", "recommended_illusts", content)
 
+    # ================ related_illusts ================
     async def related_illusts(self, illust_id: int) -> AsyncGenerator[LazyIllust, None]:
         logger.debug(f"[local] related_illusts {illust_id}")
         async for x in self._illusts_agen("related_illusts_cache", "original_illust_id", illust_id):
@@ -331,6 +344,7 @@ class LocalPixivRepo(AbstractPixivRepo):
         logger.debug(f"[local] update related_illusts {illust_id} ({len(content)} illusts)")
         await self._update_illusts("related_illusts_cache", "original_illust_id", illust_id, content)
 
+    # ================ illust_ranking ================
     async def illust_ranking(self, mode: RankingMode, range: Optional[Tuple[int, int]] = None) -> List[LazyIllust]:
         if range:
             logger.debug(f"[local] illust_ranking {mode} {range[0]}-{range[1]}")
@@ -346,6 +360,7 @@ class LocalPixivRepo(AbstractPixivRepo):
         logger.debug(f"[local] update illust_ranking {mode} ({len(content)} illusts)")
         await self._update_illusts("other_cache", "type", mode.name + "_ranking", content)
 
+    # ================ image ================
     async def image(self, illust: Illust) -> Optional[bytes]:
         logger.debug(f"[local] image {illust.id}")
         cache = await self.mongo.db.download_cache.find_one({"illust_id": illust.id})

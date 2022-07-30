@@ -98,42 +98,51 @@ class PixivRepo(AbstractPixivRepo):
             cache_updater=lambda content: self.cache.update_search_user(word, content),
         )
 
-    def user_illusts(self, user_id: int = 0) -> AsyncGenerator[LazyIllust, None]:
+    async def user_illusts(self, user_id: int = 0) -> AsyncGenerator[LazyIllust, None]:
         logger.info(f"[repo] user_illusts {user_id}")
-        return self._mediator.mixin_async_generator(
-            identifier=(USER_ILLUSTS, user_id),
-            cache_loader=partial(self.cache.user_illusts, user_id=user_id),
-            remote_fetcher=partial(self.remote.user_illusts, user_id=user_id),
-            cache_updater=lambda content: self.cache.update_user_illusts(user_id, content),
-        )
+
+        update_time = await self.cache.user_illusts_update_time(user_id)
+        if update_time:
+            cache_expired = datetime.now() - update_time \
+                            >= timedelta(seconds=self._conf.pixiv_user_illusts_cache_expires_in)
+        else:
+            cache_expired = True
+
+        async for x in self._mediator.mixin_append_async_generator(
+                identifier=(USER_ILLUSTS, user_id),
+                cache_expired=cache_expired,
+                cache_loader=partial(self.cache.user_illusts, user_id=user_id),
+                remote_fetcher=partial(self.remote.user_illusts, user_id=user_id),
+                cache_checker=lambda content: self.cache.user_illusts_exists(user_id, [x.id for x in content]),
+                cache_updater=lambda content: self.cache.update_user_illusts(user_id, content, True),
+        ):
+            yield x
 
     async def user_bookmarks(self, user_id: int = 0) -> AsyncGenerator[LazyIllust, None]:
         logger.info(f"[repo] user_bookmarks {user_id}")
 
-        # if cache expired, pick new bookmarks from remote
         update_time = await self.cache.user_bookmarks_update_time(user_id)
-        if not update_time \
-                or datetime.now() - update_time >= timedelta(seconds=self._conf.pixiv_user_bookmarks_cache_expires_in):
-            buffer = []
-            async for illust in self.remote.user_bookmarks(user_id):
-                buffer.append(illust)
-                if len(buffer) >= 20:
-                    exists = await self.cache.user_bookmarks_exists(user_id, [x.id for x in buffer])
-                    await self.cache.update_user_bookmarks(user_id, buffer, append=True)
+        if update_time:
+            cache_expired = datetime.now() - update_time >= \
+                            timedelta(seconds=self._conf.pixiv_user_bookmarks_cache_expires_in)
+        else:
+            cache_expired = True
 
-                    if exists:
-                        break
-
-                    buffer = []
-
-        async for x in self.cache.user_bookmarks(user_id):
+        async for x in self._mediator.mixin_append_async_generator(
+                identifier=(RECOMMENDED_ILLUSTS,),
+                cache_expired=cache_expired,
+                cache_loader=partial(self.cache.user_bookmarks, user_id=user_id),
+                remote_fetcher=partial(self.remote.user_bookmarks, user_id=user_id),
+                cache_checker=lambda content: self.cache.user_bookmarks_exists(user_id, [x.id for x in content]),
+                cache_updater=lambda content: self.cache.update_user_bookmarks(user_id, content, True),
+        ):
             yield x
 
     def recommended_illusts(self) -> AsyncGenerator[LazyIllust, None]:
         logger.info(f"[repo] recommended_illusts")
         return self._mediator.mixin_async_generator(
             identifier=(RECOMMENDED_ILLUSTS,),
-            cache_loader=partial(self.cache.recommended_illusts),
+            cache_loader=self.cache.recommended_illusts,
             remote_fetcher=self.remote.recommended_illusts,
             cache_updater=self.cache.update_recommended_illusts,
         )
