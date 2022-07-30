@@ -1,4 +1,4 @@
-from asyncio import sleep, create_task, CancelledError
+from asyncio import sleep, create_task, CancelledError, Semaphore, Task
 from functools import wraps
 from io import BytesIO
 from typing import TypeVar, Optional, Awaitable, List, Callable, Union, Tuple, AsyncGenerator
@@ -47,9 +47,10 @@ class RemotePixivRepo(AbstractPixivRepo):
     _compressor: Compressor
 
     def __init__(self):
-        self._pclient = None
-        self._papi = None
-        self._refresh_daemon_task = None
+        self._sema: Semaphore = None
+        self._pclient: PixivClient = None
+        self._papi: AppPixivAPI = None
+        self._refresh_daemon_task: Task = None
 
         self.user_id = 0
 
@@ -114,6 +115,7 @@ class RemotePixivRepo(AbstractPixivRepo):
         self._papi = AppPixivAPI(client=self._pclient.start())
         self._papi.set_additional_headers({'Accept-Language': 'zh-CN'})
         self._refresh_daemon_task = create_task(self._refresh_daemon())
+        self._sema = Semaphore(self._conf.pixiv_simultaneous_query)
 
     async def shutdown(self):
         await self._pclient.close()
@@ -246,6 +248,7 @@ class RemotePixivRepo(AbstractPixivRepo):
         total = 0
         broken = 0
 
+        await self._sema.acquire()
         try:
             async for page in self._load_page(papi_search_func, "illusts",
                                               mapper=lambda x: Illust.parse_obj(x),
@@ -265,28 +268,37 @@ class RemotePixivRepo(AbstractPixivRepo):
                     else:
                         yield LazyIllust(item.id, item)
         finally:
+            self._sema.release()
             logger.debug(f"[remote] {total} got, illust_detail of {broken} are missed")
 
     @auto_retry
     async def illust_detail(self, illust_id: int) -> Illust:
         logger.debug(f"[remote] illust_detail {illust_id}")
 
-        raw_result = await self._papi.illust_detail(illust_id)
-        self._check_error_in_raw_result(raw_result)
-        illust = Illust.parse_obj(raw_result["illust"])
+        await self._sema.acquire()
+        try:
+            raw_result = await self._papi.illust_detail(illust_id)
+            self._check_error_in_raw_result(raw_result)
+            illust = Illust.parse_obj(raw_result["illust"])
 
-        if self._conf.pixiv_tag_translation_enabled:
-            create_task(self._add_to_local_tags([illust]))
+            if self._conf.pixiv_tag_translation_enabled:
+                create_task(self._add_to_local_tags([illust]))
 
-        return illust
+            return illust
+        finally:
+            self._sema.release()
 
     @auto_retry
     async def user_detail(self, user_id: int) -> User:
         logger.debug(f"[remote] user_detail {user_id}")
 
-        raw_result = await self._papi.user_detail(user_id)
-        self._check_error_in_raw_result(raw_result)
-        return User.parse_obj(raw_result["user"])
+        await self._sema.acquire()
+        try:
+            raw_result = await self._papi.user_detail(user_id)
+            self._check_error_in_raw_result(raw_result)
+            return User.parse_obj(raw_result["user"])
+        finally:
+            self._sema.release()
 
     async def search_illust(self, word: str) -> AsyncGenerator[LazyIllust, None]:
         logger.debug(f"[remote] search_illust {word}")
@@ -368,22 +380,27 @@ class RemotePixivRepo(AbstractPixivRepo):
     @auto_retry
     async def image(self, illust: Illust) -> bytes:
         logger.debug(f"[remote] image {illust.id}")
-        download_quantity = self._conf.pixiv_download_quantity
-        custom_domain = self._conf.pixiv_download_custom_domain
 
-        if download_quantity == DownloadQuantity.original:
-            if len(illust.meta_pages) > 0:
-                url = illust.meta_pages[0].image_urls.original
+        await self._sema.acquire()
+        try:
+            download_quantity = self._conf.pixiv_download_quantity
+            custom_domain = self._conf.pixiv_download_custom_domain
+
+            if download_quantity == DownloadQuantity.original:
+                if len(illust.meta_pages) > 0:
+                    url = illust.meta_pages[0].image_urls.original
+                else:
+                    url = illust.meta_single_page.original_image_url
             else:
-                url = illust.meta_single_page.original_image_url
-        else:
-            url = getattr(illust.image_urls, download_quantity.name)
+                url = getattr(illust.image_urls, download_quantity.name)
 
-        if custom_domain is not None:
-            url = url.replace("i.pximg.net", custom_domain)
+            if custom_domain is not None:
+                url = url.replace("i.pximg.net", custom_domain)
 
-        with BytesIO() as bio:
-            await self._papi.download(url, fname=bio)
-            content = bio.getvalue()
-            content = await self._compressor.compress(content)
-            return content
+            with BytesIO() as bio:
+                await self._papi.download(url, fname=bio)
+                content = bio.getvalue()
+                content = await self._compressor.compress(content)
+                return content
+        finally:
+            self._sema.release()
