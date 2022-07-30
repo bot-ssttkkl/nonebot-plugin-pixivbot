@@ -1,7 +1,7 @@
 from asyncio import sleep, create_task, CancelledError
 from functools import wraps
 from io import BytesIO
-from typing import TypeVar, Optional, Awaitable, List, Any, Callable, Union, Tuple
+from typing import TypeVar, Optional, Awaitable, List, Callable, Union, Tuple, AsyncGenerator
 
 from nonebot import logger
 from pixivpy_async import *
@@ -26,8 +26,6 @@ def auto_retry(func):
         for t in range(10):
             try:
                 return await func(*args, **kwargs)
-            except QueryError as e:
-                raise e
             except Exception as e:
                 logger.info(f"Retrying... {t + 1}/10")
                 logger.exception(e)
@@ -131,33 +129,60 @@ class RemotePixivRepo(AbstractPixivRepo):
             raise QueryError(raw_result["error"]["user_message"]
                              or raw_result["error"]["message"] or raw_result["error"]["reason"])
 
-    async def _flat_page(self, papi_search_func: Callable[..., Awaitable[dict]],
+    async def _load_page(self, papi_search_func: Callable[..., Awaitable[dict]],
                          element_list_name: str,
-                         *, mapper: Optional[Callable[[Any], T]] = None,
+                         *, mapper: Optional[Callable[[dict], T]] = None,
                          filter: Optional[Callable[[T], bool]] = None,
                          skip: int = 0,
                          limit: int = 0,
                          limit_page: int = 0,
-                         **kwargs) -> List[T]:
-        cur_page = 0
-        items = []
+                         **kwargs) -> AsyncGenerator[List[T], None]:
+        """
+        一次加载多页
+        :param papi_search_func: PixivPy-Async的加载方法
+        :param element_list_name: 返回JSON中元素所在列表名
+        :param mapper: 将元素从JSON格式映射为特定格式
+        :param filter: 过滤不符合条件的元素（先映射再过滤）
+        :param abort_on: 加载完一页后判断是否要中断
+        :param skip: 跳过指定项数
+        :param limit: 最多加载多少项
+        :param limit_page: 最多加载多少页
+        :param kwargs: 传给papi_search_func的参数
+        :return: 加载结果
+        """
+        papi_search_func = auto_retry(papi_search_func)
+
+        loaded_items = 0
+        loaded_pages = 0
 
         if skip:
             raw_result = await papi_search_func(offset=skip, **kwargs)
         else:
             raw_result = await papi_search_func(**kwargs)
-
         self._check_error_in_raw_result(raw_result)
 
-        while (not limit or len(items) < limit) and (not limit_page or cur_page < limit_page):
+        while True:
+            # 加载下一页
+            pending = []
             for x in raw_result[element_list_name]:
                 element = x
                 if mapper is not None:
                     element = mapper(x)
-                if filter is None or filter(element):
-                    items.append(element)
-                    if len(items) >= limit:
-                        break
+                if filter is not None and not filter(element):
+                    break
+                pending.append(element)
+                if loaded_items + len(pending) == limit:
+                    break
+
+            loaded_pages = loaded_pages + 1
+            loaded_items += len(pending)
+            logger.debug(f"[remote] {loaded_pages} pages loaded ({loaded_items} items in total)")
+            yield pending
+
+            # 判断是否中断
+            if (0 < limit <= loaded_items) or \
+                    (0 < limit_page <= loaded_pages):
+                break
             else:
                 next_qs = AppPixivAPI.parse_qs(next_url=raw_result["next_url"])
                 if next_qs is None:
@@ -167,11 +192,8 @@ class RemotePixivRepo(AbstractPixivRepo):
                     # 由于pixivpy-async的illust_recommended的bug，需要删掉这个参数
                     del next_qs['viewed']
 
-                cur_page = cur_page + 1
                 raw_result = await papi_search_func(**next_qs)
                 self._check_error_in_raw_result(raw_result)
-
-        return items
 
     async def _add_to_local_tags(self, illusts: List[Union[LazyIllust, Illust]]):
         try:
@@ -190,14 +212,27 @@ class RemotePixivRepo(AbstractPixivRepo):
             logger.exception(e)
 
     async def _get_illusts(self, papi_search_func: Callable[[], Awaitable[dict]],
-                           element_list_name: str,
                            *, block_tags: Optional[List[str]] = None,
                            min_bookmark: int = 0,
                            min_view: int = 0,
                            skip: int = 0,
                            limit: int = 0,
                            limit_page: int = 0,
-                           **kwargs):
+                           **kwargs) -> AsyncGenerator[LazyIllust, None]:
+        """
+        加载插画
+        :param papi_search_func: PixivPy-Async的加载方法
+        :param block_tags: 要过滤的标签
+        :param min_bookmark: 书签数下限
+        :param min_view: 阅读数下限
+        :param abort_on: 加载完一页后判断是否要中断
+        :param skip: 跳过指定项数
+        :param limit: 最多加载多少项
+        :param limit_page: 最多加载多少页
+        :param kwargs: 传给papi_search_func的参数
+        :return:
+        """
+
         def illust_filter(illust: Illust) -> bool:
             # 标签过滤
             if block_tags is not None:
@@ -212,30 +247,29 @@ class RemotePixivRepo(AbstractPixivRepo):
                 return False
             return True
 
-        items = await self._flat_page(papi_search_func, element_list_name,
-                                      mapper=lambda x: Illust.parse_obj(x),
-                                      filter=illust_filter,
-                                      skip=skip,
-                                      limit=limit,
-                                      limit_page=limit_page,
-                                      **kwargs)
+        total = 0
+        broken = 0
 
-        illusts = []
-        detail_missing = 0
-        for x in items:
-            if "limit_unknown_360.png" in x.image_urls.large:
-                detail_missing += 1
-                illusts.append(LazyIllust(x.id))
-            else:
-                illusts.append(LazyIllust(x.id, x))
+        try:
+            async for page in self._load_page(papi_search_func, "illusts",
+                                              mapper=lambda x: Illust.parse_obj(x),
+                                              filter=illust_filter,
+                                              skip=skip,
+                                              limit=limit,
+                                              limit_page=limit_page,
+                                              **kwargs):
+                if self._conf.pixiv_tag_translation_enabled:
+                    create_task(self._add_to_local_tags(page))
 
-        logger.info(
-            f"[remote] {len(illusts)} got, illust_detail of {detail_missing} are missed")
-
-        if self._conf.pixiv_tag_translation_enabled:
-            create_task(self._add_to_local_tags(illusts))
-
-        return illusts
+                for item in page:
+                    total += 1
+                    if "limit_unknown_360.png" in item.image_urls.large:
+                        broken += 1
+                        yield LazyIllust(item.id)
+                    else:
+                        yield LazyIllust(item.id, item)
+        finally:
+            logger.info(f"[remote] {total} got, illust_detail of {broken} are missed")
 
     @auto_retry
     async def illust_detail(self, illust_id: int) -> Illust:
@@ -258,81 +292,82 @@ class RemotePixivRepo(AbstractPixivRepo):
         self._check_error_in_raw_result(raw_result)
         return User.parse_obj(raw_result["user"])
 
-    @auto_retry
-    async def search_illust(self, word: str) -> List[LazyIllust]:
+    async def search_illust(self, word: str) -> AsyncGenerator[LazyIllust, None]:
         logger.info(f"[remote] search_illust {word}")
-        return await self._get_illusts(self._papi.search_illust, "illusts",
-                                       block_tags=self._conf.pixiv_block_tags,
-                                       min_bookmark=self._conf.pixiv_random_illust_min_bookmark,
-                                       min_view=self._conf.pixiv_random_illust_min_view,
-                                       limit=self._conf.pixiv_random_illust_max_item,
-                                       limit_page=self._conf.pixiv_random_illust_max_page,
-                                       word=word)
+        async for x in self._get_illusts(self._papi.search_illust,
+                                         block_tags=self._conf.pixiv_block_tags,
+                                         min_bookmark=self._conf.pixiv_random_illust_min_bookmark,
+                                         min_view=self._conf.pixiv_random_illust_min_view,
+                                         limit=self._conf.pixiv_random_illust_max_item,
+                                         limit_page=self._conf.pixiv_random_illust_max_page,
+                                         word=word):
+            yield x
 
-    @auto_retry
-    async def search_user(self, word: str) -> List[User]:
+    async def search_user(self, word: str) -> AsyncGenerator[User, None]:
         logger.info(f"[remote] search_user {word}")
-        content = await self._flat_page(self._papi.search_user, "user_previews",
-                                        mapper=lambda x: User.parse_obj(x["user"]),
-                                        limit_page=1,
-                                        word=word)
-        return content
+        async for page in self._load_page(self._papi.search_user, "user_previews",
+                                          mapper=lambda x: User.parse_obj(x["user"]),
+                                          limit_page=1,
+                                          word=word):
+            for item in page:
+                yield item
 
-    @auto_retry
-    async def user_illusts(self, user_id: int) -> List[LazyIllust]:
+    async def user_illusts(self, user_id: int) -> AsyncGenerator[LazyIllust, None]:
         logger.info(f"[remote] user_illusts {user_id}")
-        return await self._get_illusts(self._papi.user_illusts, "illusts",
-                                       block_tags=self._conf.pixiv_block_tags,
-                                       min_bookmark=self._conf.pixiv_random_user_illust_min_bookmark,
-                                       min_view=self._conf.pixiv_random_user_illust_min_view,
-                                       limit=self._conf.pixiv_random_user_illust_max_item,
-                                       limit_page=self._conf.pixiv_random_user_illust_max_page,
-                                       user_id=user_id)
+        async for x in self._get_illusts(self._papi.user_illusts,
+                                         block_tags=self._conf.pixiv_block_tags,
+                                         min_bookmark=self._conf.pixiv_random_user_illust_min_bookmark,
+                                         min_view=self._conf.pixiv_random_user_illust_min_view,
+                                         limit=self._conf.pixiv_random_user_illust_max_item,
+                                         limit_page=self._conf.pixiv_random_user_illust_max_page,
+                                         user_id=user_id):
+            yield x
 
-    @auto_retry
-    async def user_bookmarks(self, user_id: int = 0) -> List[LazyIllust]:
+    async def user_bookmarks(self, user_id: int = 0) -> AsyncGenerator[LazyIllust, None]:
         if user_id == 0:
             user_id = self.user_id
 
         logger.info(f"[remote] user_bookmarks {user_id}")
-        return await self._get_illusts(self._papi.user_bookmarks_illust, "illusts",
-                                       block_tags=self._conf.pixiv_block_tags,
-                                       min_bookmark=self._conf.pixiv_random_bookmark_min_bookmark,
-                                       min_view=self._conf.pixiv_random_bookmark_min_view,
-                                       limit=self._conf.pixiv_random_bookmark_max_item,
-                                       limit_page=self._conf.pixiv_random_bookmark_max_page,
-                                       user_id=user_id)
+        async for x in self._get_illusts(self._papi.user_bookmarks_illust,
+                                         block_tags=self._conf.pixiv_block_tags,
+                                         min_bookmark=self._conf.pixiv_random_bookmark_min_bookmark,
+                                         min_view=self._conf.pixiv_random_bookmark_min_view,
+                                         limit=self._conf.pixiv_random_bookmark_max_item,
+                                         limit_page=self._conf.pixiv_random_bookmark_max_page,
+                                         user_id=user_id):
+            yield x
 
-    @auto_retry
-    async def recommended_illusts(self) -> List[LazyIllust]:
+    async def recommended_illusts(self) -> AsyncGenerator[LazyIllust, None]:
         logger.info(f"[remote] recommended_illusts")
-        return await self._get_illusts(self._papi.illust_recommended, "illusts",
-                                       block_tags=self._conf.pixiv_block_tags,
-                                       min_bookmark=self._conf.pixiv_random_recommended_illust_min_bookmark,
-                                       min_view=self._conf.pixiv_random_recommended_illust_min_view,
-                                       limit=self._conf.pixiv_random_recommended_illust_max_item,
-                                       limit_page=self._conf.pixiv_random_recommended_illust_max_page)
+        async for x in self._get_illusts(self._papi.illust_recommended,
+                                         block_tags=self._conf.pixiv_block_tags,
+                                         min_bookmark=self._conf.pixiv_random_recommended_illust_min_bookmark,
+                                         min_view=self._conf.pixiv_random_recommended_illust_min_view,
+                                         limit=self._conf.pixiv_random_recommended_illust_max_item,
+                                         limit_page=self._conf.pixiv_random_recommended_illust_max_page):
+            yield x
 
-    @auto_retry
-    async def related_illusts(self, illust_id: int) -> List[LazyIllust]:
+    async def related_illusts(self, illust_id: int) -> AsyncGenerator[LazyIllust, None]:
         logger.info(f"[remote] related_illusts {illust_id}")
-        return await self._get_illusts(self._papi.illust_related, "illusts",
-                                       block_tags=self._conf.pixiv_block_tags,
-                                       min_bookmark=self._conf.pixiv_random_related_illust_min_bookmark,
-                                       min_view=self._conf.pixiv_random_related_illust_min_view,
-                                       limit=self._conf.pixiv_random_related_illust_max_item,
-                                       limit_page=self._conf.pixiv_random_related_illust_max_page,
-                                       illust_id=illust_id)
+        async for x in self._get_illusts(self._papi.illust_related,
+                                         block_tags=self._conf.pixiv_block_tags,
+                                         min_bookmark=self._conf.pixiv_random_related_illust_min_bookmark,
+                                         min_view=self._conf.pixiv_random_related_illust_min_view,
+                                         limit=self._conf.pixiv_random_related_illust_max_item,
+                                         limit_page=self._conf.pixiv_random_related_illust_max_page,
+                                         illust_id=illust_id):
+            yield x
 
-    @auto_retry
-    async def illust_ranking(self, mode: RankingMode = RankingMode.day,
-                             *, range: Tuple[int, int]) -> List[LazyIllust]:
-        logger.info(f"[remote] illust_ranking {mode}")
-        return await self._get_illusts(self._papi.illust_ranking, "illusts",
-                                       block_tags=self._conf.pixiv_block_tags,
-                                       skip=range[0] - 1,
-                                       limit=range[1] - range[0] + 1,
-                                       mode=mode.name)
+    async def illust_ranking(self, mode: RankingMode, range: Optional[Tuple[int, int]] = None) -> List[LazyIllust]:
+        if not range:
+            range = 1, self._conf.pixiv_ranking_fetch_item
+
+        logger.info(f"[remote] illust_ranking {mode} {range}")
+        return [x async for x in self._get_illusts(self._papi.illust_ranking,
+                                                   block_tags=self._conf.pixiv_block_tags,
+                                                   skip=range[0] - 1,
+                                                   limit=range[1] - range[0] + 1,
+                                                   mode=mode.name)]
 
     @auto_retry
     async def image(self, illust: Illust) -> bytes:
@@ -346,7 +381,7 @@ class RemotePixivRepo(AbstractPixivRepo):
             else:
                 url = illust.meta_single_page.original_image_url
         else:
-            url = illust.image_urls.__getattribute__(download_quantity.name)
+            url = getattr(illust.image_urls, download_quantity.name)
 
         if custom_domain is not None:
             url = url.replace("i.pximg.net", custom_domain)

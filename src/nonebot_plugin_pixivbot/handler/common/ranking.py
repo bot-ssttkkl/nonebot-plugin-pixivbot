@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Union, TypeVar, Any
+from typing import Optional, Sequence, Union, TypeVar, Any, Tuple
 
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.global_context import context
@@ -28,7 +28,7 @@ class RankingHandler(CommonHandler):
     def enabled(self) -> bool:
         return self.conf.pixiv_ranking_query_enabled
 
-    def validate_range(self, range: Optional[Sequence[int]] = None):
+    def validate_range(self, range: Tuple[int, int] = None):
         if range:
             start, end = range
             if end - start + 1 > self.conf.pixiv_ranking_max_item_per_query:
@@ -70,7 +70,7 @@ class RankingHandler(CommonHandler):
         return {"mode": mode, "range": range}
 
     async def actual_handle(self, *, mode: Union[str, RankingMode, None] = None,
-                            range: Union[Sequence[int], int, None] = None,
+                            range: Union[Tuple[int, int], int, None] = None,
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
         if mode is None:

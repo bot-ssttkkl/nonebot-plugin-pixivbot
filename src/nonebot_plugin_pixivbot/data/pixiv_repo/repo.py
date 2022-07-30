@@ -1,5 +1,5 @@
 from functools import partial
-from typing import List, Tuple
+from typing import List, Tuple, AsyncGenerator, Optional
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.enums import RankingMode
@@ -42,7 +42,7 @@ class PixivRepo(AbstractPixivRepo):
     _conf: Config = context.require(Config)
 
     def __init__(self):
-        self._mediator = None
+        self._mediator: Mediator = None
         self.remote = context.require(RemotePixivRepo)
         self.cache = context.require(LocalPixivRepo)
 
@@ -60,7 +60,7 @@ class PixivRepo(AbstractPixivRepo):
         await self.cache.invalidate_cache()
 
     async def illust_detail(self, illust_id: int) -> Illust:
-        return await self._mediator.get(
+        return await self._mediator.mixin(
             identifier=(ILLUST_DETAIL, illust_id),
             cache_loader=partial(self.cache.illust_detail, illust_id=illust_id),
             remote_fetcher=partial(self.remote.illust_detail, illust_id=illust_id),
@@ -69,7 +69,7 @@ class PixivRepo(AbstractPixivRepo):
         )
 
     async def user_detail(self, user_id: int) -> User:
-        return await self._mediator.get(
+        return await self._mediator.mixin(
             identifier=(USER_DETAIL, user_id),
             cache_loader=partial(self.cache.user_detail, user_id=user_id),
             remote_fetcher=partial(self.remote.user_detail, user_id=user_id),
@@ -77,63 +77,62 @@ class PixivRepo(AbstractPixivRepo):
             timeout=self._conf.pixiv_query_timeout
         )
 
-    async def search_illust(self, word: str) -> List[LazyIllust]:
-        return await self._mediator.get(
+    def search_illust(self, word: str) -> AsyncGenerator[LazyIllust, None]:
+        return self._mediator.mixin_async_generator(
             identifier=(SEARCH_ILLUST, word),
             cache_loader=partial(self.cache.search_illust, word=word),
             remote_fetcher=partial(self.remote.search_illust, word=word),
             cache_updater=lambda content: self.cache.update_search_illust(word, content),
-            timeout=self._conf.pixiv_query_timeout
+            # timeout=self._conf.pixiv_query_timeout
         )
 
-    async def search_user(self, word: str) -> List[User]:
-        return await self._mediator.get(
+    def search_user(self, word: str) -> AsyncGenerator[User, None]:
+        return self._mediator.mixin_async_generator(
             identifier=(SEARCH_USER, word),
             cache_loader=partial(self.cache.search_user, word=word),
             remote_fetcher=partial(self.remote.search_user, word=word),
             cache_updater=lambda content: self.cache.update_search_user(word, content),
-            timeout=self._conf.pixiv_query_timeout
+            # timeout=self._conf.pixiv_query_timeout
         )
 
-    async def user_illusts(self, user_id: int = 0) -> List[LazyIllust]:
-        return await self._mediator.get(
+    def user_illusts(self, user_id: int = 0) -> AsyncGenerator[LazyIllust, None]:
+        return self._mediator.mixin_async_generator(
             identifier=(USER_ILLUSTS, user_id),
             cache_loader=partial(self.cache.user_illusts, user_id=user_id),
             remote_fetcher=partial(self.remote.user_illusts, user_id=user_id),
             cache_updater=lambda content: self.cache.update_user_illusts(user_id, content),
-            timeout=self._conf.pixiv_query_timeout
+            # timeout=self._conf.pixiv_query_timeout
         )
 
-    async def user_bookmarks(self, user_id: int = 0) -> List[LazyIllust]:
-        return await self._mediator.get(
+    def user_bookmarks(self, user_id: int = 0) -> AsyncGenerator[LazyIllust, None]:
+        return self._mediator.mixin_async_generator(
             identifier=(USER_BOOKMARKS, user_id),
             cache_loader=partial(self.cache.user_bookmarks, user_id=user_id),
             remote_fetcher=partial(self.remote.user_bookmarks, user_id=user_id),
             cache_updater=lambda content: self.cache.update_user_bookmarks(user_id, content),
-            timeout=self._conf.pixiv_query_timeout
+            # timeout=self._conf.pixiv_query_timeout
         )
 
-    async def recommended_illusts(self) -> List[LazyIllust]:
-        return await self._mediator.get(
+    def recommended_illusts(self) -> AsyncGenerator[LazyIllust, None]:
+        return self._mediator.mixin_async_generator(
             identifier=(RECOMMENDED_ILLUSTS,),
             cache_loader=partial(self.cache.recommended_illusts),
             remote_fetcher=self.remote.recommended_illusts,
             cache_updater=self.cache.update_recommended_illusts,
-            timeout=self._conf.pixiv_query_timeout
+            # timeout=self._conf.pixiv_query_timeout
         )
 
-    async def related_illusts(self, illust_id: int) -> List[LazyIllust]:
-        return await self._mediator.get(
+    def related_illusts(self, illust_id: int) -> AsyncGenerator[LazyIllust, None]:
+        return self._mediator.mixin_async_generator(
             identifier=(RELATED_ILLUSTS, illust_id),
             cache_loader=partial(self.cache.related_illusts, illust_id=illust_id),
             remote_fetcher=partial(self.remote.related_illusts, illust_id=illust_id),
             cache_updater=lambda content: self.cache.update_related_illusts(illust_id, content),
-            timeout=self._conf.pixiv_query_timeout
+            # timeout=self._conf.pixiv_query_timeout
         )
 
-    async def illust_ranking(self, mode: RankingMode = RankingMode.day,
-                             *, range: Tuple[int, int]) -> List[LazyIllust]:
-        return await self._mediator.get(
+    async def illust_ranking(self, mode: RankingMode, range: Optional[Tuple[int, int]] = None) -> List[LazyIllust]:
+        return await self._mediator.mixin(
             identifier=(ILLUST_RANKING, mode),
             cache_loader=partial(self.cache.illust_ranking, mode=mode, range=range),
             remote_fetcher=partial(self.remote.illust_ranking, mode=mode),
@@ -143,7 +142,7 @@ class PixivRepo(AbstractPixivRepo):
         )
 
     async def image(self, illust: Illust) -> bytes:
-        return await self._mediator.get(
+        return await self._mediator.mixin(
             identifier=(IMAGE, illust.id),
             cache_loader=partial(self.cache.image, illust=illust),
             remote_fetcher=partial(self.remote.image, illust=illust),

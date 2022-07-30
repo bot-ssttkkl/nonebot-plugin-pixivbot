@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple
+from typing import Tuple, AsyncGenerator, List, Optional
 
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User
@@ -16,34 +16,40 @@ class AbstractPixivRepo(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def search_illust(self, word: str) -> List[LazyIllust]:
+    async def search_illust(self, word: str) -> AsyncGenerator[LazyIllust, None]:
         raise NotImplementedError()
 
     @abstractmethod
-    async def search_user(self, word: str) -> List[User]:
+    async def search_user(self, word: str) -> AsyncGenerator[User, None]:
         raise NotImplementedError()
 
     @abstractmethod
-    async def user_illusts(self, user_id: int = 0) -> List[LazyIllust]:
+    async def user_illusts(self, user_id: int) -> AsyncGenerator[LazyIllust, None]:
         raise NotImplementedError()
 
     @abstractmethod
-    async def user_bookmarks(self, user_id: int = 0) -> List[LazyIllust]:
+    async def user_bookmarks(self, user_id: int = 0) -> AsyncGenerator[LazyIllust, None]:
         raise NotImplementedError()
 
     @abstractmethod
-    async def recommended_illusts(self) -> List[LazyIllust]:
+    async def recommended_illusts(self) -> AsyncGenerator[LazyIllust, None]:
         raise NotImplementedError()
 
     @abstractmethod
-    async def related_illusts(self, illust_id: int) -> List[LazyIllust]:
+    async def related_illusts(self, illust_id: int) -> AsyncGenerator[LazyIllust, None]:
         raise NotImplementedError()
 
     @abstractmethod
-    async def illust_ranking(self, mode: RankingMode = RankingMode.day,
-                             *, range: Tuple[int, int]) -> List[LazyIllust]:
+    async def illust_ranking(self, mode: RankingMode, range: Optional[Tuple[int, int]] = None) -> List[LazyIllust]:
         raise NotImplementedError()
 
     @abstractmethod
     async def image(self, illust: Illust) -> bytes:
         raise NotImplementedError()
+
+
+class NoSuchItemError(RuntimeError):
+    pass
+
+
+__all__ = ("AbstractPixivRepo", "NoSuchItemError")
