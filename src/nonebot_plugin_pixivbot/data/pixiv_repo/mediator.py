@@ -28,8 +28,7 @@ class Mediator:
         fut = asyncio.Future()
         self._waiting[identifier] = fut
         try:
-            asyncio.create_task(self._fetch(
-                fut, remote_fetcher, cache_updater, timeout))
+            asyncio.create_task(self._fetch(fut, remote_fetcher, cache_updater, timeout))
             result = await fut
             if hook_on_fetch:
                 result = hook_on_fetch(result)

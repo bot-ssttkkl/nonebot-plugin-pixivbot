@@ -1,5 +1,5 @@
-import typing
 from abc import ABC, abstractmethod
+from typing import List, Tuple
 
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User
@@ -16,32 +16,32 @@ class AbstractPixivRepo(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def search_illust(self, word: str, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
+    async def search_illust(self, word: str) -> List[LazyIllust]:
         raise NotImplementedError()
 
     @abstractmethod
-    async def search_user(self, word: str, *, skip: int = 0, limit: int = 0) -> typing.List[User]:
+    async def search_user(self, word: str) -> List[User]:
         raise NotImplementedError()
 
     @abstractmethod
-    async def user_illusts(self, user_id: int = 0, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
+    async def user_illusts(self, user_id: int = 0) -> List[LazyIllust]:
         raise NotImplementedError()
 
     @abstractmethod
-    async def user_bookmarks(self, user_id: int = 0, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
+    async def user_bookmarks(self, user_id: int = 0) -> List[LazyIllust]:
         raise NotImplementedError()
 
     @abstractmethod
-    async def recommended_illusts(self, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
+    async def recommended_illusts(self) -> List[LazyIllust]:
         raise NotImplementedError()
 
     @abstractmethod
-    async def related_illusts(self, illust_id: int, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
+    async def related_illusts(self, illust_id: int) -> List[LazyIllust]:
         raise NotImplementedError()
 
     @abstractmethod
     async def illust_ranking(self, mode: RankingMode = RankingMode.day,
-                             *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
+                             *, range: Tuple[int, int]) -> List[LazyIllust]:
         raise NotImplementedError()
 
     @abstractmethod

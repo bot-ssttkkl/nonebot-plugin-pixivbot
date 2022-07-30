@@ -1,5 +1,5 @@
-import typing
 from functools import partial
+from typing import List, Tuple
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.enums import RankingMode
@@ -62,10 +62,8 @@ class PixivRepo(AbstractPixivRepo):
     async def illust_detail(self, illust_id: int) -> Illust:
         return await self._mediator.get(
             identifier=(ILLUST_DETAIL, illust_id),
-            cache_loader=partial(self.cache.illust_detail,
-                                 illust_id=illust_id),
-            remote_fetcher=partial(
-                self.remote.illust_detail, illust_id=illust_id),
+            cache_loader=partial(self.cache.illust_detail, illust_id=illust_id),
+            remote_fetcher=partial(self.remote.illust_detail, illust_id=illust_id),
             cache_updater=self.cache.update_illust_detail,
             timeout=self._conf.pixiv_query_timeout
         )
@@ -73,106 +71,74 @@ class PixivRepo(AbstractPixivRepo):
     async def user_detail(self, user_id: int) -> User:
         return await self._mediator.get(
             identifier=(USER_DETAIL, user_id),
-            cache_loader=partial(self.cache.user_detail,
-                                 user_id=user_id),
-            remote_fetcher=partial(
-                self.remote.user_detail, user_id=user_id),
+            cache_loader=partial(self.cache.user_detail, user_id=user_id),
+            remote_fetcher=partial(self.remote.user_detail, user_id=user_id),
             cache_updater=self.cache.update_user_detail,
             timeout=self._conf.pixiv_query_timeout
         )
 
-    async def search_illust(self, word: str, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
-        # skip和limit只作用于cache_loader
+    async def search_illust(self, word: str) -> List[LazyIllust]:
         return await self._mediator.get(
             identifier=(SEARCH_ILLUST, word),
-            cache_loader=partial(self.cache.search_illust,
-                                 word=word, skip=skip, limit=limit),
+            cache_loader=partial(self.cache.search_illust, word=word),
             remote_fetcher=partial(self.remote.search_illust, word=word),
-            cache_updater=lambda content: self.cache.update_search_illust(
-                word, content),
-            hook_on_fetch=lambda result: do_skip_and_limit(
-                result, skip, limit),
+            cache_updater=lambda content: self.cache.update_search_illust(word, content),
             timeout=self._conf.pixiv_query_timeout
         )
 
-    async def search_user(self, word: str, *, skip: int = 0, limit: int = 0) -> typing.List[User]:
+    async def search_user(self, word: str) -> List[User]:
         return await self._mediator.get(
             identifier=(SEARCH_USER, word),
-            cache_loader=partial(self.cache.search_user,
-                                 word=word, skip=skip, limit=limit),
+            cache_loader=partial(self.cache.search_user, word=word),
             remote_fetcher=partial(self.remote.search_user, word=word),
-            cache_updater=lambda content: self.cache.update_search_user(
-                word, content),
-            hook_on_fetch=lambda result: do_skip_and_limit(
-                result, skip, limit),
+            cache_updater=lambda content: self.cache.update_search_user(word, content),
             timeout=self._conf.pixiv_query_timeout
         )
 
-    async def user_illusts(self, user_id: int = 0, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
+    async def user_illusts(self, user_id: int = 0) -> List[LazyIllust]:
         return await self._mediator.get(
             identifier=(USER_ILLUSTS, user_id),
-            cache_loader=partial(self.cache.user_illusts,
-                                 user_id=user_id, skip=skip, limit=limit),
+            cache_loader=partial(self.cache.user_illusts, user_id=user_id),
             remote_fetcher=partial(self.remote.user_illusts, user_id=user_id),
-            cache_updater=lambda content: self.cache.update_user_illusts(
-                user_id, content),
-            hook_on_fetch=lambda result: do_skip_and_limit(
-                result, skip, limit),
+            cache_updater=lambda content: self.cache.update_user_illusts(user_id, content),
             timeout=self._conf.pixiv_query_timeout
         )
 
-    async def user_bookmarks(self, user_id: int = 0, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
+    async def user_bookmarks(self, user_id: int = 0) -> List[LazyIllust]:
         return await self._mediator.get(
             identifier=(USER_BOOKMARKS, user_id),
-            cache_loader=partial(self.cache.user_bookmarks,
-                                 user_id=user_id, skip=skip, limit=limit),
-            remote_fetcher=partial(
-                self.remote.user_bookmarks, user_id=user_id),
-            cache_updater=lambda content: self.cache.update_user_bookmarks(
-                user_id, content),
-            hook_on_fetch=lambda result: do_skip_and_limit(
-                result, skip, limit),
+            cache_loader=partial(self.cache.user_bookmarks, user_id=user_id),
+            remote_fetcher=partial(self.remote.user_bookmarks, user_id=user_id),
+            cache_updater=lambda content: self.cache.update_user_bookmarks(user_id, content),
             timeout=self._conf.pixiv_query_timeout
         )
 
-    async def recommended_illusts(self, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
+    async def recommended_illusts(self) -> List[LazyIllust]:
         return await self._mediator.get(
             identifier=(RECOMMENDED_ILLUSTS,),
-            cache_loader=partial(
-                self.cache.recommended_illusts, skip=skip, limit=limit),
+            cache_loader=partial(self.cache.recommended_illusts),
             remote_fetcher=self.remote.recommended_illusts,
             cache_updater=self.cache.update_recommended_illusts,
-            hook_on_fetch=lambda result: do_skip_and_limit(
-                result, skip, limit),
             timeout=self._conf.pixiv_query_timeout
         )
 
-    async def related_illusts(self, illust_id: int, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
+    async def related_illusts(self, illust_id: int) -> List[LazyIllust]:
         return await self._mediator.get(
             identifier=(RELATED_ILLUSTS, illust_id),
-            cache_loader=partial(
-                self.cache.related_illusts, illust_id=illust_id, skip=skip, limit=limit),
-            remote_fetcher=partial(
-                self.remote.related_illusts, illust_id=illust_id),
-            cache_updater=lambda content: self.cache.update_related_illusts(
-                illust_id, content),
-            hook_on_fetch=lambda result: do_skip_and_limit(
-                result, skip, limit),
+            cache_loader=partial(self.cache.related_illusts, illust_id=illust_id),
+            remote_fetcher=partial(self.remote.related_illusts, illust_id=illust_id),
+            cache_updater=lambda content: self.cache.update_related_illusts(illust_id, content),
             timeout=self._conf.pixiv_query_timeout
         )
 
     async def illust_ranking(self, mode: RankingMode = RankingMode.day,
-                             *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
+                             *, range: Tuple[int, int]) -> List[LazyIllust]:
         return await self._mediator.get(
             identifier=(ILLUST_RANKING, mode),
-            cache_loader=partial(
-                self.cache.illust_ranking, mode=mode, skip=skip, limit=limit),
-            remote_fetcher=partial(
-                self.remote.illust_ranking, mode=mode),
-            cache_updater=lambda content: self.cache.update_illust_ranking(
-                mode, content),
-            hook_on_fetch=lambda result: do_skip_and_limit(
-                result, skip, limit),
+            cache_loader=partial(self.cache.illust_ranking, mode=mode, range=range),
+            remote_fetcher=partial(self.remote.illust_ranking, mode=mode),
+            cache_updater=lambda content: self.cache.update_illust_ranking(mode, content),
+            hook_on_fetch=lambda result: do_skip_and_limit(result, range[0] - 1, range[1] - range[0] + 1),
             timeout=self._conf.pixiv_query_timeout
         )
 
@@ -181,8 +147,7 @@ class PixivRepo(AbstractPixivRepo):
             identifier=(IMAGE, illust.id),
             cache_loader=partial(self.cache.image, illust=illust),
             remote_fetcher=partial(self.remote.image, illust=illust),
-            cache_updater=lambda content: self.cache.update_image(
-                illust, content),
+            cache_updater=lambda content: self.cache.update_image(illust, content),
             timeout=self._conf.pixiv_query_timeout
         )
 

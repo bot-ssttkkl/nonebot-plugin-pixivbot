@@ -1,8 +1,7 @@
 from asyncio import sleep, create_task, CancelledError
 from functools import wraps
 from io import BytesIO
-from sqlite3 import NotSupportedError
-from typing import TypeVar, Optional, Awaitable, List, Any, Callable, Union
+from typing import TypeVar, Optional, Awaitable, List, Any, Callable, Union, Tuple
 
 from nonebot import logger
 from pixivpy_async import *
@@ -134,8 +133,8 @@ class RemotePixivRepo(AbstractPixivRepo):
 
     async def _flat_page(self, papi_search_func: Callable[..., Awaitable[dict]],
                          element_list_name: str,
-                         element_mapper: Optional[Callable[[Any], T]] = None,
-                         element_filter: Optional[Callable[[T], bool]] = None,
+                         *, mapper: Optional[Callable[[Any], T]] = None,
+                         filter: Optional[Callable[[T], bool]] = None,
                          skip: int = 0,
                          limit: int = 0,
                          limit_page: int = 0,
@@ -143,7 +142,6 @@ class RemotePixivRepo(AbstractPixivRepo):
         cur_page = 0
         items = []
 
-        # user_bookmarks_illust 没有offset参数
         if skip:
             raw_result = await papi_search_func(offset=skip, **kwargs)
         else:
@@ -154,9 +152,9 @@ class RemotePixivRepo(AbstractPixivRepo):
         while (not limit or len(items) < limit) and (not limit_page or cur_page < limit_page):
             for x in raw_result[element_list_name]:
                 element = x
-                if element_mapper is not None:
-                    element = element_mapper(x)
-                if element_filter is None or element_filter(element):
+                if mapper is not None:
+                    element = mapper(x)
+                if filter is None or filter(element):
                     items.append(element)
                     if len(items) >= limit:
                         break
@@ -193,7 +191,7 @@ class RemotePixivRepo(AbstractPixivRepo):
 
     async def _get_illusts(self, papi_search_func: Callable[[], Awaitable[dict]],
                            element_list_name: str,
-                           block_tags: Optional[List[str]],
+                           *, block_tags: Optional[List[str]] = None,
                            min_bookmark: int = 0,
                            min_view: int = 0,
                            skip: int = 0,
@@ -215,8 +213,11 @@ class RemotePixivRepo(AbstractPixivRepo):
             return True
 
         items = await self._flat_page(papi_search_func, element_list_name,
-                                      lambda x: Illust.parse_obj(x),
-                                      illust_filter, skip, limit, limit_page,
+                                      mapper=lambda x: Illust.parse_obj(x),
+                                      filter=illust_filter,
+                                      skip=skip,
+                                      limit=limit,
+                                      limit_page=limit_page,
                                       **kwargs)
 
         illusts = []
@@ -258,112 +259,84 @@ class RemotePixivRepo(AbstractPixivRepo):
         return User.parse_obj(raw_result["user"])
 
     @auto_retry
-    async def search_illust(self, word: str, *, skip: int = 0, limit: int = 0) -> List[LazyIllust]:
-        if not limit:
-            limit = self._conf.pixiv_random_illust_max_item
-        limit_page = self._conf.pixiv_random_illust_max_page
-        min_bookmark = self._conf.pixiv_random_illust_min_bookmark
-        min_view = self._conf.pixiv_random_illust_min_view
-        block_tags = self._conf.pixiv_block_tags
-
+    async def search_illust(self, word: str) -> List[LazyIllust]:
         logger.info(f"[remote] search_illust {word}")
         return await self._get_illusts(self._papi.search_illust, "illusts",
-                                       block_tags, min_bookmark, min_view, skip, limit, limit_page,
+                                       block_tags=self._conf.pixiv_block_tags,
+                                       min_bookmark=self._conf.pixiv_random_illust_min_bookmark,
+                                       min_view=self._conf.pixiv_random_illust_min_view,
+                                       limit=self._conf.pixiv_random_illust_max_item,
+                                       limit_page=self._conf.pixiv_random_illust_max_page,
                                        word=word)
 
     @auto_retry
-    async def search_user(self, word: str, *, skip: int = 0, limit: int = 20) -> List[User]:
+    async def search_user(self, word: str) -> List[User]:
         logger.info(f"[remote] search_user {word}")
         content = await self._flat_page(self._papi.search_user, "user_previews",
-                                        lambda x: User.parse_obj(
-                                            x["user"]), None,
-                                        skip, limit, 1,
+                                        mapper=lambda x: User.parse_obj(x["user"]),
+                                        limit_page=1,
                                         word=word)
         return content
 
     @auto_retry
-    async def user_illusts(self, user_id: int = 0, *, skip: int = 0, limit: int = 0) -> List[LazyIllust]:
-        if user_id == 0:
-            user_id = self.user_id
-
-        if not limit:
-            limit = self._conf.pixiv_random_user_illust_max_item
-
-        limit_page = self._conf.pixiv_random_user_illust_max_page
-        min_bookmark = self._conf.pixiv_random_user_illust_min_bookmark
-        min_view = self._conf.pixiv_random_user_illust_min_view
-        block_tags = self._conf.pixiv_block_tags
-
+    async def user_illusts(self, user_id: int) -> List[LazyIllust]:
         logger.info(f"[remote] user_illusts {user_id}")
         return await self._get_illusts(self._papi.user_illusts, "illusts",
-                                       block_tags, min_bookmark, min_view, skip, limit, limit_page,
+                                       block_tags=self._conf.pixiv_block_tags,
+                                       min_bookmark=self._conf.pixiv_random_user_illust_min_bookmark,
+                                       min_view=self._conf.pixiv_random_user_illust_min_view,
+                                       limit=self._conf.pixiv_random_user_illust_max_item,
+                                       limit_page=self._conf.pixiv_random_user_illust_max_page,
                                        user_id=user_id)
 
     @auto_retry
-    async def user_bookmarks(self, user_id: int = 0, *, skip: int = 0, limit: int = 0) -> List[LazyIllust]:
+    async def user_bookmarks(self, user_id: int = 0) -> List[LazyIllust]:
         if user_id == 0:
             user_id = self.user_id
-
-        if skip:
-            raise NotSupportedError("Argument skip is not supported")
-
-        if not limit:
-            limit = self._conf.pixiv_random_bookmark_max_item
-
-        limit_page = self._conf.pixiv_random_bookmark_max_page
-        min_bookmark = self._conf.pixiv_random_bookmark_min_bookmark
-        min_view = self._conf.pixiv_random_bookmark_min_view
-        block_tags = self._conf.pixiv_block_tags
 
         logger.info(f"[remote] user_bookmarks {user_id}")
         return await self._get_illusts(self._papi.user_bookmarks_illust, "illusts",
-                                       block_tags, min_bookmark, min_view, skip, limit, limit_page,
+                                       block_tags=self._conf.pixiv_block_tags,
+                                       min_bookmark=self._conf.pixiv_random_bookmark_min_bookmark,
+                                       min_view=self._conf.pixiv_random_bookmark_min_view,
+                                       limit=self._conf.pixiv_random_bookmark_max_item,
+                                       limit_page=self._conf.pixiv_random_bookmark_max_page,
                                        user_id=user_id)
 
     @auto_retry
-    async def recommended_illusts(self, *, skip: int = 0, limit: int = 0) -> List[LazyIllust]:
-        if not limit:
-            limit = self._conf.pixiv_random_recommended_illust_max_item
-
-        limit_page = self._conf.pixiv_random_recommended_illust_max_page
-        min_bookmark = self._conf.pixiv_random_recommended_illust_min_bookmark
-        min_view = self._conf.pixiv_random_recommended_illust_min_view
-        block_tags = self._conf.pixiv_block_tags
-
+    async def recommended_illusts(self) -> List[LazyIllust]:
         logger.info(f"[remote] recommended_illusts")
         return await self._get_illusts(self._papi.illust_recommended, "illusts",
-                                       block_tags, min_bookmark, min_view, skip, limit, limit_page)
+                                       block_tags=self._conf.pixiv_block_tags,
+                                       min_bookmark=self._conf.pixiv_random_recommended_illust_min_bookmark,
+                                       min_view=self._conf.pixiv_random_recommended_illust_min_view,
+                                       limit=self._conf.pixiv_random_recommended_illust_max_item,
+                                       limit_page=self._conf.pixiv_random_recommended_illust_max_page)
 
     @auto_retry
-    async def related_illusts(self, illust_id: int, *, skip: int = 0, limit: int = 0) -> List[LazyIllust]:
-        if not limit:
-            limit = self._conf.pixiv_random_related_illust_max_item
-
-        limit_page = self._conf.pixiv_random_related_illust_max_page
-        min_bookmark = self._conf.pixiv_random_related_illust_min_bookmark
-        min_view = self._conf.pixiv_random_related_illust_min_view
-        block_tags = self._conf.pixiv_block_tags
-
+    async def related_illusts(self, illust_id: int) -> List[LazyIllust]:
         logger.info(f"[remote] related_illusts {illust_id}")
         return await self._get_illusts(self._papi.illust_related, "illusts",
-                                       block_tags, min_bookmark, min_view, skip, limit, limit_page,
+                                       block_tags=self._conf.pixiv_block_tags,
+                                       min_bookmark=self._conf.pixiv_random_related_illust_min_bookmark,
+                                       min_view=self._conf.pixiv_random_related_illust_min_view,
+                                       limit=self._conf.pixiv_random_related_illust_max_item,
+                                       limit_page=self._conf.pixiv_random_related_illust_max_page,
                                        illust_id=illust_id)
 
     @auto_retry
     async def illust_ranking(self, mode: RankingMode = RankingMode.day,
-                             *, skip: int = 0, limit: int = 0) -> List[LazyIllust]:
-        if not limit:
-            limit = self._conf.pixiv_ranking_fetch_item
-
-        block_tags = self._conf.pixiv_block_tags
-
+                             *, range: Tuple[int, int]) -> List[LazyIllust]:
         logger.info(f"[remote] illust_ranking {mode}")
         return await self._get_illusts(self._papi.illust_ranking, "illusts",
-                                       block_tags, 0, 0, skip, limit, 0,
+                                       block_tags=self._conf.pixiv_block_tags,
+                                       skip=range[0] - 1,
+                                       limit=range[1] - range[0] + 1,
                                        mode=mode.name)
 
     @auto_retry
     async def image(self, illust: Illust) -> bytes:
+        logger.info(f"[remote] image {illust.id}")
         download_quantity = self._conf.pixiv_download_quantity
         custom_domain = self._conf.pixiv_download_custom_domain
 
