@@ -15,10 +15,10 @@ GID = TypeVar("GID")
 class TimeoutInterceptor(Interceptor):
     conf: Config
 
-    async def actual_intercept(self, wrapped_func: Callable, *,
-                               post_dest: PostDestination[UID, GID],
-                               silently: bool,
-                               **kwargs):
+    async def intercept(self, wrapped_func: Callable, *,
+                        post_dest: PostDestination[UID, GID],
+                        silently: bool,
+                        **kwargs):
         await wait_for(wrapped_func(post_dest=post_dest, silently=silently, **kwargs),
                        timeout=self.conf.pixiv_query_timeout)
 

@@ -17,11 +17,11 @@ GID = TypeVar("GID")
 
 @context.inject
 class PermissionInterceptor(Interceptor, ABC):
-    postman_manager: PostmanManager
+    postman_mgr: PostmanManager
 
     async def post_plain_text(self, message: str,
                               post_dest: PostDestination):
-        await self.postman_manager.send_plain_text(message, post_dest=post_dest)
+        await self.postman_mgr.send_plain_text(message, post_dest=post_dest)
 
     @abstractmethod
     def has_permission(self, post_dest: PostDestination[UID, GID]) -> Union[bool, Awaitable[bool]]:
@@ -31,10 +31,10 @@ class PermissionInterceptor(Interceptor, ABC):
             -> Union[Optional[str], Awaitable[Optional[str]]]:
         return None
 
-    async def actual_intercept(self, wrapped_func: Callable, *,
-                               post_dest: PostDestination[UID, GID],
-                               silently: bool,
-                               **kwargs):
+    async def intercept(self, wrapped_func: Callable, *,
+                        post_dest: PostDestination[UID, GID],
+                        silently: bool,
+                        **kwargs):
         p = self.has_permission(post_dest)
         if isawaitable(p):
             p = await p
@@ -113,10 +113,15 @@ class GroupAdminInterceptor(PermissionInterceptor):
         return self.auth.group_admin(post_dest)
 
 
+@context.inject
 @context.register_singleton()
 class BlacklistInterceptor(PermissionInterceptor):
     conf: Config
 
+    def __init__(self):
+        super().__init__()
+        self.blacklist = self.conf.blacklist
+
     def has_permission(self, post_dest: PostDestination[UID, GID]) -> bool:
-        return str(post_dest.user_id) not in self.conf.blacklist \
-               and f"{post_dest.adapter}:{post_dest.user_id}" not in self.conf.blacklist
+        return str(post_dest.user_id) not in self.blacklist \
+               and f"{post_dest.adapter}:{post_dest.user_id}" not in self.blacklist
