@@ -7,6 +7,7 @@ from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .recorder import Recorder
 from ..entry_handler import EntryHandler
 from ..interceptor.cooldown_interceptor import CooldownInterceptor
+from ..interceptor.timeout_interceptor import TimeoutInterceptor
 from ...model import Illust
 from ...model.message import IllustMessageModel, IllustMessagesModel
 from ...protocol_dep.postman import PostmanManager
@@ -48,6 +49,7 @@ class CommonHandler(EntryHandler, ABC):
         super().__init__()
         self.postman_manager = RecordPostmanManager(self.postman_manager)
         self.add_interceptor(context.require(CooldownInterceptor))
+        self.add_interceptor(context.require(TimeoutInterceptor))
 
     async def post_illust(self, illust: Illust, *,
                           header: Optional[str] = None,
