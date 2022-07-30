@@ -10,11 +10,10 @@ UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
+@context.inject
 @context.root.register_singleton()
 class MoreHandler(CommonHandler):
-    def __init__(self):
-        super().__init__()
-        self.recorder = context.require(Recorder)
+    recorder: Recorder
 
     @classmethod
     def type(cls) -> str:

@@ -1,4 +1,4 @@
-from typing import TypeVar, Sequence, Any
+from typing import TypeVar, Sequence
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
@@ -10,11 +10,10 @@ UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
+@context.inject
 @context.require(CommandHandler).sub_command("bind")
 class BindHandler(SubCommandHandler):
-    def __init__(self):
-        super().__init__()
-        self.binder = context.require(PixivAccountBinder)
+    binder: PixivAccountBinder
 
     @classmethod
     def type(cls) -> str:
@@ -48,11 +47,10 @@ class BindHandler(SubCommandHandler):
         await self.post_plain_text(message=msg, post_dest=post_dest)
 
 
+@context.inject
 @context.require(CommandHandler).sub_command("unbind")
 class UnbindHandler(SubCommandHandler):
-    def __init__(self):
-        super().__init__()
-        self.binder = context.require(PixivAccountBinder)
+    binder: PixivAccountBinder
 
     @classmethod
     def type(cls) -> str:

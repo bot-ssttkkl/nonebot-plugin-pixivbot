@@ -9,10 +9,10 @@ UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
+@context.inject
 @context.register_singleton()
 class RecordReqInterceptor(Interceptor):
-    def __init__(self):
-        self.recorder = context.require(Recorder)
+    recorder: Recorder
 
     async def actual_intercept(self, wrapped_func: Callable, *,
                                post_dest: PostDestination[UID, GID],

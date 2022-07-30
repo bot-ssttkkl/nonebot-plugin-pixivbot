@@ -13,10 +13,10 @@ GID = TypeVar("GID")
 ID = PostIdentifier[UID, GID]
 
 
+@context.inject
 @context.register_singleton()
 class SubscriptionRepo:
-    def __init__(self):
-        self.mongo = context.require(MongoDataSource)
+    mongo: MongoDataSource
 
     async def get(self, identifier: ID) -> AsyncGenerator[Subscription, None]:
         if identifier.group_id:

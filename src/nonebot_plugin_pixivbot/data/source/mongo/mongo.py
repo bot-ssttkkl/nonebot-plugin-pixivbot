@@ -6,12 +6,13 @@ from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.data.errors import DataSourceNotReadyError
 from nonebot_plugin_pixivbot.data.source.mongo.migration import MongoMigrationManager
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.utils.lifecycler import on_startup, on_shutdown
+from nonebot_plugin_pixivbot.utils.lifecycler import on_shutdown, on_startup
 
 
-@context.register_singleton()
+@context.inject
+@context.register_eager_singleton()
 class MongoDataSource:
-    conf = context.require(Config)
+    conf: Config
     app_db_version = 2
 
     def __init__(self):
@@ -127,7 +128,8 @@ class MongoDataSource:
         logger.success("MongoDataSource Initialization Succeed.")
 
     async def finalize(self):
-        self._client.close()
+        if self._client:
+            self._client.close()
         self._client = None
         self._db = None
 

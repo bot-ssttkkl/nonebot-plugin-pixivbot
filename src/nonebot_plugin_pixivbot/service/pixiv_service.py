@@ -12,13 +12,12 @@ from nonebot_plugin_pixivbot.service.roulette import roulette
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError, QueryError
 
 
+@context.inject
 @context.register_singleton()
 class PixivService:
-    conf = context.require(Config)
-
-    def __init__(self):
-        self.repo = context.require(PixivRepo)
-        self.local_tags = context.require(LocalTagRepo)
+    conf: Config
+    repo: PixivRepo
+    local_tags: LocalTagRepo
 
     async def _choice_and_load(self, illusts: List[LazyIllust], random_method: RandomIllustMethod, count: int) \
             -> List[Illust]:

@@ -11,12 +11,13 @@ UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
+@context.inject
 @context.root.register_singleton()
 class RandomRelatedIllustHandler(CommonHandler):
+    recorder:Recorder
+
     def __init__(self):
         super().__init__()
-        self.recorder = context.require(Recorder)
-
         self.add_interceptor(context.require(RecordReqInterceptor))
 
     @classmethod

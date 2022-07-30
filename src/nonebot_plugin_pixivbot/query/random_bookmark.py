@@ -11,13 +11,11 @@ from .query import Query, register_query
 from .utils import get_count, get_common_query_rule, get_post_dest
 
 
+@context.inject
 @register_query(context)
 class RandomBookmarkQuery(Query):
-    conf = context.require(Config)
-
-    def __init__(self):
-        super().__init__()
-        self.handler = context.require(RandomBookmarkHandler)
+    conf: Config
+    handler: RandomBookmarkHandler
 
     @lazy
     def matcher(self):

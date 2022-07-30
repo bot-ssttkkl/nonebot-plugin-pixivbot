@@ -13,10 +13,10 @@ from .pkg_context import context
 from ..source import MongoDataSource
 
 
+@context.inject
 @context.register_singleton()
 class LocalPixivRepo(AbstractPixivRepo):
-    def __init__(self):
-        self.mongo = context.require(MongoDataSource)
+    mongo: MongoDataSource
 
     async def _illusts_agen(self, collection_name: str, arg_name: str, arg: Any,
                             *, skip: int = 0, limit: int = 0) -> AsyncGenerator[LazyIllust, None]:

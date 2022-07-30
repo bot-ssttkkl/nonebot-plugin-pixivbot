@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from inspect import isawaitable
-from typing import TypeVar, Callable, Generic, Union, Awaitable, Optional
+from typing import TypeVar, Callable, Union, Awaitable, Optional
 
 from nonebot import get_driver, logger
 
@@ -15,9 +15,9 @@ UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
+@context.inject
 class PermissionInterceptor(Interceptor, ABC):
-    def __init__(self):
-        self.postman_manager = context.require(PostmanManager)
+    postman_manager: PostmanManager
 
     async def post_plain_text(self, message: str,
                               post_dest: PostDestination):
@@ -95,18 +95,17 @@ class AllPermissionInterceptor(PermissionInterceptor):
 class SuperuserInterceptor(PermissionInterceptor):
     def __init__(self):
         super().__init__()
-        self.superusers = get_driver().config.superusers.copy()
+        self.superusers = get_driver().config.superusers
 
     def has_permission(self, post_dest: PostDestination[UID, GID]) -> bool:
         return str(post_dest.user_id) in self.superusers \
                or f"{post_dest.adapter}:{post_dest.user_id}" in self.superusers
 
 
+@context.inject
 @context.register_singleton()
 class GroupAdminInterceptor(PermissionInterceptor):
-    def __init__(self):
-        super().__init__()
-        self.auth = context.require(AuthenticatorManager)
+    auth: AuthenticatorManager
 
     def has_permission(self, post_dest: PostDestination[UID, GID]) -> Union[bool, Awaitable[bool]]:
         if not post_dest.group_id:

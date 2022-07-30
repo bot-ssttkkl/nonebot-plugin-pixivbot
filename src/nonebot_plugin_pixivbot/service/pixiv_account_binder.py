@@ -7,10 +7,10 @@ from nonebot_plugin_pixivbot.model.pixiv_binding import PixivBinding
 UID = TypeVar("UID")
 
 
+@context.inject
 @context.register_singleton()
 class PixivAccountBinder:
-    def __init__(self):
-        self.repo = context.require(PixivBindingRepo)
+    repo: PixivBindingRepo
 
     async def bind(self, adapter: str, user_id: UID, pixiv_user_id: int):
         binding = PixivBinding(adapter=adapter, user_id=user_id, pixiv_user_id=pixiv_user_id)

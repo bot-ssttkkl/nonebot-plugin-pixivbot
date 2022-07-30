@@ -12,10 +12,10 @@ UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
+@context.inject
 @context.register_singleton()
 class DefaultErrorInterceptor(Interceptor):
-    def __init__(self):
-        self.postman_manager = context.require(PostmanManager)
+    postman_manager: PostmanManager
 
     async def post_plain_text(self, message: str,
                               post_dest: PostDestination):

@@ -14,9 +14,9 @@ from nonebot_plugin_pixivbot.utils.errors import QueryError
 from .abstract_repo import AbstractPixivRepo
 from .compressor import Compressor
 from .lazy_illust import LazyIllust
-from .mediator import Mediator
 from .pkg_context import context
 from ..local_tag_repo import LocalTagRepo
+from ...utils.lifecycler import on_startup, on_shutdown
 
 
 def auto_retry(func):
@@ -39,27 +39,22 @@ def auto_retry(func):
 T = TypeVar("T")
 
 
+@context.inject
 @context.register_singleton()
 class RemotePixivRepo(AbstractPixivRepo):
-    _conf: Config = context.require(Config)
+    _conf: Config
+    _local_tags: LocalTagRepo
+    _compressor: Compressor
 
     def __init__(self):
-        self._local_tags = context.require(LocalTagRepo)
-        self._compressor = context.require(Compressor)
-
         self._pclient = None
         self._papi = None
         self._refresh_daemon_task = None
 
         self.user_id = 0
 
-        self.refresh_token = self._conf.pixiv_refresh_token
-        self.simultaneous_query = self._conf.pixiv_simultaneous_query
-        self.timeout = self._conf.pixiv_query_timeout
-        self.proxy = self._conf.pixiv_proxy
-
-        self._cache_manager = Mediator(
-            simultaneous_query=self._conf.pixiv_simultaneous_query)
+        on_startup(self.start, replay=True)
+        on_shutdown(self.shutdown)
 
     async def _refresh(self):
         # Latest app version can be found using GET /old/application-info/android
@@ -70,12 +65,14 @@ class RemotePixivRepo(AbstractPixivRepo):
         CLIENT_ID = "MOBrBDS8blbauoSck0ZfDbtuzpyT"
         CLIENT_SECRET = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj"
 
+        refresh_token = self._conf.pixiv_refresh_token
+
         data = {
             "client_id": CLIENT_ID,
             "client_secret": CLIENT_SECRET,
             "grant_type": "refresh_token",
             "include_policy": "true",
-            "refresh_token": self.refresh_token,
+            "refresh_token": refresh_token,
         }
         result = await self._papi.requests_(method="POST", url=AUTH_TOKEN_URL, data=data,
                                             headers={"User-Agent": USER_AGENT},
@@ -92,8 +89,8 @@ class RemotePixivRepo(AbstractPixivRepo):
             logger.debug(f"refresh_token: {result.refresh_token}")
 
             # maybe the refresh token will be changed (even thought i haven't seen it yet)
-            if result.refresh_token != self.refresh_token:
-                self.refresh_token = result.refresh_token
+            if result.refresh_token != refresh_token:
+                refresh_token = result.refresh_token
                 logger.warning(
                     f"refresh token has been changed: {result.refresh_token}")
 
@@ -112,9 +109,8 @@ class RemotePixivRepo(AbstractPixivRepo):
                 logger.exception(e)
                 await sleep(60)
 
-    async def start(self):
-        self._cache_manager = Mediator(self.simultaneous_query)
-        self._pclient = PixivClient(proxy=self.proxy)
+    def start(self):
+        self._pclient = PixivClient(proxy=self._conf.pixiv_proxy)
         self._papi = AppPixivAPI(client=self._pclient.start())
         self._papi.set_additional_headers({'Accept-Language': 'zh-CN'})
         self._refresh_daemon_task = create_task(self._refresh_daemon())

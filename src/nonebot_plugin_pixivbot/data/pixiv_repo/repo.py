@@ -40,24 +40,15 @@ RELATED_ILLUSTS = 8
 USER_DETAIL = 9
 
 
+@context.inject
 @context.root.register_singleton()
 class PixivRepo(AbstractPixivRepo):
-    _conf: Config = context.require(Config)
+    _conf: Config
+    remote: RemotePixivRepo
+    cache: LocalPixivRepo
 
     def __init__(self):
-        self._mediator: Mediator = None
-        self.remote = context.require(RemotePixivRepo)
-        self.cache = context.require(LocalPixivRepo)
-
-        on_startup(self.start, replay=True)
-        on_shutdown(self.shutdown)
-
-    async def start(self):
-        await self.remote.start()
-        self._mediator = Mediator(self._conf.pixiv_simultaneous_query)
-
-    async def shutdown(self):
-        await self.remote.shutdown()
+        self._mediator = Mediator()
 
     async def invalidate_cache(self):
         await self.cache.invalidate_cache()

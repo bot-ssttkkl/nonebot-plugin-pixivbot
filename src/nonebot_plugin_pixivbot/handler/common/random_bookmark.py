@@ -1,4 +1,4 @@
-from typing import TypeVar, Sequence, Any
+from typing import TypeVar, Sequence
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
@@ -11,11 +11,13 @@ UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
+@context.inject
 @context.root.register_singleton()
 class RandomBookmarkHandler(CommonHandler):
+    binder: PixivAccountBinder
+
     def __init__(self):
         super().__init__()
-        self.binder = context.require(PixivAccountBinder)
         self.add_interceptor(context.require(RecordReqInterceptor))
 
     @classmethod

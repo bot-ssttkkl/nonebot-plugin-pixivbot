@@ -6,8 +6,7 @@ from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import NoSuchItemErro
 
 
 class Mediator:
-    def __init__(self, simultaneous_query: int):
-        # self._semaphore = Semaphore(value=simultaneous_query)  # 用于限制从远程获取的并发量
+    def __init__(self):
         self._waiting = {}
 
     T = TypeVar("T")

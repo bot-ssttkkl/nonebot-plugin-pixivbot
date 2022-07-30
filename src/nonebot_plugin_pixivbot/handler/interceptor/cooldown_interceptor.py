@@ -1,6 +1,6 @@
 from datetime import datetime
 from math import ceil
-from typing import TypeVar, Generic
+from typing import TypeVar
 
 from nonebot import logger
 
@@ -14,11 +14,13 @@ UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
+@context.inject
 @context.register_singleton()
 class CooldownInterceptor(PermissionInterceptor):
+    conf: Config
+
     def __init__(self):
         super().__init__()
-        self.conf = context.require(Config)
         self.last_query_time = dict[UserIdentifier[UID], datetime]()
 
     def has_permission(self, post_dest: PostDestination[UID, GID]) -> bool:

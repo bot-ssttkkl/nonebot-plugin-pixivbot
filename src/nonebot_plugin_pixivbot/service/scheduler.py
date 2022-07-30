@@ -27,12 +27,13 @@ GID = TypeVar("GID")
 ID = PostIdentifier[UID, GID]
 
 
+@context.inject
 @context.register_eager_singleton()
 class Scheduler:
-    def __init__(self):
-        self.apscheduler = context.require(AsyncIOScheduler)
-        self.subscriptions = context.require(SubscriptionRepo)
+    apscheduler: AsyncIOScheduler
+    subscriptions: SubscriptionRepo
 
+    def __init__(self):
         on_bot_connect(self.on_bot_connect, replay=True)
         on_bot_disconnect(self.on_bot_disconnect)
 
