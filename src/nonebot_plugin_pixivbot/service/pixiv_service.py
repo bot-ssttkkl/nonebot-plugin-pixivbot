@@ -5,7 +5,7 @@ from nonebot import logger
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.data.local_tag_repo import LocalTagRepo
 from nonebot_plugin_pixivbot.data.pixiv_repo import LazyIllust, PixivRepo
-from nonebot_plugin_pixivbot.enums import RandomIllustMethod
+from nonebot_plugin_pixivbot.enums import RandomIllustMethod, RankingMode
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Illust, User
 from nonebot_plugin_pixivbot.service.roulette import roulette
@@ -33,8 +33,9 @@ class PixivService:
         logger.info(f"choice {[x.id for x in winners]}")
         return [await x.get() for x in winners]
 
-    async def illust_ranking(self, mode: str, range: Tuple[int, int]) -> List[Illust]:
-        return await self.repo.illust_ranking(mode, range)
+    async def illust_ranking(self, mode: RankingMode, range: Tuple[int, int]) -> List[Illust]:
+        illusts = await self.repo.illust_ranking(mode, range)
+        return [await x.get() for x in illusts]
 
     async def illust_detail(self, illust: int) -> Illust:
         return await self.repo.illust_detail(illust)

@@ -69,7 +69,7 @@ class RankingHandler(CommonHandler):
 
         return {"mode": mode, "range": range}
 
-    async def actual_handle(self, *, mode: Union[str, RankingMode, None] = None,
+    async def actual_handle(self, *, mode: Union[RankingMode, None] = None,
                             range: Union[Tuple[int, int], int, None] = None,
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
