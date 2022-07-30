@@ -56,7 +56,7 @@ class CommandHandler(EntryHandler):
             if cls not in context:
                 context.register_singleton()(cls)
             self.handlers[type] = cls
-            logger.success(f"registered subcommand {type}")
+            logger.debug(f"registered subcommand {type}")
             return cls
 
         return decorator
