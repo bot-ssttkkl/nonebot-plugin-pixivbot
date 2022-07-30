@@ -23,7 +23,7 @@ class BindHandler(SubCommandHandler):
     def enabled(self) -> bool:
         return True
 
-    def parse_args(self, args: Sequence[Any], post_dest: PostDestination[UID, GID]) -> dict:
+    def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
         if len(args) < 1:
             raise BadRequestError()
         else:
@@ -61,7 +61,7 @@ class UnbindHandler(SubCommandHandler):
     def enabled(self) -> bool:
         return True
 
-    def parse_args(self, args: Sequence[Any], post_dest: PostDestination[UID, GID]) -> dict:
+    def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
         return {}
 
     async def actual_handle(self, *, post_dest: PostDestination[UID, GID],

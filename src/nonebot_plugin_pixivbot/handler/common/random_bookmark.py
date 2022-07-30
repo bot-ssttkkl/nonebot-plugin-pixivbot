@@ -25,7 +25,7 @@ class RandomBookmarkHandler(CommonHandler):
     def enabled(self) -> bool:
         return self.conf.pixiv_random_bookmark_query_enabled
 
-    def parse_args(self, args: Sequence[Any], post_dest: PostDestination[UID, GID]) -> dict:
+    def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
         pixiv_user_id = 0
         sender_user_id = post_dest.user_id
 

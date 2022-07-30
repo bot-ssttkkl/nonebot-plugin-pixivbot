@@ -22,7 +22,7 @@ class RandomUserIllustHandler(CommonHandler):
     def enabled(self) -> bool:
         return self.conf.pixiv_random_user_illust_query_enabled
 
-    async def parse_args(self, args: Sequence[Any], post_dest: PostDestination[UID, GID]) -> dict:
+    async def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
         user = args[0]
         if isinstance(user, str):
             user = await self.service.get_user(user)

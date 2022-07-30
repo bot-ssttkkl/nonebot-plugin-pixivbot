@@ -40,7 +40,7 @@ class RankingHandler(CommonHandler):
                 raise BadRequestError(
                     f'仅支持查询{self.conf.pixiv_ranking_fetch_item}名以内的插画')
 
-    def parse_args(self, args: Sequence[Any], post_dest: PostDestination[UID, GID]) -> dict:
+    def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
         mode = args[0] if len(args) > 0 else None
         range = args[1] if len(args) > 1 else None
 

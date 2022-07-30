@@ -31,7 +31,7 @@ class ScheduleHandler(SubCommandHandler):
     def enabled(self) -> bool:
         return True
 
-    def parse_args(self, args: Sequence[Any], post_dest: PostIdentifier[UID, GID]) -> dict:
+    def parse_args(self, args: Sequence[str], post_dest: PostIdentifier[UID, GID]) -> dict:
         return {"type": args[0],
                 "schedule": args[1],
                 "args": args[2:]}
@@ -78,7 +78,7 @@ class UnscheduleHandler(SubCommandHandler):
     def enabled(self) -> bool:
         return True
 
-    def parse_args(self, args: Sequence[Any], post_dest: PostIdentifier[UID, GID]) -> dict:
+    def parse_args(self, args: Sequence[str], post_dest: PostIdentifier[UID, GID]) -> dict:
         return {"type": args[0]}
 
     async def actual_handle(self, *, type: str,

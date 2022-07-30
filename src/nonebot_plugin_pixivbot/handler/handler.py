@@ -35,7 +35,7 @@ class Handler(ABC):
     def enabled(self) -> bool:
         raise NotImplementedError()
 
-    def parse_args(self, args: Sequence[Any], post_dest: PD) -> Union[dict, Awaitable[dict]]:
+    def parse_args(self, args: Sequence[str], post_dest: PD) -> Union[dict, Awaitable[dict]]:
         """
         将位置参数转化为命名参数
         :param args: 位置参数sequence
