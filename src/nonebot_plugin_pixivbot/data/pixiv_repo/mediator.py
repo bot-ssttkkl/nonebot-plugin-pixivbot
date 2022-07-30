@@ -3,9 +3,8 @@ import typing
 
 
 class Mediator:
-    def __init__(self, simultaneous_query: int = 4):
-        self._semaphore = asyncio.Semaphore(
-            value=simultaneous_query)  # 用于限制从远程获取的并发量
+    def __init__(self, simultaneous_query: int):
+        self._semaphore = asyncio.Semaphore(value=simultaneous_query)  # 用于限制从远程获取的并发量
         self._waiting = {}
 
     T = typing.TypeVar("T")

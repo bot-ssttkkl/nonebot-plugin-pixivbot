@@ -25,6 +25,18 @@ def do_skip_and_limit(items: list, skip: int, limit: int) -> list:
         return items
 
 
+SEARCH_ILLUST = 0
+SEARCH_USER = 1
+USER_ILLUSTS = 2
+USER_BOOKMARKS = 3
+RECOMMENDED_ILLUSTS = 4
+ILLUST_RANKING = 5
+ILLUST_DETAIL = 6
+IMAGE = 7
+RELATED_ILLUSTS = 8
+USER_DETAIL = 9
+
+
 @context.root.register_singleton()
 class PixivRepo(AbstractPixivRepo):
     _conf: Config = context.require(Config)
@@ -39,17 +51,17 @@ class PixivRepo(AbstractPixivRepo):
 
     async def start(self):
         await self.remote.start()
-        self._mediator = Mediator()
+        self._mediator = Mediator(self._conf.pixiv_simultaneous_query)
 
     async def shutdown(self):
         await self.remote.shutdown()
 
-    def invalidate_cache(self):
-        return self.cache.invalidate_cache()
+    async def invalidate_cache(self):
+        await self.cache.invalidate_cache()
 
     async def illust_detail(self, illust_id: int) -> Illust:
         return await self._mediator.get(
-            identifier=(6, illust_id),
+            identifier=(ILLUST_DETAIL, illust_id),
             cache_loader=partial(self.cache.illust_detail,
                                  illust_id=illust_id),
             remote_fetcher=partial(
@@ -60,7 +72,7 @@ class PixivRepo(AbstractPixivRepo):
 
     async def user_detail(self, user_id: int) -> User:
         return await self._mediator.get(
-            identifier=(9, user_id),
+            identifier=(USER_DETAIL, user_id),
             cache_loader=partial(self.cache.user_detail,
                                  user_id=user_id),
             remote_fetcher=partial(
@@ -72,7 +84,7 @@ class PixivRepo(AbstractPixivRepo):
     async def search_illust(self, word: str, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
         # skip和limit只作用于cache_loader
         return await self._mediator.get(
-            identifier=(0, word),
+            identifier=(SEARCH_ILLUST, word),
             cache_loader=partial(self.cache.search_illust,
                                  word=word, skip=skip, limit=limit),
             remote_fetcher=partial(self.remote.search_illust, word=word),
@@ -85,7 +97,7 @@ class PixivRepo(AbstractPixivRepo):
 
     async def search_user(self, word: str, *, skip: int = 0, limit: int = 0) -> typing.List[User]:
         return await self._mediator.get(
-            identifier=(1, word),
+            identifier=(SEARCH_USER, word),
             cache_loader=partial(self.cache.search_user,
                                  word=word, skip=skip, limit=limit),
             remote_fetcher=partial(self.remote.search_user, word=word),
@@ -98,7 +110,7 @@ class PixivRepo(AbstractPixivRepo):
 
     async def user_illusts(self, user_id: int = 0, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
         return await self._mediator.get(
-            identifier=(2, user_id),
+            identifier=(USER_ILLUSTS, user_id),
             cache_loader=partial(self.cache.user_illusts,
                                  user_id=user_id, skip=skip, limit=limit),
             remote_fetcher=partial(self.remote.user_illusts, user_id=user_id),
@@ -111,7 +123,7 @@ class PixivRepo(AbstractPixivRepo):
 
     async def user_bookmarks(self, user_id: int = 0, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
         return await self._mediator.get(
-            identifier=(3, user_id),
+            identifier=(USER_BOOKMARKS, user_id),
             cache_loader=partial(self.cache.user_bookmarks,
                                  user_id=user_id, skip=skip, limit=limit),
             remote_fetcher=partial(
@@ -125,7 +137,7 @@ class PixivRepo(AbstractPixivRepo):
 
     async def recommended_illusts(self, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
         return await self._mediator.get(
-            identifier=(4,),
+            identifier=(RECOMMENDED_ILLUSTS,),
             cache_loader=partial(
                 self.cache.recommended_illusts, skip=skip, limit=limit),
             remote_fetcher=self.remote.recommended_illusts,
@@ -137,7 +149,7 @@ class PixivRepo(AbstractPixivRepo):
 
     async def related_illusts(self, illust_id: int, *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
         return await self._mediator.get(
-            identifier=(8, illust_id),
+            identifier=(RELATED_ILLUSTS, illust_id),
             cache_loader=partial(
                 self.cache.related_illusts, illust_id=illust_id, skip=skip, limit=limit),
             remote_fetcher=partial(
@@ -152,7 +164,7 @@ class PixivRepo(AbstractPixivRepo):
     async def illust_ranking(self, mode: RankingMode = RankingMode.day,
                              *, skip: int = 0, limit: int = 0) -> typing.List[LazyIllust]:
         return await self._mediator.get(
-            identifier=(5, mode),
+            identifier=(ILLUST_RANKING, mode),
             cache_loader=partial(
                 self.cache.illust_ranking, mode=mode, skip=skip, limit=limit),
             remote_fetcher=partial(
@@ -166,7 +178,7 @@ class PixivRepo(AbstractPixivRepo):
 
     async def image(self, illust: Illust) -> bytes:
         return await self._mediator.get(
-            identifier=(7, illust.id),
+            identifier=(IMAGE, illust.id),
             cache_loader=partial(self.cache.image, illust=illust),
             remote_fetcher=partial(self.remote.image, illust=illust),
             cache_updater=lambda content: self.cache.update_image(
