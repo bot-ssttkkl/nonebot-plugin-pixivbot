@@ -132,9 +132,12 @@ class Context:
                 return old_getattr(obj, name)
             else:
                 for c in cls.mro():
+                    if c == cls:
+                        continue
                     c_getattr = getattr(c, "__getattr__", None)
                     if c_getattr:
                         return c_getattr(obj, name)
+                raise AttributeError(obj=obj, name=name)
 
         setattr(cls, "__getattr__", __getattr__)
         return cls
