@@ -111,10 +111,10 @@ class MongoDataSource:
         await self._ensure_ttl_index(db, 'search_user_cache', self.conf.pixiv_search_user_cache_expires_in)
 
         await self._ensure_index(db, 'user_illusts_cache', [("user_id", 1)], unique=True)
-        await self._ensure_ttl_index(db, 'user_illusts_cache', self.conf.pixiv_user_illusts_cache_expires_in)
+        await self._ensure_ttl_index(db, 'user_illusts_cache', self.conf.pixiv_user_illusts_cache_delete_in)
 
         await self._ensure_index(db, 'user_bookmarks_cache', [("user_id", 1)], unique=True)
-        await self._ensure_ttl_index(db, 'user_bookmarks_cache', self.conf.pixiv_user_bookmarks_cache_expires_in)
+        await self._ensure_ttl_index(db, 'user_bookmarks_cache', self.conf.pixiv_user_bookmarks_cache_delete_in)
 
         await self._ensure_index(db, 'related_illusts_cache', [("original_illust_id", 1)], unique=True)
         await self._ensure_ttl_index(db, 'related_illusts_cache', self.conf.pixiv_related_illusts_cache_expires_in)
