@@ -27,7 +27,7 @@ def auto_retry(func):
             try:
                 return await func(*args, **kwargs)
             except Exception as e:
-                logger.info(f"Retrying... {t + 1}/10")
+                logger.debug(f"Retrying... {t + 1}/10")
                 logger.exception(e)
                 err = e
 
@@ -88,8 +88,8 @@ class RemotePixivRepo(AbstractPixivRepo):
 
             logger.success(
                 f"refresh access token successfully. new token expires in {result.expires_in} seconds.")
-            logger.info(f"access_token: {result.access_token}")
-            logger.info(f"refresh_token: {result.refresh_token}")
+            logger.debug(f"access_token: {result.access_token}")
+            logger.debug(f"refresh_token: {result.refresh_token}")
 
             # maybe the refresh token will be changed (even thought i haven't seen it yet)
             if result.refresh_token != self.refresh_token:
@@ -269,11 +269,11 @@ class RemotePixivRepo(AbstractPixivRepo):
                     else:
                         yield LazyIllust(item.id, item)
         finally:
-            logger.info(f"[remote] {total} got, illust_detail of {broken} are missed")
+            logger.debug(f"[remote] {total} got, illust_detail of {broken} are missed")
 
     @auto_retry
     async def illust_detail(self, illust_id: int) -> Illust:
-        logger.info(f"[remote] illust_detail {illust_id}")
+        logger.debug(f"[remote] illust_detail {illust_id}")
 
         raw_result = await self._papi.illust_detail(illust_id)
         self._check_error_in_raw_result(raw_result)
@@ -286,14 +286,14 @@ class RemotePixivRepo(AbstractPixivRepo):
 
     @auto_retry
     async def user_detail(self, user_id: int) -> User:
-        logger.info(f"[remote] user_detail {user_id}")
+        logger.debug(f"[remote] user_detail {user_id}")
 
         raw_result = await self._papi.user_detail(user_id)
         self._check_error_in_raw_result(raw_result)
         return User.parse_obj(raw_result["user"])
 
     async def search_illust(self, word: str) -> AsyncGenerator[LazyIllust, None]:
-        logger.info(f"[remote] search_illust {word}")
+        logger.debug(f"[remote] search_illust {word}")
         async for x in self._get_illusts(self._papi.search_illust,
                                          block_tags=self._conf.pixiv_block_tags,
                                          min_bookmark=self._conf.pixiv_random_illust_min_bookmark,
@@ -304,7 +304,7 @@ class RemotePixivRepo(AbstractPixivRepo):
             yield x
 
     async def search_user(self, word: str) -> AsyncGenerator[User, None]:
-        logger.info(f"[remote] search_user {word}")
+        logger.debug(f"[remote] search_user {word}")
         async for page in self._load_page(self._papi.search_user, "user_previews",
                                           mapper=lambda x: User.parse_obj(x["user"]),
                                           limit_page=1,
@@ -313,7 +313,7 @@ class RemotePixivRepo(AbstractPixivRepo):
                 yield item
 
     async def user_illusts(self, user_id: int) -> AsyncGenerator[LazyIllust, None]:
-        logger.info(f"[remote] user_illusts {user_id}")
+        logger.debug(f"[remote] user_illusts {user_id}")
         async for x in self._get_illusts(self._papi.user_illusts,
                                          block_tags=self._conf.pixiv_block_tags,
                                          min_bookmark=self._conf.pixiv_random_user_illust_min_bookmark,
@@ -327,7 +327,7 @@ class RemotePixivRepo(AbstractPixivRepo):
         if user_id == 0:
             user_id = self.user_id
 
-        logger.info(f"[remote] user_bookmarks {user_id}")
+        logger.debug(f"[remote] user_bookmarks {user_id}")
         async for x in self._get_illusts(self._papi.user_bookmarks_illust,
                                          block_tags=self._conf.pixiv_block_tags,
                                          min_bookmark=self._conf.pixiv_random_bookmark_min_bookmark,
@@ -338,7 +338,7 @@ class RemotePixivRepo(AbstractPixivRepo):
             yield x
 
     async def recommended_illusts(self) -> AsyncGenerator[LazyIllust, None]:
-        logger.info(f"[remote] recommended_illusts")
+        logger.debug(f"[remote] recommended_illusts")
         async for x in self._get_illusts(self._papi.illust_recommended,
                                          block_tags=self._conf.pixiv_block_tags,
                                          min_bookmark=self._conf.pixiv_random_recommended_illust_min_bookmark,
@@ -348,7 +348,7 @@ class RemotePixivRepo(AbstractPixivRepo):
             yield x
 
     async def related_illusts(self, illust_id: int) -> AsyncGenerator[LazyIllust, None]:
-        logger.info(f"[remote] related_illusts {illust_id}")
+        logger.debug(f"[remote] related_illusts {illust_id}")
         async for x in self._get_illusts(self._papi.illust_related,
                                          block_tags=self._conf.pixiv_block_tags,
                                          min_bookmark=self._conf.pixiv_random_related_illust_min_bookmark,
@@ -362,7 +362,7 @@ class RemotePixivRepo(AbstractPixivRepo):
         if not range:
             range = 1, self._conf.pixiv_ranking_fetch_item
 
-        logger.info(f"[remote] illust_ranking {mode} {range}")
+        logger.debug(f"[remote] illust_ranking {mode} {range}")
         return [x async for x in self._get_illusts(self._papi.illust_ranking,
                                                    block_tags=self._conf.pixiv_block_tags,
                                                    skip=range[0] - 1,
@@ -371,7 +371,7 @@ class RemotePixivRepo(AbstractPixivRepo):
 
     @auto_retry
     async def image(self, illust: Illust) -> bytes:
-        logger.info(f"[remote] image {illust.id}")
+        logger.debug(f"[remote] image {illust.id}")
         download_quantity = self._conf.pixiv_download_quantity
         custom_domain = self._conf.pixiv_download_custom_domain
 

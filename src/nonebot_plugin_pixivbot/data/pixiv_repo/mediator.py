@@ -17,8 +17,7 @@ class Mediator:
                     remote_fetcher: Callable[[], Union[T, Awaitable[T]]],
                     cache_updater: Callable[[T], Coroutine[None, None, NoReturn]],
                     hook_on_cache: Optional[Callable[[T], T]] = None,
-                    hook_on_fetch: Optional[Callable[[T], T]] = None,
-                    timeout: Optional[int] = 0) -> T:
+                    hook_on_fetch: Optional[Callable[[T], T]] = None) -> T:
         try:
             cache = cache_loader()
             if isawaitable(cache):
@@ -32,7 +31,7 @@ class Mediator:
             fut = Future()
             self._waiting[identifier] = fut
             try:
-                create_task(self._fetch(fut, remote_fetcher, cache_updater, timeout))
+                create_task(self._fetch(fut, remote_fetcher, cache_updater))
                 result = await fut
                 if hook_on_fetch:
                     result = hook_on_fetch(result)
@@ -86,13 +85,12 @@ class Mediator:
 
     async def _fetch(self, fut: Future,
                      remote_fetcher: Callable[[], Union[T, Awaitable[T]]],
-                     cache_updater: Callable[[T], Awaitable[NoReturn]],
-                     timeout: Optional[float] = None):
+                     cache_updater: Callable[[T], Awaitable[NoReturn]]):
         await self._semaphore.acquire()
         try:
             result = remote_fetcher()
             if isawaitable(result):
-                result = await wait_for(result, timeout)
+                result = await result
 
             await cache_updater(result)
             fut.set_result(result)
