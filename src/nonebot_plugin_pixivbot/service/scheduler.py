@@ -60,7 +60,8 @@ class Scheduler:
                 start_hour, start_minute = 0, 0
                 interval_hour, interval_minute = int(g[0]), int(g[1])
             else:
-                mat = re.fullmatch(r'(\d+):(\d+)\+(\d+):(\d+)\*x', raw_schedule)
+                mat = re.fullmatch(
+                    r'(\d+):(\d+)\+(\d+):(\d+)\*x', raw_schedule)
                 if mat is not None:
                     g = mat.groups()
                     start_hour, start_minute = int(g[0]), int(g[1])
@@ -88,16 +89,20 @@ class Scheduler:
             RandomUserIllustHandler.type(): context.require(RandomUserIllustHandler),
         }
 
+    async def _on_trigger(self, sub: Subscription[UID, GID], post_dest: PostDestination[UID, GID], silently: bool):
+        job_id = self._make_job_id(sub.type, sub.identifier)
+        logger.info(f"triggered {job_id}")
+        await self._handlers[sub.type].handle(post_dest=post_dest, silently=silently, **sub.kwargs)
+
     def _add_job(self, post_dest: PostDestination[UID, GID], sub: Subscription[UID, GID]):
         offset_hour, offset_minute, hours, minutes = sub.schedule
         trigger = IntervalTrigger(hours=hours, minutes=minutes,
                                   start_date=datetime.now().replace(hour=offset_hour, minute=offset_minute,
                                                                     second=0, microsecond=0) + timedelta(days=-1))
 
-        identifier = sub.identifier
-        job_id = self._make_job_id(sub.type, identifier)
-        self.apscheduler.add_job(self._handlers[sub.type].handle, id=job_id, trigger=trigger,
-                                 kwargs={"post_dest": post_dest, "silently": True, **sub.kwargs})
+        job_id = self._make_job_id(sub.type, sub.identifier)
+        self.apscheduler.add_job(self._on_trigger, id=job_id, trigger=trigger,
+                                 kwargs={"sub": sub, "post_dest": post_dest, "silently": True})
         logger.success(f"scheduled {job_id} {trigger}")
 
     def _remove_job(self, type: str, identifier: ID):
@@ -108,7 +113,8 @@ class Scheduler:
     async def on_bot_connect(self, bot: Bot):
         adapter = get_adapter_name(bot)
         async for sub in self.repo.get_all(adapter):
-            post_dest = self.pd_factory_mgr.build(bot, sub.user_id, sub.group_id)
+            post_dest = self.pd_factory_mgr.build(
+                bot, sub.user_id, sub.group_id)
             self._add_job(post_dest, sub)
 
     async def on_bot_disconnect(self, bot: Bot):
