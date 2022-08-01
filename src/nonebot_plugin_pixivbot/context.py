@@ -121,14 +121,11 @@ class Context:
 
     def inject(self, cls: Type[T]):
         old_getattr = getattr(cls, "__getattr__", None)
-        if getattr(old_getattr, "is_injector", False):  # to deal with class inheritance
-            old_getattr = None
 
         def __getattr__(obj: T, name: str):
-            for c in cls.mro():
-                ann = inspect.get_annotations(c, eval_str=True)
-                if name in ann and ann[name] in self:
-                    return self[ann[name]]
+            ann = inspect.get_annotations(cls, eval_str=True)
+            if name in ann and ann[name] in self:
+                return self[ann[name]]
 
             if old_getattr:
                 return old_getattr(obj, name)
@@ -138,7 +135,6 @@ class Context:
                     if c_getattr:
                         return c_getattr(obj, name)
 
-        setattr(__getattr__, "is_injector", True)
         setattr(cls, "__getattr__", __getattr__)
         return cls
 

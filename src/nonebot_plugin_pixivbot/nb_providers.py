@@ -6,6 +6,7 @@ from nonebot_plugin_pixivbot.context import Context
 
 
 def asyncio_scheduler_provider(context: Context):
+    # 改成register_lazy以后Scheduler不工作，不懂为啥
     context.register(AsyncIOScheduler, require("nonebot_plugin_apscheduler").scheduler)
 
 
