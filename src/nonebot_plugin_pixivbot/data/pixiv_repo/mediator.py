@@ -1,4 +1,4 @@
-from asyncio import Future
+from asyncio import shield, Future
 from inspect import isawaitable
 from typing import TypeVar, NoReturn, Optional, Any, Callable, Union, Awaitable, AsyncGenerator, List, Coroutine
 
@@ -40,7 +40,7 @@ class Mediator:
                 if isawaitable(result):
                     result = await result
 
-                await cache_updater(result)
+                await shield(cache_updater(result))
 
                 if hook_on_fetch:
                     result = hook_on_fetch(result)
@@ -82,7 +82,7 @@ class Mediator:
                                 logger.debug("[mediator] remaining data is still collecting "
                                              "despite the generator exited")
 
-                    await cache_updater(result)
+                    await shield(cache_updater(result))
                     fut.set_result(result)
                 except Exception as e:
                     fut.set_exception(e)
@@ -107,7 +107,7 @@ class Mediator:
                     buffer.append(illust)
                     if len(buffer) >= 20:
                         exists = await cache_checker(buffer)
-                        await cache_appender(buffer)
+                        await shield(cache_appender(buffer))
 
                         if exists:
                             break
@@ -115,7 +115,7 @@ class Mediator:
                         buffer = []
                 else:
                     if len(buffer) > 0:
-                        await cache_appender(buffer)
+                        await shield(cache_appender(buffer))
                 fut.set_result(1)
             except Exception as e:
                 fut.set_exception(e)
