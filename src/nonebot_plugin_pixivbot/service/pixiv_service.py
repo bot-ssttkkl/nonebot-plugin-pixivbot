@@ -54,11 +54,9 @@ class PixivService:
 
     async def get_user(self, user: Union[str, int]) -> User:
         if isinstance(user, str):
-            users = [x async for x in self.repo.search_user(user)]
-            if len(users) == 0:
-                raise QueryError("未找到用户")
-            else:
-                return users[0]
+            async for x in self.repo.search_user(user):
+                return x
+            raise QueryError("未找到用户")
         else:
             return await self.repo.user_detail(user)
 

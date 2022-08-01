@@ -13,7 +13,6 @@ from .local_repo import LocalPixivRepo
 from .mediator import Mediator
 from .pkg_context import context
 from .remote_repo import RemotePixivRepo
-from ...utils.lifecycler import on_startup, on_shutdown
 
 
 def do_skip_and_limit(items: list, skip: int, limit: int) -> list:
@@ -99,14 +98,18 @@ class PixivRepo(AbstractPixivRepo):
         else:
             cache_expired = True
 
-        async for x in self._mediator.mixin_append_async_generator(
+        if cache_expired:
+            gen = self._mediator.mixin_append_async_generator(
                 identifier=(USER_ILLUSTS, user_id),
-                cache_expired=cache_expired,
                 cache_loader=partial(self.cache.user_illusts, user_id=user_id),
                 remote_fetcher=partial(self.remote.user_illusts, user_id=user_id),
                 cache_checker=lambda content: self.cache.user_illusts_exists(user_id, [x.id for x in content]),
-                cache_updater=lambda content: self.cache.update_user_illusts(user_id, content, True),
-        ):
+                cache_appender=lambda content: self.cache.update_user_illusts(user_id, content, True),
+            )
+        else:
+            gen = self.cache.user_illusts(user_id)
+
+        async for x in gen:
             yield x
 
     async def user_bookmarks(self, user_id: int = 0) -> AsyncGenerator[LazyIllust, None]:
@@ -119,14 +122,18 @@ class PixivRepo(AbstractPixivRepo):
         else:
             cache_expired = True
 
-        async for x in self._mediator.mixin_append_async_generator(
+        if cache_expired:
+            gen = self._mediator.mixin_append_async_generator(
                 identifier=(RECOMMENDED_ILLUSTS,),
-                cache_expired=cache_expired,
                 cache_loader=partial(self.cache.user_bookmarks, user_id=user_id),
                 remote_fetcher=partial(self.remote.user_bookmarks, user_id=user_id),
                 cache_checker=lambda content: self.cache.user_bookmarks_exists(user_id, [x.id for x in content]),
-                cache_updater=lambda content: self.cache.update_user_bookmarks(user_id, content, True),
-        ):
+                cache_appender=lambda content: self.cache.update_user_bookmarks(user_id, content, True),
+            )
+        else:
+            gen = self.cache.user_bookmarks(user_id)
+
+        async for x in gen:
             yield x
 
     def recommended_illusts(self) -> AsyncGenerator[LazyIllust, None]:
