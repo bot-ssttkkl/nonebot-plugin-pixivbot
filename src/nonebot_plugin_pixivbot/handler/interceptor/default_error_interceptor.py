@@ -1,3 +1,4 @@
+import asyncio
 from typing import Callable, TypeVar
 
 from nonebot import logger
@@ -27,7 +28,7 @@ class DefaultErrorInterceptor(Interceptor):
                         **kwargs):
         try:
             await wrapped_func(post_dest=post_dest, silently=silently, **kwargs)
-        except TimeoutError:
+        except asyncio.TimeoutError:
             logger.warning("Timeout")
             if not silently:
                 await self.post_plain_text(f"下载超时", post_dest=post_dest)

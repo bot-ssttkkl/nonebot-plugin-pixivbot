@@ -1,3 +1,4 @@
+import asyncio
 from asyncio import sleep, create_task, CancelledError, Semaphore, Task
 from functools import wraps
 from io import BytesIO
@@ -26,6 +27,8 @@ def auto_retry(func):
         for t in range(10):
             try:
                 return await func(*args, **kwargs)
+            except CancelledError as e:
+                raise e
             except Exception as e:
                 logger.debug(f"Retrying... {t + 1}/10")
                 logger.exception(e)
@@ -40,7 +43,7 @@ T = TypeVar("T")
 
 
 @context.inject
-@context.register_singleton()
+@context.register_eager_singleton()
 class RemotePixivRepo(AbstractPixivRepo):
     _conf: Config
     _local_tags: LocalTagRepo
