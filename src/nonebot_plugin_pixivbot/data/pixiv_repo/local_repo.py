@@ -1,5 +1,5 @@
-from datetime import datetime
-from typing import Optional, List, Any, Union, Tuple, AsyncGenerator, Sequence
+from datetime import datetime, timedelta
+from typing import Optional, List, Union, Tuple, AsyncGenerator, Sequence
 
 import bson
 from nonebot import logger
@@ -7,26 +7,48 @@ from pymongo import UpdateOne
 
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User
-from .abstract_repo import AbstractPixivRepo, NoSuchItemError
+from .abstract_repo import AbstractPixivRepo
 from .lazy_illust import LazyIllust
 from .pkg_context import context
 from ..source import MongoDataSource
+from ...config import Config
+
+
+class LocalPixivRepoError(RuntimeError):
+    pass
+
+
+class NoSuchItemError(LocalPixivRepoError):
+    pass
+
+
+class CacheExpiredError(LocalPixivRepoError):
+    pass
+
+
+def is_expired(update_time: datetime, expired_in: int):
+    return datetime.now() - update_time >= timedelta(expired_in)
 
 
 @context.inject
 @context.register_singleton()
 class LocalPixivRepo(AbstractPixivRepo):
+    conf: Config
     mongo: MongoDataSource
 
-    async def _illusts_agen(self, collection_name: str, arg_name: str, arg: Any,
+    async def _illusts_agen(self, collection_name: str,
+                            query: dict,
+                            expired_in: int,
                             *, skip: int = 0, limit: int = 0) -> AsyncGenerator[LazyIllust, None]:
-        exists = await self.mongo.db[collection_name].count_documents({arg_name: arg})
-        if not exists:
+        update_time_result = await self.mongo.db[collection_name].find_one(query, {"update_time": 1})
+        if not update_time_result:
             raise NoSuchItemError()
+        elif is_expired(update_time_result["update_time"], expired_in):
+            raise CacheExpiredError()
 
         aggregation = [
             {
-                "$match": {arg_name: arg}
+                "$match": query
             },
             {
                 "$replaceWith": {"illust_id": "$illust_id"}
@@ -97,14 +119,13 @@ class LocalPixivRepo(AbstractPixivRepo):
                 return exists != 0
 
     async def _update_illusts(self, collection_name: str,
-                              arg_name: str,
-                              arg: Any,
+                              query: dict,
                               content: List[Union[Illust, LazyIllust]],
                               append: bool = False):
         now = datetime.now()
         if append:
             await self.mongo.db[collection_name].update_one(
-                {arg_name: arg},
+                query,
                 {
                     "$set": {
                         "update_time": now
@@ -119,7 +140,7 @@ class LocalPixivRepo(AbstractPixivRepo):
             )
         else:
             await self.mongo.db[collection_name].update_one(
-                {arg_name: arg},
+                query,
                 {
                     "$set": {
                         "illust_id": [illust.id for illust in content],
@@ -152,6 +173,8 @@ class LocalPixivRepo(AbstractPixivRepo):
         cache = await self.mongo.db.illust_detail_cache.find_one({"illust.id": illust_id})
         if cache is not None:
             return Illust.parse_obj(cache["illust"])
+        elif is_expired(cache["update_time"], self.conf.pixiv_illust_detail_cache_expires_in):
+            raise CacheExpiredError()
         else:
             raise NoSuchItemError()
 
@@ -172,6 +195,8 @@ class LocalPixivRepo(AbstractPixivRepo):
         cache = await self.mongo.db.user_detail_cache.find_one({"user.id": user_id})
         if cache is not None:
             return User.parse_obj(cache["user"])
+        elif is_expired(cache["update_time"], self.conf.pixiv_user_detail_cache_expires_in):
+            raise CacheExpiredError()
         else:
             raise NoSuchItemError()
 
@@ -189,20 +214,23 @@ class LocalPixivRepo(AbstractPixivRepo):
     # ================ search_illust ================
     async def search_illust(self, word: str) -> AsyncGenerator[LazyIllust, None]:
         logger.debug(f"[local] search_illust {word}")
-        async for x in self._illusts_agen("search_illust_cache", "word", word):
+        async for x in self._illusts_agen("search_illust_cache", {"word": word},
+                                          self.conf.pixiv_search_illust_cache_expires_in):
             yield x
 
     async def update_search_illust(self, word: str, content: List[Union[Illust, LazyIllust]]):
         logger.debug(f"[local] update search_illust {word} ({len(content)} illusts)")
-        await self._update_illusts("search_illust_cache", "word", word, content)
+        await self._update_illusts("search_illust_cache", {"word": word}, content)
 
     # ================ search_user ================
     async def search_user(self, word: str) -> AsyncGenerator[User, None]:
         logger.debug(f"[local] search_user {word}")
 
-        exists = await self.mongo.db.search_user_cache.count_documents({"word": word})
-        if not exists:
+        update_time_result = await self.mongo.db["search_user_cache"].find_one({"word": word}, {"update_time": 1})
+        if not update_time_result:
             raise NoSuchItemError()
+        elif is_expired(update_time_result["update_time"], self.conf.pixiv_search_user_cache_expires_in):
+            raise CacheExpiredError()
 
         aggregation = [
             {
@@ -275,87 +303,75 @@ class LocalPixivRepo(AbstractPixivRepo):
     # ================ user_illusts ================
     async def user_illusts(self, user_id: int) -> AsyncGenerator[LazyIllust, None]:
         logger.debug(f"[local] user_illusts {user_id}")
-        async for x in self._illusts_agen("user_illusts_cache", "user_id", user_id):
+        async for x in self._illusts_agen("user_illusts_cache", {"user_id": user_id},
+                                          self.conf.pixiv_user_illusts_cache_expires_in):
             yield x
 
     async def update_user_illusts(self, user_id: int,
-                                  content: List[Union[Illust, LazyIllust]],
-                                  append: bool = False):
-        if not append:
-            logger.debug(f"[local] update user_illusts {user_id} ({len(content)} illusts)")
-        else:
-            logger.debug(f"[local] append user_illusts {user_id} ({len(content)} illusts)")
-        await self._update_illusts("user_illusts_cache", "user_id", user_id, content, append)
+                                  content: List[Union[Illust, LazyIllust]]):
+        logger.debug(f"[local] update user_illusts {user_id} ({len(content)} illusts)")
+        await self._update_illusts("user_illusts_cache", {"user_id": user_id}, content)
 
-    async def user_illusts_exists(self, user_id: int, illust_id: Union[int, Sequence[int]]) -> bool:
-        return await self._check_illusts_exists("user_illusts_cache", {"user_id": user_id}, illust_id)
-
-    async def user_illusts_update_time(self, user_id: int) -> Optional[datetime]:
-        result = await self.mongo.db.user_illusts_cache.find_one({"user_id": user_id}, {"update_time": 1})
-        if result:
-            update_time = result["update_time"]
-            return update_time
-        else:
-            return None
+    async def append_user_illusts(self, user_id: int,
+                                  content: List[Union[Illust, LazyIllust]]) -> bool:
+        logger.debug(f"[local] append user_illusts {user_id} ({len(content)} illusts)")
+        exists = await self._check_illusts_exists("user_illusts_cache", {"user_id": user_id}, [x.id for x in content])
+        await self._update_illusts("user_illusts_cache", {"user_id": user_id}, content, True)
+        return exists
 
     # ================ user_bookmarks ================
     async def user_bookmarks(self, user_id: int = 0) -> AsyncGenerator[LazyIllust, None]:
         logger.debug(f"[local] user_bookmarks {user_id}")
-        async for x in self._illusts_agen("user_bookmarks_cache", "user_id", user_id):
+        async for x in self._illusts_agen("user_bookmarks_cache", {"user_id": user_id},
+                                          self.conf.pixiv_user_bookmarks_cache_expires_in):
             yield x
 
     async def update_user_bookmarks(self, user_id: int,
-                                    content: List[Union[Illust, LazyIllust]],
-                                    append: bool = False):
-        if not append:
-            logger.debug(f"[local] update user_bookmarks {user_id} ({len(content)} illusts)")
-        else:
-            logger.debug(f"[local] append user_bookmarks {user_id} ({len(content)} illusts)")
-        await self._update_illusts("user_bookmarks_cache", "user_id", user_id, content, append)
+                                    content: List[Union[Illust, LazyIllust]]):
+        logger.debug(f"[local] update user_bookmarks {user_id} ({len(content)} illusts)")
+        await self._update_illusts("user_bookmarks_cache", {"user_id": user_id}, content)
 
-    async def user_bookmarks_exists(self, user_id: int, illust_id: Union[int, Sequence[int]]) -> bool:
-        return await self._check_illusts_exists("user_bookmarks_cache", {"user_id": user_id}, illust_id)
-
-    async def user_bookmarks_update_time(self, user_id: int) -> Optional[datetime]:
-        result = await self.mongo.db.user_bookmarks_cache.find_one({"user_id": user_id}, {"update_time": 1})
-        if result:
-            update_time = result["update_time"]
-            return update_time
-        else:
-            return None
+    async def append_user_bookmarks(self, user_id: int,
+                                    content: List[Union[Illust, LazyIllust]]) -> bool:
+        logger.debug(f"[local] append user_bookmarks {user_id} ({len(content)} illusts)")
+        exists = await self._check_illusts_exists("user_bookmarks_cache", {"user_id": user_id}, [x.id for x in content])
+        await self._update_illusts("user_bookmarks_cache", {"user_id": user_id}, content, True)
+        return exists
 
     # ================ recommended_illusts ================
     async def recommended_illusts(self) -> AsyncGenerator[LazyIllust, None]:
         logger.debug(f"[local] recommended_illusts")
-        async for x in self._illusts_agen("other_cache", "type", "recommended_illusts"):
+        async for x in self._illusts_agen("other_cache", {"type": "recommended_illusts"},
+                                          self.conf.pixiv_other_cache_expires_in):
             yield x
 
     async def update_recommended_illusts(self, content: List[Union[Illust, LazyIllust]]):
         logger.debug(f"[local] update recommended_illusts ({len(content)} illusts)")
-        await self._update_illusts("other_cache", "type", "recommended_illusts", content)
+        await self._update_illusts("other_cache", {"type": "recommended_illusts"}, content)
 
     # ================ related_illusts ================
     async def related_illusts(self, illust_id: int) -> AsyncGenerator[LazyIllust, None]:
         logger.debug(f"[local] related_illusts {illust_id}")
-        async for x in self._illusts_agen("related_illusts_cache", "original_illust_id", illust_id):
+        async for x in self._illusts_agen("related_illusts_cache", {"original_illust_id": illust_id},
+                                          self.conf.pixiv_related_illusts_cache_expires_in):
             yield x
 
     async def update_related_illusts(self, illust_id: int, content: List[Union[Illust, LazyIllust]]):
         logger.debug(f"[local] update related_illusts {illust_id} ({len(content)} illusts)")
-        await self._update_illusts("related_illusts_cache", "original_illust_id", illust_id, content)
+        await self._update_illusts("related_illusts_cache", {"original_illust_id": illust_id}, content)
 
     # ================ illust_ranking ================
     async def illust_ranking(self, mode: RankingMode, range: Optional[Tuple[int, int]]) -> List[LazyIllust]:
         logger.debug(f"[local] illust_ranking {mode} {range[0]}~{range[1]}")
-        gen = self._illusts_agen("other_cache", "type",
-                                 mode.name + "_ranking",
+        gen = self._illusts_agen("other_cache", {"type": mode.name + "_ranking"},
+                                 self.conf.pixiv_illust_ranking_cache_expires_in,
                                  skip=range[0] - 1,
                                  limit=range[1] - range[0] + 1)
         return [x async for x in gen]
 
     async def update_illust_ranking(self, mode: RankingMode, content: List[Union[Illust, LazyIllust]]):
         logger.debug(f"[local] update illust_ranking {mode} ({len(content)} illusts)")
-        await self._update_illusts("other_cache", "type", mode.name + "_ranking", content)
+        await self._update_illusts("other_cache", {"type": mode.name + "_ranking"}, content)
 
     # ================ image ================
     async def image(self, illust: Illust) -> Optional[bytes]:
@@ -363,6 +379,8 @@ class LocalPixivRepo(AbstractPixivRepo):
         cache = await self.mongo.db.download_cache.find_one({"illust_id": illust.id})
         if cache is not None:
             return cache["content"]
+        elif is_expired(cache["update_time"], self.conf.pixiv_download_cache_expires_in):
+            raise CacheExpiredError()
         else:
             raise NoSuchItemError()
 

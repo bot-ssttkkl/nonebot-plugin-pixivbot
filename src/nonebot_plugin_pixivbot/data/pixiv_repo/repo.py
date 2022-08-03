@@ -1,7 +1,6 @@
-from datetime import datetime, timedelta
 from functools import partial
 from inspect import isawaitable
-from typing import List, Tuple, AsyncGenerator, Optional, TypeVar, NoReturn, Callable, Union, Awaitable, Coroutine
+from typing import List, Tuple, AsyncGenerator, Optional, TypeVar, Callable, Union, Awaitable
 
 from nonebot import logger
 
@@ -9,9 +8,9 @@ from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User
 from .abstract_mediator import AbstractMediator
-from .abstract_repo import AbstractPixivRepo, NoSuchItemError
+from .abstract_repo import AbstractPixivRepo
 from .lazy_illust import LazyIllust
-from .local_repo import LocalPixivRepo
+from .local_repo import LocalPixivRepo, CacheExpiredError, NoSuchItemError
 from .pkg_context import context
 from .remote_repo import RemotePixivRepo
 
@@ -42,7 +41,7 @@ async def mixin(cache_loader: Callable[[], Union[T, Awaitable[T]]],
         if hook_on_cache:
             cache = hook_on_cache(cache)
         yield cache
-    except NoSuchItemError:
+    except (CacheExpiredError, NoSuchItemError):
         result = remote_fetcher()
         if isawaitable(result):
             result = await result
@@ -58,36 +57,36 @@ async def mixin_agen(cache_loader: Callable[[], AsyncGenerator[T, None]],
     try:
         async for x in cache_loader():
             yield x
-    except NoSuchItemError:
+    except (CacheExpiredError, NoSuchItemError):
         async for x in remote_fetcher():
             yield x
 
 
-async def mixin_append_agen(cache_expired_checker: Callable[[], Awaitable[bool]],
-                            cache_loader: Callable[[], AsyncGenerator[T, None]],
+async def mixin_append_agen(cache_loader: Callable[[], AsyncGenerator[T, None]],
                             remote_fetcher: Callable[[], AsyncGenerator[T, None]],
-                            cache_checker: Callable[[List[T]], Awaitable[bool]],
-                            cache_appender: Callable[[List[T]], Coroutine[None, None, NoReturn]]) \
+                            cache_appender: Callable[[List[T]], Awaitable[bool]]) \
         -> AsyncGenerator[T, None]:
-    if await cache_expired_checker():
+    try:
+        async for x in cache_loader():
+            yield x
+    except NoSuchItemError:
+        async for x in remote_fetcher():
+            yield x
+    except CacheExpiredError:
         # if cache expired, pick new bookmarks from remote
         buffer = []
         async for illust in remote_fetcher():
             buffer.append(illust)
             if len(buffer) >= 20:
-                exists = await cache_checker(buffer)
-                await cache_appender(buffer)
-
-                if exists:
+                if await cache_appender(buffer):
                     break
-
                 buffer = []
         else:
             if len(buffer) > 0:
                 await cache_appender(buffer)
 
-    async for x in cache_loader():
-        yield x
+        async for x in cache_loader():
+            yield x
 
 
 T_ID = TypeVar("T_ID")
@@ -124,36 +123,18 @@ class PixivMediator(AbstractMediator[T_ID]):
             remote_fetcher=partial(self.remote.search_user, word=word),
         )
 
-    async def user_illusts_cache_expired_checker(self, user_id: int):
-        update_time = await self.local.user_illusts_update_time(user_id)
-        if update_time:
-            return datetime.now() - update_time >= timedelta(seconds=self.conf.pixiv_user_illusts_cache_expires_in)
-        else:
-            return True
-
     def user_illusts_factory(self, user_id: int) -> AsyncGenerator[LazyIllust, None]:
         return mixin_append_agen(
-            cache_expired_checker=partial(self.user_illusts_cache_expired_checker, user_id),
             cache_loader=partial(self.local.user_illusts, user_id=user_id),
             remote_fetcher=partial(self.remote.user_illusts, user_id=user_id),
-            cache_checker=lambda content: self.local.user_illusts_exists(user_id, [x.id for x in content]),
-            cache_appender=lambda content: self.local.update_user_illusts(user_id, content, True),
+            cache_appender=partial(self.local.append_user_illusts, user_id=user_id),
         )
-
-    async def user_bookmarks_cache_expired_checker(self, user_id: int):
-        update_time = await self.local.user_bookmarks_update_time(user_id)
-        if update_time:
-            return datetime.now() - update_time >= timedelta(seconds=self.conf.pixiv_user_bookmarks_cache_expires_in)
-        else:
-            return True
 
     def user_bookmarks_factory(self, user_id: int) -> AsyncGenerator[LazyIllust, None]:
         return mixin_append_agen(
-            cache_expired_checker=partial(self.user_bookmarks_cache_expired_checker, user_id),
             cache_loader=partial(self.local.user_bookmarks, user_id=user_id),
             remote_fetcher=partial(self.remote.user_bookmarks, user_id=user_id),
-            cache_checker=lambda content: self.local.user_bookmarks_exists(user_id, [x.id for x in content]),
-            cache_appender=lambda content: self.local.update_user_bookmarks(user_id, content, True),
+            cache_appender=partial(self.local.append_user_bookmarks, user_id=user_id),
         )
 
     def recommended_illusts_factory(self) -> AsyncGenerator[LazyIllust, None]:
@@ -215,9 +196,11 @@ class PixivMediator(AbstractMediator[T_ID]):
         elif identifier[0] == SEARCH_USER:
             return await self.local.update_search_user(identifier[1], items)
         elif identifier[0] == USER_ILLUSTS:
-            return await self.local.update_user_illusts(identifier[1], items)
+            pass
+            # return await self.local.update_user_illusts(identifier[1], items)
         elif identifier[0] == USER_BOOKMARKS:
-            return await self.local.update_user_bookmarks(identifier[1], items)
+            pass
+            # return await self.local.update_user_bookmarks(identifier[1], items)
         elif identifier[0] == RECOMMENDED_ILLUSTS:
             return await self.local.update_recommended_illusts(items)
         elif identifier[0] == RELATED_ILLUSTS:

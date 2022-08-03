@@ -48,8 +48,4 @@ class AbstractPixivRepo(ABC):
         raise NotImplementedError()
 
 
-class NoSuchItemError(RuntimeError):
-    pass
-
-
-__all__ = ("AbstractPixivRepo", "NoSuchItemError")
+__all__ = ("AbstractPixivRepo", )
