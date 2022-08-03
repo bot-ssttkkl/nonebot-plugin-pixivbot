@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Tuple, AsyncGenerator, List, Optional
+from typing import Tuple, AsyncGenerator, List
 
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User
@@ -40,7 +40,7 @@ class AbstractPixivRepo(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def illust_ranking(self, mode: RankingMode, range: Optional[Tuple[int, int]] = None) -> List[LazyIllust]:
+    async def illust_ranking(self, mode: RankingMode, range: Tuple[int, int]) -> List[LazyIllust]:
         raise NotImplementedError()
 
     @abstractmethod

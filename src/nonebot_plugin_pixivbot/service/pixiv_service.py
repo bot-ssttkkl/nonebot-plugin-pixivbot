@@ -1,3 +1,4 @@
+import asyncio
 from typing import List, Union, Tuple
 
 from nonebot import logger

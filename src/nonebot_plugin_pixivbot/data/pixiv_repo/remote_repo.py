@@ -369,11 +369,8 @@ class RemotePixivRepo(AbstractPixivRepo):
                                          illust_id=illust_id):
             yield x
 
-    async def illust_ranking(self, mode: RankingMode, range: Optional[Tuple[int, int]] = None) -> List[LazyIllust]:
-        if not range:
-            range = 1, self._conf.pixiv_ranking_fetch_item
-
-        logger.debug(f"[remote] illust_ranking {mode} {range}")
+    async def illust_ranking(self, mode: RankingMode, range: Tuple[int, int]) -> List[LazyIllust]:
+        logger.debug(f"[repo] illust_ranking {mode} {range[0]}~{range[1]}")
         return [x async for x in self._get_illusts(self._papi.illust_ranking,
                                                    block_tags=self._conf.pixiv_block_tags,
                                                    skip=range[0] - 1,

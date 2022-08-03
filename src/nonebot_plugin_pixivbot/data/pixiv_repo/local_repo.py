@@ -153,7 +153,7 @@ class LocalPixivRepo(AbstractPixivRepo):
         if cache is not None:
             return Illust.parse_obj(cache["illust"])
         else:
-            return None
+            raise NoSuchItemError()
 
     async def update_illust_detail(self, illust: Illust):
         logger.debug(f"[local] update illust_detail {illust.id}")
@@ -173,7 +173,7 @@ class LocalPixivRepo(AbstractPixivRepo):
         if cache is not None:
             return User.parse_obj(cache["user"])
         else:
-            return None
+            raise NoSuchItemError()
 
     async def update_user_detail(self, user: User):
         logger.debug(f"[local] update user_detail {user.id}")
@@ -345,15 +345,12 @@ class LocalPixivRepo(AbstractPixivRepo):
         await self._update_illusts("related_illusts_cache", "original_illust_id", illust_id, content)
 
     # ================ illust_ranking ================
-    async def illust_ranking(self, mode: RankingMode, range: Optional[Tuple[int, int]] = None) -> List[LazyIllust]:
-        if range:
-            logger.debug(f"[local] illust_ranking {mode} {range[0]}-{range[1]}")
-            gen = self._illusts_agen("other_cache", "type",
-                                     mode.name + "_ranking",
-                                     skip=range[0] - 1,
-                                     limit=range[1] - range[0] + 1)
-        else:
-            raise ValueError("range cannot be None")
+    async def illust_ranking(self, mode: RankingMode, range: Optional[Tuple[int, int]]) -> List[LazyIllust]:
+        logger.debug(f"[local] illust_ranking {mode} {range[0]}~{range[1]}")
+        gen = self._illusts_agen("other_cache", "type",
+                                 mode.name + "_ranking",
+                                 skip=range[0] - 1,
+                                 limit=range[1] - range[0] + 1)
         return [x async for x in gen]
 
     async def update_illust_ranking(self, mode: RankingMode, content: List[Union[Illust, LazyIllust]]):
@@ -367,13 +364,13 @@ class LocalPixivRepo(AbstractPixivRepo):
         if cache is not None:
             return cache["content"]
         else:
-            return None
+            raise NoSuchItemError()
 
-    async def update_image(self, illust: Illust, content: bytes):
-        logger.debug(f"[local] update image {illust.id}")
+    async def update_image(self, illust_id: int, content: bytes):
+        logger.debug(f"[local] update image {illust_id}")
         now = datetime.now()
         await self.mongo.db.download_cache.update_one(
-            {"illust_id": illust.id},
+            {"illust_id": illust_id},
             {"$set": {
                 "content": bson.Binary(content),
                 "update_time": now

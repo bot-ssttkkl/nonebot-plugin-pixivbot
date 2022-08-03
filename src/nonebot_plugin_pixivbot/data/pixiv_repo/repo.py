@@ -1,31 +1,21 @@
 from datetime import datetime, timedelta
 from functools import partial
-from typing import List, Tuple, AsyncGenerator, Optional
+from inspect import isawaitable
+from typing import List, Tuple, AsyncGenerator, Optional, TypeVar, NoReturn, Callable, Union, Awaitable, Coroutine
 
 from nonebot import logger
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User
-from .abstract_repo import AbstractPixivRepo
+from .abstract_mediator import AbstractMediator
+from .abstract_repo import AbstractPixivRepo, NoSuchItemError
 from .lazy_illust import LazyIllust
 from .local_repo import LocalPixivRepo
-from .mediator import Mediator
 from .pkg_context import context
 from .remote_repo import RemotePixivRepo
 
-
-def do_skip_and_limit(items: list, skip: int, limit: int) -> list:
-    if skip:
-        if limit and len(items) > skip + limit:
-            return items[skip:skip + limit]
-        else:
-            return items[skip:]
-    elif limit and len(items) > limit:
-        return items[:limit]
-    else:
-        return items
-
+T = TypeVar("T")
 
 SEARCH_ILLUST = 0
 SEARCH_USER = 1
@@ -39,139 +29,275 @@ RELATED_ILLUSTS = 8
 USER_DETAIL = 9
 
 
+async def mixin(cache_loader: Callable[[], Union[T, Awaitable[T]]],
+                remote_fetcher: Callable[[], Union[T, Awaitable[T]]],
+                hook_on_cache: Optional[Callable[[T], T]] = None,
+                hook_on_fetch: Optional[Callable[[T], T]] = None) \
+        -> AsyncGenerator[T, None]:
+    try:
+        cache = cache_loader()
+        if isawaitable(cache):
+            cache = await cache
+
+        if hook_on_cache:
+            cache = hook_on_cache(cache)
+        yield cache
+    except NoSuchItemError:
+        result = remote_fetcher()
+        if isawaitable(result):
+            result = await result
+
+        if hook_on_fetch:
+            result = hook_on_fetch(result)
+        yield result
+
+
+async def mixin_agen(cache_loader: Callable[[], AsyncGenerator[T, None]],
+                     remote_fetcher: Callable[[], AsyncGenerator[T, None]]) \
+        -> AsyncGenerator[T, None]:
+    try:
+        async for x in cache_loader():
+            yield x
+    except NoSuchItemError:
+        async for x in remote_fetcher():
+            yield x
+
+
+async def mixin_append_agen(cache_expired_checker: Callable[[], Awaitable[bool]],
+                            cache_loader: Callable[[], AsyncGenerator[T, None]],
+                            remote_fetcher: Callable[[], AsyncGenerator[T, None]],
+                            cache_checker: Callable[[List[T]], Awaitable[bool]],
+                            cache_appender: Callable[[List[T]], Coroutine[None, None, NoReturn]]) \
+        -> AsyncGenerator[T, None]:
+    if await cache_expired_checker():
+        # if cache expired, pick new bookmarks from remote
+        buffer = []
+        async for illust in remote_fetcher():
+            buffer.append(illust)
+            if len(buffer) >= 20:
+                exists = await cache_checker(buffer)
+                await cache_appender(buffer)
+
+                if exists:
+                    break
+
+                buffer = []
+        else:
+            if len(buffer) > 0:
+                await cache_appender(buffer)
+
+    async for x in cache_loader():
+        yield x
+
+
+T_ID = TypeVar("T_ID")
+
+
+@context.inject
+@context.register_singleton()
+class PixivMediator(AbstractMediator[T_ID]):
+    conf: Config
+    local: LocalPixivRepo
+    remote: RemotePixivRepo
+
+    def illust_detail_factory(self, illust_id: int) -> AsyncGenerator[Illust, None]:
+        return mixin(
+            cache_loader=partial(self.local.illust_detail, illust_id=illust_id),
+            remote_fetcher=partial(self.remote.illust_detail, illust_id=illust_id)
+        )
+
+    def user_detail_factory(self, user_id: int) -> AsyncGenerator[User, None]:
+        return mixin(
+            cache_loader=partial(self.local.user_detail, user_id=user_id),
+            remote_fetcher=partial(self.remote.user_detail, user_id=user_id)
+        )
+
+    def search_illust_factory(self, word: str) -> AsyncGenerator[LazyIllust, None]:
+        return mixin_agen(
+            cache_loader=partial(self.local.search_illust, word=word),
+            remote_fetcher=partial(self.remote.search_illust, word=word),
+        )
+
+    def search_user_factory(self, word: str) -> AsyncGenerator[User, None]:
+        return mixin_agen(
+            cache_loader=partial(self.local.search_user, word=word),
+            remote_fetcher=partial(self.remote.search_user, word=word),
+        )
+
+    async def user_illusts_cache_expired_checker(self, user_id: int):
+        update_time = await self.local.user_illusts_update_time(user_id)
+        if update_time:
+            return datetime.now() - update_time >= timedelta(seconds=self.conf.pixiv_user_illusts_cache_expires_in)
+        else:
+            return True
+
+    def user_illusts_factory(self, user_id: int) -> AsyncGenerator[LazyIllust, None]:
+        return mixin_append_agen(
+            cache_expired_checker=partial(self.user_illusts_cache_expired_checker, user_id),
+            cache_loader=partial(self.local.user_illusts, user_id=user_id),
+            remote_fetcher=partial(self.remote.user_illusts, user_id=user_id),
+            cache_checker=lambda content: self.local.user_illusts_exists(user_id, [x.id for x in content]),
+            cache_appender=lambda content: self.local.update_user_illusts(user_id, content, True),
+        )
+
+    async def user_bookmarks_cache_expired_checker(self, user_id: int):
+        update_time = await self.local.user_bookmarks_update_time(user_id)
+        if update_time:
+            return datetime.now() - update_time >= timedelta(seconds=self.conf.pixiv_user_bookmarks_cache_expires_in)
+        else:
+            return True
+
+    def user_bookmarks_factory(self, user_id: int) -> AsyncGenerator[LazyIllust, None]:
+        return mixin_append_agen(
+            cache_expired_checker=partial(self.user_bookmarks_cache_expired_checker, user_id),
+            cache_loader=partial(self.local.user_bookmarks, user_id=user_id),
+            remote_fetcher=partial(self.remote.user_bookmarks, user_id=user_id),
+            cache_checker=lambda content: self.local.user_bookmarks_exists(user_id, [x.id for x in content]),
+            cache_appender=lambda content: self.local.update_user_bookmarks(user_id, content, True),
+        )
+
+    def recommended_illusts_factory(self) -> AsyncGenerator[LazyIllust, None]:
+        return mixin_agen(
+            cache_loader=self.local.recommended_illusts,
+            remote_fetcher=self.remote.recommended_illusts
+        )
+
+    def related_illusts_factory(self, illust_id: int) -> AsyncGenerator[LazyIllust, None]:
+        return mixin_agen(
+            cache_loader=partial(self.local.related_illusts, illust_id=illust_id),
+            remote_fetcher=partial(self.remote.related_illusts, illust_id=illust_id),
+        )
+
+    def illust_ranking_factory(self, mode: RankingMode) -> AsyncGenerator[List[LazyIllust], None]:
+        range = 1, self.conf.pixiv_ranking_fetch_item
+        return mixin(
+            cache_loader=partial(self.local.illust_ranking, mode=mode, range=range),
+            remote_fetcher=partial(self.remote.illust_ranking, mode=mode, range=range)
+        )
+
+    def image_factory(self, illust: Illust) -> AsyncGenerator[LazyIllust, None]:
+        return mixin(
+            cache_loader=partial(self.local.image, illust=illust),
+            remote_fetcher=partial(self.remote.image, illust=illust),
+        )
+
+    def agen_factory(self, identifier: T_ID, *args, **kwargs) -> AsyncGenerator[T, None]:
+        if identifier[0] == ILLUST_DETAIL:
+            return self.illust_detail_factory(identifier[1])
+        elif identifier[0] == USER_DETAIL:
+            return self.user_detail_factory(identifier[1])
+        elif identifier[0] == SEARCH_ILLUST:
+            return self.search_illust_factory(identifier[1])
+        elif identifier[0] == SEARCH_USER:
+            return self.search_user_factory(identifier[1])
+        elif identifier[0] == USER_ILLUSTS:
+            return self.user_illusts_factory(identifier[1])
+        elif identifier[0] == USER_BOOKMARKS:
+            return self.user_bookmarks_factory(identifier[1])
+        elif identifier[0] == RECOMMENDED_ILLUSTS:
+            return self.recommended_illusts_factory()
+        elif identifier[0] == RELATED_ILLUSTS:
+            return self.related_illusts_factory(identifier[1])
+        elif identifier[0] == ILLUST_RANKING:
+            return self.illust_ranking_factory(identifier[1])
+        elif identifier[0] == IMAGE:
+            return self.image_factory(kwargs.get("illust", None) or args[0])
+        else:
+            raise ValueError("invalid identifier: " + str(identifier))
+
+    async def on_agen_stop(self, identifier: T_ID, items: List[T]):
+        if identifier[0] == ILLUST_DETAIL:
+            return await self.local.update_illust_detail(items[0])
+        elif identifier[0] == USER_DETAIL:
+            return await self.local.update_user_detail(items[0])
+        elif identifier[0] == SEARCH_ILLUST:
+            return await self.local.update_search_illust(identifier[1], items)
+        elif identifier[0] == SEARCH_USER:
+            return await self.local.update_search_user(identifier[1], items)
+        elif identifier[0] == USER_ILLUSTS:
+            return await self.local.update_user_illusts(identifier[1], items)
+        elif identifier[0] == USER_BOOKMARKS:
+            return await self.local.update_user_bookmarks(identifier[1], items)
+        elif identifier[0] == RECOMMENDED_ILLUSTS:
+            return await self.local.update_recommended_illusts(items)
+        elif identifier[0] == RELATED_ILLUSTS:
+            return await self.local.update_related_illusts(identifier[1], items)
+        elif identifier[0] == ILLUST_RANKING:
+            return await self.local.update_illust_ranking(identifier[1], items[0])
+        elif identifier[0] == IMAGE:
+            return await self.local.update_image(identifier[1], items[0])
+        else:
+            raise ValueError("invalid identifier: " + str(identifier))
+
+
 @context.inject
 @context.root.register_singleton()
 class PixivRepo(AbstractPixivRepo):
-    _conf: Config
-    remote: RemotePixivRepo
-    cache: LocalPixivRepo
-
-    def __init__(self):
-        self._mediator = Mediator()
+    _mediator: PixivMediator
+    _local: LocalPixivRepo
 
     async def invalidate_cache(self):
-        await self.cache.invalidate_cache()
+        await self._local.invalidate_cache()
 
     async def illust_detail(self, illust_id: int) -> Illust:
         logger.info(f"[repo] illust_detail {illust_id}")
-        return await self._mediator.mixin(
-            identifier=(ILLUST_DETAIL, illust_id),
-            cache_loader=partial(self.cache.illust_detail, illust_id=illust_id),
-            remote_fetcher=partial(self.remote.illust_detail, illust_id=illust_id),
-            cache_updater=self.cache.update_illust_detail
-        )
+        with self._mediator.get((ILLUST_DETAIL, illust_id)) as gen:
+            async for x in gen:
+                return x
 
     async def user_detail(self, user_id: int) -> User:
         logger.info(f"[repo] user_detail {user_id}")
-        return await self._mediator.mixin(
-            identifier=(USER_DETAIL, user_id),
-            cache_loader=partial(self.cache.user_detail, user_id=user_id),
-            remote_fetcher=partial(self.remote.user_detail, user_id=user_id),
-            cache_updater=self.cache.update_user_detail
-        )
+        with self._mediator.get((USER_DETAIL, user_id)) as gen:
+            async for x in gen:
+                return x
 
-    def search_illust(self, word: str) -> AsyncGenerator[LazyIllust, None]:
+    async def search_illust(self, word: str) -> AsyncGenerator[LazyIllust, None]:
         logger.info(f"[repo] search_illust {word}")
-        return self._mediator.mixin_async_generator(
-            identifier=(SEARCH_ILLUST, word),
-            cache_loader=partial(self.cache.search_illust, word=word),
-            remote_fetcher=partial(self.remote.search_illust, word=word),
-            cache_updater=lambda content: self.cache.update_search_illust(word, content),
-        )
+        with self._mediator.get((SEARCH_ILLUST, word)) as gen:
+            async for x in gen:
+                yield x
 
-    def search_user(self, word: str) -> AsyncGenerator[User, None]:
+    async def search_user(self, word: str) -> AsyncGenerator[User, None]:
         logger.info(f"[repo] search_user {word}")
-        return self._mediator.mixin_async_generator(
-            identifier=(SEARCH_USER, word),
-            cache_loader=partial(self.cache.search_user, word=word),
-            remote_fetcher=partial(self.remote.search_user, word=word),
-            cache_updater=lambda content: self.cache.update_search_user(word, content),
-        )
+        with self._mediator.get((SEARCH_USER, word)) as gen:
+            async for x in gen:
+                yield x
 
     async def user_illusts(self, user_id: int = 0) -> AsyncGenerator[LazyIllust, None]:
         logger.info(f"[repo] user_illusts {user_id}")
-
-        update_time = await self.cache.user_illusts_update_time(user_id)
-        if update_time:
-            cache_expired = datetime.now() - update_time \
-                            >= timedelta(seconds=self._conf.pixiv_user_illusts_cache_expires_in)
-        else:
-            cache_expired = True
-
-        if cache_expired:
-            gen = self._mediator.mixin_append_async_generator(
-                identifier=(USER_ILLUSTS, user_id),
-                cache_loader=partial(self.cache.user_illusts, user_id=user_id),
-                remote_fetcher=partial(self.remote.user_illusts, user_id=user_id),
-                cache_checker=lambda content: self.cache.user_illusts_exists(user_id, [x.id for x in content]),
-                cache_appender=lambda content: self.cache.update_user_illusts(user_id, content, True),
-            )
-        else:
-            gen = self.cache.user_illusts(user_id)
-
-        async for x in gen:
-            yield x
+        with self._mediator.get((USER_ILLUSTS, user_id)) as gen:
+            async for x in gen:
+                yield x
 
     async def user_bookmarks(self, user_id: int = 0) -> AsyncGenerator[LazyIllust, None]:
         logger.info(f"[repo] user_bookmarks {user_id}")
+        with self._mediator.get((USER_BOOKMARKS, user_id)) as gen:
+            async for x in gen:
+                yield x
 
-        update_time = await self.cache.user_bookmarks_update_time(user_id)
-        if update_time:
-            cache_expired = datetime.now() - update_time >= \
-                            timedelta(seconds=self._conf.pixiv_user_bookmarks_cache_expires_in)
-        else:
-            cache_expired = True
-
-        if cache_expired:
-            gen = self._mediator.mixin_append_async_generator(
-                identifier=(RECOMMENDED_ILLUSTS,),
-                cache_loader=partial(self.cache.user_bookmarks, user_id=user_id),
-                remote_fetcher=partial(self.remote.user_bookmarks, user_id=user_id),
-                cache_checker=lambda content: self.cache.user_bookmarks_exists(user_id, [x.id for x in content]),
-                cache_appender=lambda content: self.cache.update_user_bookmarks(user_id, content, True),
-            )
-        else:
-            gen = self.cache.user_bookmarks(user_id)
-
-        async for x in gen:
-            yield x
-
-    def recommended_illusts(self) -> AsyncGenerator[LazyIllust, None]:
+    async def recommended_illusts(self) -> AsyncGenerator[LazyIllust, None]:
         logger.info(f"[repo] recommended_illusts")
-        return self._mediator.mixin_async_generator(
-            identifier=(RECOMMENDED_ILLUSTS,),
-            cache_loader=self.cache.recommended_illusts,
-            remote_fetcher=self.remote.recommended_illusts,
-            cache_updater=self.cache.update_recommended_illusts,
-        )
+        with self._mediator.get((RECOMMENDED_ILLUSTS,)) as gen:
+            async for x in gen:
+                yield x
 
-    def related_illusts(self, illust_id: int) -> AsyncGenerator[LazyIllust, None]:
+    async def related_illusts(self, illust_id: int) -> AsyncGenerator[LazyIllust, None]:
         logger.info(f"[repo] related_illusts {illust_id}")
-        return self._mediator.mixin_async_generator(
-            identifier=(RELATED_ILLUSTS, illust_id),
-            cache_loader=partial(self.cache.related_illusts, illust_id=illust_id),
-            remote_fetcher=partial(self.remote.related_illusts, illust_id=illust_id),
-            cache_updater=lambda content: self.cache.update_related_illusts(illust_id, content),
-        )
+        with self._mediator.get((RELATED_ILLUSTS, illust_id)) as gen:
+            async for x in gen:
+                yield x
 
-    async def illust_ranking(self, mode: RankingMode, range: Optional[Tuple[int, int]] = None) -> List[LazyIllust]:
-        logger.info(f"[repo] illust_ranking {mode} {range}")
-        return await self._mediator.mixin(
-            identifier=(ILLUST_RANKING, mode),
-            cache_loader=partial(self.cache.illust_ranking, mode=mode, range=range),
-            remote_fetcher=partial(self.remote.illust_ranking, mode=mode),
-            cache_updater=lambda content: self.cache.update_illust_ranking(mode, content),
-            hook_on_fetch=lambda result: do_skip_and_limit(result, range[0] - 1, range[1] - range[0] + 1)
-        )
+    async def illust_ranking(self, mode: RankingMode, range: Tuple[int, int]) -> List[LazyIllust]:
+        logger.info(f"[repo] illust_ranking {mode} {range[0]}~{range[1]}")
+        with self._mediator.get((ILLUST_RANKING, mode)) as gen:
+            async for items in gen:
+                return items[range[0] - 1:range[1]]
 
     async def image(self, illust: Illust) -> bytes:
         logger.info(f"[repo] image {illust.id}")
-        return await self._mediator.mixin(
-            identifier=(IMAGE, illust.id),
-            cache_loader=partial(self.cache.image, illust=illust),
-            remote_fetcher=partial(self.remote.image, illust=illust),
-            cache_updater=lambda content: self.cache.update_image(illust, content)
-        )
+        with self._mediator.get((IMAGE, illust.id), illust) as gen:
+            async for x in gen:
+                return x
 
 
 __all__ = ('PixivRepo',)
