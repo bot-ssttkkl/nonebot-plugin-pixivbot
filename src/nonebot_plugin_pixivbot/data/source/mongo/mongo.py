@@ -6,12 +6,14 @@ from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.data.errors import DataSourceNotReadyError
 from nonebot_plugin_pixivbot.data.source.mongo.migration import MongoMigrationManager
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.utils.lifecycler import on_startup, on_shutdown
+from nonebot_plugin_pixivbot.utils.lifecycler import on_shutdown, on_startup
 
 
-@context.register_singleton()
+@context.inject
+@context.register_eager_singleton()
 class MongoDataSource:
-    conf = context.require(Config)
+    conf: Config
+    mongo_migration_mgr: MongoMigrationManager
     app_db_version = 2
 
     def __init__(self):
@@ -78,7 +80,7 @@ class MongoDataSource:
 
         # migrate
         db_version = await self._get_db_version(db)
-        await context.require(MongoMigrationManager).perform_migration(db, db_version, self.app_db_version)
+        await self.mongo_migration_mgr.perform_migration(db, db_version, self.app_db_version)
         await self._set_db_version(self.app_db_version, db)
 
         # ensure index
@@ -111,10 +113,10 @@ class MongoDataSource:
         await self._ensure_ttl_index(db, 'search_user_cache', self.conf.pixiv_search_user_cache_expires_in)
 
         await self._ensure_index(db, 'user_illusts_cache', [("user_id", 1)], unique=True)
-        await self._ensure_ttl_index(db, 'user_illusts_cache', self.conf.pixiv_user_illusts_cache_expires_in)
+        await self._ensure_ttl_index(db, 'user_illusts_cache', self.conf.pixiv_user_illusts_cache_delete_in)
 
         await self._ensure_index(db, 'user_bookmarks_cache', [("user_id", 1)], unique=True)
-        await self._ensure_ttl_index(db, 'user_bookmarks_cache', self.conf.pixiv_user_bookmarks_cache_expires_in)
+        await self._ensure_ttl_index(db, 'user_bookmarks_cache', self.conf.pixiv_user_bookmarks_cache_delete_in)
 
         await self._ensure_index(db, 'related_illusts_cache', [("original_illust_id", 1)], unique=True)
         await self._ensure_ttl_index(db, 'related_illusts_cache', self.conf.pixiv_related_illusts_cache_expires_in)
@@ -127,7 +129,8 @@ class MongoDataSource:
         logger.success("MongoDataSource Initialization Succeed.")
 
     async def finalize(self):
-        self._client.close()
+        if self._client:
+            self._client.close()
         self._client = None
         self._db = None
 

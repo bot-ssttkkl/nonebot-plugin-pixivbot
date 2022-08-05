@@ -4,6 +4,8 @@ on_startup -> on_bot_connect -> on_bot_disconnect -> on_shutdown
 """
 
 import asyncio
+import threading
+from asyncio import Future
 from inspect import isawaitable
 
 from nonebot import Bot, get_driver, logger

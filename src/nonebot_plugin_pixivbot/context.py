@@ -1,3 +1,4 @@
+import inspect
 from threading import Lock
 from typing import TypeVar, Type, Callable
 
@@ -30,7 +31,7 @@ class Context:
         register a bean
         """
         self._container[key] = bean
-        logger.success(f"registered bean {key}")
+        logger.debug(f"registered bean {key}")
 
     def register_lazy(self, key: Type[T], bean_initializer: Callable[[], T]):
         """
@@ -39,7 +40,7 @@ class Context:
         if key in self._container:
             del self._container[key]
         self._lazy_container[key] = bean_initializer
-        logger.success(f"lazily registered bean {key}")
+        logger.debug(f"lazily registered bean {key}")
 
     def register_singleton(self, *args, **kwargs):
         """
@@ -78,7 +79,7 @@ class Context:
         bind key (usually the implementation class) to src_key (usually the base class)
         """
         self._binding[key] = src_key
-        logger.success(f"bind bean {key} to {src_key}")
+        logger.debug(f"bind bean {key} to {src_key}")
 
     def bind_singleton_to(self, key, *args, **kwargs):
         """
@@ -114,9 +115,28 @@ class Context:
         if key in self._binding or key in self._container or key in self._lazy_container:
             return True
         elif self._parent is not None:
-            return self._parent.contains(key)
+            return self._parent.__contains__(key)
         else:
             return False
+
+    def inject(self, cls: Type[T]):
+        old_getattr = getattr(cls, "__getattr__", None)
+
+        def __getattr__(obj: T, name: str):
+            ann = inspect.get_annotations(cls, eval_str=True)
+            if name in ann and ann[name] in self:
+                return self[ann[name]]
+
+            if old_getattr:
+                return old_getattr(obj, name)
+            else:
+                for c in cls.mro()[1:]:
+                    c_getattr = getattr(c, "__getattr__", None)
+                    if c_getattr:
+                        return c_getattr(obj, name)
+
+        setattr(cls, "__getattr__", __getattr__)
+        return cls
 
 
 __all__ = ("Context",)

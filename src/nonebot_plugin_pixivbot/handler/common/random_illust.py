@@ -22,7 +22,7 @@ class RandomIllustHandler(CommonHandler):
     def enabled(self) -> bool:
         return self.conf.pixiv_random_illust_query_enabled
 
-    def parse_args(self, args: Sequence[Any], post_dest: PostDestination[UID, GID]) -> dict:
+    def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
         return {"word": args[0]}
 
     async def actual_handle(self, *, word: str,

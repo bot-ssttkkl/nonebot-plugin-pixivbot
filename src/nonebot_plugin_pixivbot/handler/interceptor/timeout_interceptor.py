@@ -1,7 +1,8 @@
+from asyncio import wait_for
 from typing import TypeVar, Callable
 
+from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.handler.common.recorder import Recorder, Req
 from nonebot_plugin_pixivbot.handler.interceptor.interceptor import Interceptor
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 
@@ -11,12 +12,15 @@ GID = TypeVar("GID")
 
 @context.inject
 @context.register_singleton()
-class RecordReqInterceptor(Interceptor):
-    recorder: Recorder
+class TimeoutInterceptor(Interceptor):
+    conf: Config
 
     async def intercept(self, wrapped_func: Callable, *,
                         post_dest: PostDestination[UID, GID],
                         silently: bool,
                         **kwargs):
-        await wrapped_func(post_dest=post_dest, silently=silently, **kwargs)
-        self.recorder.record_req(Req(wrapped_func, **kwargs), post_dest.identifier)
+        await wait_for(wrapped_func(post_dest=post_dest, silently=silently, **kwargs),
+                       timeout=self.conf.pixiv_query_timeout)
+
+
+__all__ = ("TimeoutInterceptor",)

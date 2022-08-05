@@ -51,9 +51,10 @@ class Resp:
         self.timestamp = time.time()
 
 
+@context.inject
 @context.register_singleton()
 class Recorder:
-    conf = context.require(Config)
+    conf: Config
 
     def __init__(self, max_req_size: int = 65535,
                  max_resp_size: int = 65535):

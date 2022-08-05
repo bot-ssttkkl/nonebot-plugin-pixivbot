@@ -10,11 +10,10 @@ from .query import Query, register_query
 from .utils import get_count, get_common_query_rule, get_post_dest
 
 
+@context.inject
 @register_query(context)
 class RandomUserIllustQuery(Query):
-    def __init__(self):
-        super().__init__()
-        self.handler = context.require(RandomUserIllustHandler)
+    handler: RandomUserIllustHandler
 
     @lazy
     def matcher(self):

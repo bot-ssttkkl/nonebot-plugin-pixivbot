@@ -10,11 +10,10 @@ from .query import Query, register_query
 from .utils import get_command_rule, get_post_dest
 
 
+@context.inject
 @register_query(context)
 class CommandQuery(Query):
-    def __init__(self):
-        super().__init__()
-        self.handler = context.require(CommandHandler)
+    handler: CommandHandler
 
     @lazy
     def matcher(self):

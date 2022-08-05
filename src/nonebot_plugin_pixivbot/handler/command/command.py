@@ -16,7 +16,7 @@ GID = TypeVar("GID")
 
 class SubCommandHandler(Handler, ABC):
     @abstractmethod
-    def parse_args(self, args: Sequence[Any], post_dest: PostDestination[UID, GID]) -> Union[dict, Awaitable[dict]]:
+    def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> Union[dict, Awaitable[dict]]:
         raise NotImplementedError()
 
     async def handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
@@ -56,15 +56,15 @@ class CommandHandler(EntryHandler):
             if cls not in context:
                 context.register_singleton()(cls)
             self.handlers[type] = cls
-            logger.success(f"registered subcommand {type}")
+            logger.debug(f"registered subcommand {type}")
             return cls
 
         return decorator
 
-    def parse_args(self, args: Sequence[Any], post_dest: PostDestination[UID, GID]) -> dict:
+    def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
         return {"args": args[0]}
 
-    async def actual_handle(self, *, args: Sequence[Any],
+    async def actual_handle(self, *, args: Sequence[str],
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
         logger.debug("args: " + " ".join(map(str, args)))

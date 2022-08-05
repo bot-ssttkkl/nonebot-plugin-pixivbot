@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Callable, TypeVar, Generic, Type, Optional, Iterable
+from typing import Callable, TypeVar, Type, Optional, Iterable
 
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .interceptor import Interceptor
@@ -40,10 +40,10 @@ class CombinedInterceptor(Interceptor):
                 result = self.y.find(interceptor_type)
             return result
 
-    async def actual_intercept(self, wrapped_func: Callable, *,
-                               post_dest: PostDestination[UID, GID],
-                               silently: bool,
-                               **kwargs):
+    async def intercept(self, wrapped_func: Callable, *,
+                        post_dest: PostDestination[UID, GID],
+                        silently: bool,
+                        **kwargs):
         await self.x.intercept(
             partial(self.y.intercept, wrapped_func),
             post_dest=post_dest, silently=silently, **kwargs

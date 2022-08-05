@@ -27,21 +27,23 @@ GID = TypeVar("GID")
 ID = PostIdentifier[UID, GID]
 
 
+@context.inject
 @context.register_eager_singleton()
 class Scheduler:
-    def __init__(self):
-        self.apscheduler = context.require(AsyncIOScheduler)
-        self.subscriptions = context.require(SubscriptionRepo)
+    apscheduler: AsyncIOScheduler
+    repo: SubscriptionRepo
+    pd_factory_mgr: PostDestinationFactoryManager
 
+    def __init__(self):
         on_bot_connect(self.on_bot_connect, replay=True)
         on_bot_disconnect(self.on_bot_disconnect)
 
     @staticmethod
     def _make_job_id(type: str, identifier: ID):
         if identifier.group_id:
-            return f'scheduled {type} {identifier.adapter}:g{identifier.group_id}'
+            return f'{type} {identifier.adapter}:g{identifier.group_id}'
         else:
-            return f'scheduled {type} {identifier.adapter}:u{identifier.user_id}'
+            return f'{type} {identifier.adapter}:u{identifier.user_id}'
 
     @staticmethod
     def _parse_schedule(raw_schedule: str) -> Sequence[int]:
@@ -58,7 +60,8 @@ class Scheduler:
                 start_hour, start_minute = 0, 0
                 interval_hour, interval_minute = int(g[0]), int(g[1])
             else:
-                mat = re.fullmatch(r'(\d+):(\d+)\+(\d+):(\d+)\*x', raw_schedule)
+                mat = re.fullmatch(
+                    r'(\d+):(\d+)\+(\d+):(\d+)\*x', raw_schedule)
                 if mat is not None:
                     g = mat.groups()
                     start_hour, start_minute = int(g[0]), int(g[1])
@@ -86,16 +89,20 @@ class Scheduler:
             RandomUserIllustHandler.type(): context.require(RandomUserIllustHandler),
         }
 
+    async def _on_trigger(self, sub: Subscription[UID, GID], post_dest: PostDestination[UID, GID], silently: bool):
+        job_id = self._make_job_id(sub.type, sub.identifier)
+        logger.info(f"triggered {job_id}")
+        await self._handlers[sub.type].handle(post_dest=post_dest, silently=silently, **sub.kwargs)
+
     def _add_job(self, post_dest: PostDestination[UID, GID], sub: Subscription[UID, GID]):
         offset_hour, offset_minute, hours, minutes = sub.schedule
         trigger = IntervalTrigger(hours=hours, minutes=minutes,
                                   start_date=datetime.now().replace(hour=offset_hour, minute=offset_minute,
                                                                     second=0, microsecond=0) + timedelta(days=-1))
 
-        identifier = sub.identifier
-        job_id = self._make_job_id(sub.type, identifier)
-        self.apscheduler.add_job(self._handlers[sub.type].handle, id=job_id, trigger=trigger,
-                                 kwargs={"post_dest": post_dest, "silently": True, **sub.kwargs})
+        job_id = self._make_job_id(sub.type, sub.identifier)
+        self.apscheduler.add_job(self._on_trigger, id=job_id, trigger=trigger,
+                                 kwargs={"sub": sub, "post_dest": post_dest, "silently": True})
         logger.success(f"scheduled {job_id} {trigger}")
 
     def _remove_job(self, type: str, identifier: ID):
@@ -105,12 +112,13 @@ class Scheduler:
 
     async def on_bot_connect(self, bot: Bot):
         adapter = get_adapter_name(bot)
-        async for sub in self.subscriptions.get_all(adapter):
-            post_dest = context.require(PostDestinationFactoryManager).build(bot, sub.user_id, sub.group_id)
+        async for sub in self.repo.get_all(adapter):
+            post_dest = self.pd_factory_mgr.build(
+                bot, sub.user_id, sub.group_id)
             self._add_job(post_dest, sub)
 
     async def on_bot_disconnect(self, bot: Bot):
-        async for subscription in self.subscriptions.get_all(get_adapter_name(bot)):
+        async for subscription in self.repo.get_all(get_adapter_name(bot)):
             try:
                 self._remove_job(subscription.type, subscription.identifier)
             except Exception as e:
@@ -142,7 +150,7 @@ class Scheduler:
                            schedule=schedule,
                            kwargs=kwargs)
 
-        old_sub = await self.subscriptions.update(sub)
+        old_sub = await self.repo.update(sub)
         if old_sub is not None:
             self._remove_job(sub.type, sub.identifier)
         self._add_job(post_dest.normalized(), sub)
@@ -150,17 +158,17 @@ class Scheduler:
     async def unschedule(self, type: str,
                          identifier: PostIdentifier[UID, GID]):
         if type == "all":
-            async for sub in self.subscriptions.get(identifier):
+            async for sub in self.repo.get(identifier):
                 self._remove_job(sub.type, identifier)
         elif type in self._handlers:
             self._remove_job(type, identifier)
         else:
             raise BadRequestError(f"{type}不是合法的类型")
 
-        await self.subscriptions.delete(identifier, type)
+        await self.repo.delete(identifier, type)
 
-    async def all_subscription(self, identifier: PostIdentifier[UID, GID]) -> List[dict]:
-        return [x async for x in self.subscriptions.get(identifier)]
+    async def all_subscription(self, identifier: PostIdentifier[UID, GID]) -> List[Subscription]:
+        return [x async for x in self.repo.get(identifier)]
 
 
 __all__ = ("Scheduler",)

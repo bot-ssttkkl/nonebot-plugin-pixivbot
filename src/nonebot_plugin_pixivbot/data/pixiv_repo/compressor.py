@@ -10,9 +10,10 @@ from nonebot_plugin_pixivbot.config import Config
 from .pkg_context import context
 
 
+@context.inject
 @context.register_singleton()
 class Compressor:
-    _conf: Config = context.require(Config)
+    _conf: Config
 
     def __init__(self) -> None:
         self.enabled = self._conf.pixiv_compression_enabled

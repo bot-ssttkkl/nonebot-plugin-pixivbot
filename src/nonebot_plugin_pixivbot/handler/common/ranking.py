@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Union, TypeVar, Any
+from typing import Optional, Sequence, Union, TypeVar, Any, Tuple
 
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.global_context import context
@@ -28,7 +28,7 @@ class RankingHandler(CommonHandler):
     def enabled(self) -> bool:
         return self.conf.pixiv_ranking_query_enabled
 
-    def validate_range(self, range: Optional[Sequence[int]] = None):
+    def validate_range(self, range: Tuple[int, int] = None):
         if range:
             start, end = range
             if end - start + 1 > self.conf.pixiv_ranking_max_item_per_query:
@@ -40,7 +40,7 @@ class RankingHandler(CommonHandler):
                 raise BadRequestError(
                     f'仅支持查询{self.conf.pixiv_ranking_fetch_item}名以内的插画')
 
-    def parse_args(self, args: Sequence[Any], post_dest: PostDestination[UID, GID]) -> dict:
+    def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
         mode = args[0] if len(args) > 0 else None
         range = args[1] if len(args) > 1 else None
 
@@ -69,8 +69,8 @@ class RankingHandler(CommonHandler):
 
         return {"mode": mode, "range": range}
 
-    async def actual_handle(self, *, mode: Union[str, RankingMode, None] = None,
-                            range: Union[Sequence[int], int, None] = None,
+    async def actual_handle(self, *, mode: Union[RankingMode, None] = None,
+                            range: Union[Tuple[int, int], int, None] = None,
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
         if mode is None:

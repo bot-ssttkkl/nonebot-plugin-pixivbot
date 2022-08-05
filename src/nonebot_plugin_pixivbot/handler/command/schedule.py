@@ -1,4 +1,4 @@
-from typing import List, TypeVar, Sequence, Any
+from typing import List, TypeVar, Sequence
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import GroupAdminInterceptor, \
@@ -13,12 +13,13 @@ UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
+@context.inject
 @context.require(CommandHandler).sub_command("schedule")
 class ScheduleHandler(SubCommandHandler):
+    scheduler: Scheduler
+
     def __init__(self):
         super().__init__()
-        self.scheduler = context.require(Scheduler)
-
         self.add_interceptor(AnyPermissionInterceptor(
             context.require(SuperuserInterceptor),
             context.require(GroupAdminInterceptor)
@@ -31,7 +32,7 @@ class ScheduleHandler(SubCommandHandler):
     def enabled(self) -> bool:
         return True
 
-    def parse_args(self, args: Sequence[Any], post_dest: PostIdentifier[UID, GID]) -> dict:
+    def parse_args(self, args: Sequence[str], post_dest: PostIdentifier[UID, GID]) -> dict:
         return {"type": args[0],
                 "schedule": args[1],
                 "args": args[2:]}
@@ -60,12 +61,13 @@ class ScheduleHandler(SubCommandHandler):
         await self.post_plain_text(message=msg, post_dest=post_dest)
 
 
+@context.inject
 @context.require(CommandHandler).sub_command("unschedule")
 class UnscheduleHandler(SubCommandHandler):
+    scheduler: Scheduler
+
     def __init__(self):
         super().__init__()
-        self.scheduler = context.require(Scheduler)
-
         self.add_interceptor(AnyPermissionInterceptor(
             context.require(SuperuserInterceptor),
             context.require(GroupAdminInterceptor)
@@ -78,7 +80,7 @@ class UnscheduleHandler(SubCommandHandler):
     def enabled(self) -> bool:
         return True
 
-    def parse_args(self, args: Sequence[Any], post_dest: PostIdentifier[UID, GID]) -> dict:
+    def parse_args(self, args: Sequence[str], post_dest: PostIdentifier[UID, GID]) -> dict:
         return {"type": args[0]}
 
     async def actual_handle(self, *, type: str,

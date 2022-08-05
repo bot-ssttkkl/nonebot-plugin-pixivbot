@@ -7,10 +7,10 @@ from .source import MongoDataSource
 UID = TypeVar("UID")
 
 
+@context.inject
 @context.register_singleton()
 class PixivBindingRepo:
-    def __init__(self):
-        self.mongo = context.require(MongoDataSource)
+    mongo: MongoDataSource
 
     async def get(self, adapter: str, user_id: UID) -> Optional[PixivBinding]:
         return await self.mongo.db.pixiv_binding.find_one(

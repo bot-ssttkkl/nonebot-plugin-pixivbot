@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from inspect import isawaitable
-from typing import Awaitable, Union, TypeVar, Sequence, Any
+from typing import Awaitable, Union, TypeVar, Sequence
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
@@ -16,10 +16,12 @@ GID = TypeVar("GID")
 PD = PostDestination[UID, GID]
 
 
+@context.inject
 class Handler(ABC):
+    conf: Config
+    postman_manager: PostmanManager
+
     def __init__(self):
-        self.conf = context.require(Config)
-        self.postman_manager = context.require(PostmanManager)
         self.interceptor = None
 
     async def post_plain_text(self, message: str,
@@ -35,7 +37,7 @@ class Handler(ABC):
     def enabled(self) -> bool:
         raise NotImplementedError()
 
-    def parse_args(self, args: Sequence[Any], post_dest: PD) -> Union[dict, Awaitable[dict]]:
+    def parse_args(self, args: Sequence[str], post_dest: PD) -> Union[dict, Awaitable[dict]]:
         """
         将位置参数转化为命名参数
         :param args: 位置参数sequence
@@ -86,13 +88,3 @@ class Handler(ABC):
                 self.interceptor, interceptor)
         else:
             self.interceptor = interceptor
-
-# class PermissionInterceptorDelegation(PermissionInterceptor, Generic[UID, GID]):
-#     def __init__(self):
-#         self.delegation = None
-#
-#     def has_permission(self, post_dest: PD) -> Union[bool, Awaitable[bool]]:
-#         if self.delegation:
-#             return self.delegation.has_permission(post_dest)
-#         else:
-#             return True

@@ -26,7 +26,9 @@ class Config(BaseSettings):
     pixiv_search_illust_cache_expires_in = 3600 * 24
     pixiv_search_user_cache_expires_in = 3600 * 24
     pixiv_user_illusts_cache_expires_in = 3600 * 24
+    pixiv_user_illusts_cache_delete_in = 3600 * 24 * 30
     pixiv_user_bookmarks_cache_expires_in = 3600 * 24
+    pixiv_user_bookmarks_cache_delete_in = 3600 * 24 * 30
     pixiv_related_illusts_cache_expires_in = 3600 * 24
     pixiv_other_cache_expires_in = 3600 * 6
 
