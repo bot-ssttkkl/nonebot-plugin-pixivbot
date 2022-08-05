@@ -23,6 +23,8 @@ class LoadingInterceptor(Interceptor):
         if not silently:
             task = create_task(self.send_delayed_loading(post_dest))
 
-        await wrapped_func(post_dest=post_dest, silently=silently, **kwargs)
-        if task and not task.done():
-            task.cancel()
+        try:
+            await wrapped_func(post_dest=post_dest, silently=silently, **kwargs)
+        finally:
+            if task and not task.done():
+                task.cancel()
