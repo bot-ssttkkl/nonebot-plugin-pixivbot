@@ -172,9 +172,9 @@ class LocalPixivRepo(AbstractPixivRepo):
         logger.debug(f"[local] illust_detail {illust_id}")
         cache = await self.mongo.db.illust_detail_cache.find_one({"illust.id": illust_id})
         if cache is not None:
+            if is_expired(cache["update_time"], self.conf.pixiv_illust_detail_cache_expires_in):
+                raise CacheExpiredError()
             return Illust.parse_obj(cache["illust"])
-        elif is_expired(cache["update_time"], self.conf.pixiv_illust_detail_cache_expires_in):
-            raise CacheExpiredError()
         else:
             raise NoSuchItemError()
 
@@ -194,9 +194,9 @@ class LocalPixivRepo(AbstractPixivRepo):
         logger.debug(f"[local] user_detail {user_id}")
         cache = await self.mongo.db.user_detail_cache.find_one({"user.id": user_id})
         if cache is not None:
+            if is_expired(cache["update_time"], self.conf.pixiv_user_detail_cache_expires_in):
+                raise CacheExpiredError()
             return User.parse_obj(cache["user"])
-        elif is_expired(cache["update_time"], self.conf.pixiv_user_detail_cache_expires_in):
-            raise CacheExpiredError()
         else:
             raise NoSuchItemError()
 
@@ -378,9 +378,10 @@ class LocalPixivRepo(AbstractPixivRepo):
         logger.debug(f"[local] image {illust.id}")
         cache = await self.mongo.db.download_cache.find_one({"illust_id": illust.id})
         if cache is not None:
-            return cache["content"]
-        elif is_expired(cache["update_time"], self.conf.pixiv_download_cache_expires_in):
-            raise CacheExpiredError()
+            if is_expired(cache["update_time"], self.conf.pixiv_download_cache_expires_in):
+                raise CacheExpiredError()
+            else:
+                return cache["content"]
         else:
             raise NoSuchItemError()
 
