@@ -7,7 +7,7 @@ PixivBot中协议无关的通用部分。
 - [nonebot-plugin-pixivbot-onebot-v11 (Onebot V11)](https://github.com/ssttkkl/nonebot-plugin-pixivbot-onebot-v11)
 - [nonebot-plugin-pixivbot-kook (KOOK / 开黑啦)](https://github.com/ssttkkl/nonebot-plugin-pixivbot-kook)
 
-没有找到需要的协议？欢迎适配
+没有找到需要的协议？欢迎适配。[适配指南](https://github.com/ssttkkl/nonebot-plugin-pixivbot/wiki/%E9%80%82%E9%85%8D%E6%8C%87%E5%8D%97)
 
 ## 环境配置
 
