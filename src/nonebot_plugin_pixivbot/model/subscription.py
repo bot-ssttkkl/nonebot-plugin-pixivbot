@@ -17,8 +17,8 @@ class Subscription(GenericModel, Generic[UID, GID]):
     kwargs: Dict[str, Any]
     schedule: Sequence[int]
 
-    @validator("user_id")
-    def validate(cls, user_id, values, **kwargs):
+    @validator("user_id", allow_reuse=True)
+    def validate(cls, user_id, values):
         group_id = None
         if "group_id" in values:
             group_id = values["group_id"]
