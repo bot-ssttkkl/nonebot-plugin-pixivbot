@@ -1,8 +1,7 @@
 nonebot_plugin_pixivbot
 =====
 
-PixivBot中协议无关的通用部分。
-请使用协议特化版本的插件：
+PixivBot中协议无关的通用部分。请使用协议特化版本的插件：
 
 - [nonebot-plugin-pixivbot-onebot-v11 (Onebot V11)](https://github.com/ssttkkl/nonebot-plugin-pixivbot-onebot-v11)
 - [nonebot-plugin-pixivbot-kook (KOOK / 开黑啦)](https://github.com/ssttkkl/nonebot-plugin-pixivbot-kook)
@@ -15,9 +14,9 @@ PixivBot中协议无关的通用部分。
 
 1. 参考[安装 | NoneBot](https://v2.nonebot.dev/docs/start/installation)安装NoneBot；
 2. 参考[创建项目 | NoneBot](https://v2.nonebot.dev/docs/tutorial/create-project)创建一个Bot实例；
-5. 安装协议特化版本的pixivbot插件；
-6. 安装MongoDB，并创建一个数据库及用户供应用使用；
-7. 在.env.prod中修改配置（参考下方）；
+3. 使用`pip install nonebot-plugin-pixivbot-xxx`安装协议特化版本的插件；
+4. 安装MongoDB，并创建一个数据库及用户供应用使用；
+5. 在.env.prod中修改配置（参考下方）；
 
 ## 配置
 
