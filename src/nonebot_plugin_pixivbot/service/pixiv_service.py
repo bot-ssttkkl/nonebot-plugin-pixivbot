@@ -1,4 +1,3 @@
-import asyncio
 from typing import List, Union, Tuple
 
 from nonebot import logger
@@ -34,11 +33,11 @@ class PixivService:
         return [await x.get() for x in winners]
 
     async def illust_ranking(self, mode: RankingMode, range: Tuple[int, int]) -> List[Illust]:
-        illusts = await self.repo.illust_ranking(mode, range)
-        return [await x.get() for x in illusts]
+        return [await x.get() async for x in self.repo.illust_ranking(mode)[range[0] - 1:range[1]]]
 
     async def illust_detail(self, illust: int) -> Illust:
-        return await self.repo.illust_detail(illust)
+        async for x in self.repo.illust_detail(illust):
+            return x
 
     async def random_illust(self, word: str, *, count: int = 1) -> List[Illust]:
         if self.conf.pixiv_tag_translation_enabled:
@@ -59,7 +58,8 @@ class PixivService:
                 return x
             raise QueryError("未找到用户")
         else:
-            return await self.repo.user_detail(user)
+            async for x in self.repo.user_detail(user):
+                return x
 
     async def random_user_illust(self, user: Union[str, int], *, count: int = 1) -> Tuple[User, List[Illust]]:
         user = await self.get_user(user)
