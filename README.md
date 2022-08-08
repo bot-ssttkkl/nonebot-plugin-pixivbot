@@ -13,10 +13,11 @@ PixivBot中协议无关的通用部分。请使用协议特化版本的插件：
 事前准备：登录pixiv账号并获取refresh_token。（参考：[@ZipFile Pixiv OAuth Flow](https://gist.github.com/ZipFile/c9ebedb224406f4f11845ab700124362)）
 
 1. 参考[安装 | NoneBot](https://v2.nonebot.dev/docs/start/installation)安装NoneBot；
-2. 参考[创建项目 | NoneBot](https://v2.nonebot.dev/docs/tutorial/create-project)创建一个Bot实例；
+2. 参考[创建项目 | NoneBot](https://v2.nonebot.dev/docs/tutorial/create-project)创建一个NoneBot实例；
 3. 使用`pip install nonebot-plugin-pixivbot-xxx`安装协议特化版本的插件；
-4. 安装MongoDB，并创建一个数据库及用户供应用使用；
-5. 在.env.prod中修改配置（参考下方）；
+4. 修改pyproject.toml，启用插件（`plugins = [..., "nonebot_plugin_pixivbot_onebot_xxx"]`）；
+5. 安装MongoDB，并创建一个数据库及用户供应用使用；
+6. 在.env.prod中修改配置（参考下方）；
 
 ## 配置
 
