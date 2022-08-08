@@ -23,7 +23,7 @@ aiohttp-socks = { version = "^0.7.1", optional = true }
 aioreactive = "^0.16.0"
 
 [tool.poetry.dev-dependencies]
-flake8 = "^4.0.1"
+flake8 = "^5.0.4"
 pytest = "^7.1.2"
 twine = "^4.0.1"
 
