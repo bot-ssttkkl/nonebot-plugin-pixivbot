@@ -42,7 +42,8 @@ class Config(BaseSettings):
     pixiv_compression_max_size: Optional[int]
     pixiv_compression_quantity: Optional[float]
 
-    @validator('pixiv_compression_max_size', 'pixiv_compression_quantity')
+    # 不加allow_reuse跑pytest会报错
+    @validator('pixiv_compression_max_size', 'pixiv_compression_quantity', allow_reuse=True)
     def compression_validator(cls, v, values, field: ModelField):
         if values['pixiv_compression_enabled'] and v is None:
             raise ValueError(
@@ -93,7 +94,7 @@ class Config(BaseSettings):
     pixiv_ranking_fetch_item = 150
     pixiv_ranking_max_item_per_query = 10
 
-    @validator('pixiv_ranking_default_range')
+    @validator('pixiv_ranking_default_range', allow_reuse=True)
     def ranking_default_range_validator(cls, v, field: ModelField):
         if len(v) < 2 or v[0] > v[1]:
             raise ValueError(f'illegal {field.name} value: {v}')
