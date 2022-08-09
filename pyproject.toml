@@ -26,6 +26,7 @@ aioreactive = "^0.16.0"
 flake8 = "^5.0.4"
 twine = "^4.0.1"
 nonebug = "^0.2.1"
+pytest-mock = "^3.8.2"
 
 [tool.poetry.extras]
 socks = ["aiohttp-socks"]

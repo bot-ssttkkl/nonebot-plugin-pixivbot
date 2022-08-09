@@ -57,6 +57,9 @@ class SharedAsyncGeneratorContextManager(AbstractContextManager, Generic[T_ITEM]
                     break
 
                 async with self._mutex:
+                    if self._stopped:
+                        break
+
                     try:
                         if cur == self._got:
                             new_data = await self._origin.__anext__()
@@ -82,8 +85,9 @@ class SharedAsyncGeneratorContextManager(AbstractContextManager, Generic[T_ITEM]
         self._consumers -= 1
         self._on_consumers_changed(self, self._consumers)
 
-    def close(self):
-        self._origin.athrow(GeneratorExit)
+    # def close(self):
+    #     self._stopped = True
+    #     self._origin.athrow(GeneratorExit)
 
 
 class SharedAsyncGeneratorManager(ABC, Generic[T_ID]):
