@@ -90,7 +90,7 @@ class SharedAsyncGeneratorContextManager(AbstractContextManager, Generic[T_ITEM]
     #     self._origin.athrow(GeneratorExit)
 
 
-class SharedAsyncGeneratorManager(ABC, Generic[T_ID]):
+class SharedAsyncGeneratorManager(ABC, Generic[T_ID, T_ITEM]):
     def __init__(self):
         self._ctx_mgr = {}
         self._paused_ctx_mgr = ExpiresLruDict(1024)
@@ -151,7 +151,7 @@ class SharedAsyncGeneratorManager(ABC, Generic[T_ID]):
 
 @context.inject
 @context.register_singleton()
-class PixivSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[Tuple[int, Any]]):
+class PixivSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[Tuple[int, Any], Any]):
     conf: Config
     local: LocalPixivRepo
     remote: RemotePixivRepo

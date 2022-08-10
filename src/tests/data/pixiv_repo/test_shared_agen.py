@@ -1,5 +1,7 @@
 from asyncio import sleep, create_task, gather
-from unittest.mock import Mock, MagicMock, AsyncMock, call
+from datetime import datetime, timedelta
+from typing import AsyncGenerator
+from unittest.mock import MagicMock, AsyncMock, call
 
 import pytest
 
@@ -69,4 +71,61 @@ class TestSharedAsyncGeneratorContextManager(MyTest):
         await gather(consumer1, consumer2, consumer3)
 
         ctx_mgr._on_consumers_changed.assert_has_calls(
-            [call(ctx_mgr, 1), call(ctx_mgr, 2), call(ctx_mgr, 1), call(ctx_mgr, 0), call(ctx_mgr, 1), call(ctx_mgr, 0)])
+            [call(ctx_mgr, 1), call(ctx_mgr, 2), call(ctx_mgr, 1), call(ctx_mgr, 0), call(ctx_mgr, 1),
+             call(ctx_mgr, 0)])
+
+
+class TestSharedAsyncGeneratorManager(MyTest):
+    @pytest.fixture
+    def shared_agen_mgr(self):
+        from nonebot_plugin_pixivbot.data.pixiv_repo.shared_agen import SharedAsyncGeneratorManager
+
+        class SharedAsyncGeneratorManagerImpl(SharedAsyncGeneratorManager[int, int]):
+            def agen_factory(self, identifier: int, *args, **kwargs) -> AsyncGenerator[int, None]:
+                async def agen():
+                    cnt = identifier
+                    for i in range(10):
+                        await sleep(0.1)
+                        yield cnt
+                        cnt += 1
+
+                return agen()
+
+        impl = SharedAsyncGeneratorManagerImpl()
+        impl.on_agen_next = AsyncMock()
+        impl.on_agen_stop = AsyncMock()
+        return impl
+
+    def test_get(self, shared_agen_mgr):
+        # except same
+        inst = shared_agen_mgr.get(0)
+        with inst as iter:
+            inst2 = shared_agen_mgr.get(0)
+            with inst2 as iter2:
+                assert inst == inst2
+
+        # prev inst was except to be destroyed
+
+        inst3 = shared_agen_mgr.get(0)
+        assert inst != inst3
+
+    @pytest.mark.asyncio
+    async def test_set_expires_time(self, shared_agen_mgr):
+        inst = shared_agen_mgr.get(0)
+        with inst as iter:
+            await iter.__anext__()
+            await iter.__anext__()
+
+            shared_agen_mgr.set_expires_time(0, datetime.now() + timedelta(seconds=1))
+
+        # prev inst was except to be saved
+
+        inst2 = shared_agen_mgr.get(0)
+        assert inst == inst2
+
+        await sleep(1.5)
+
+        # prev inst was except to be removed
+
+        inst2 = shared_agen_mgr.get(0)
+        assert inst != inst2
