@@ -1,5 +1,6 @@
 from asyncio import sleep
 from datetime import datetime, timedelta
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -15,23 +16,29 @@ class TestExpiresLruDict(MyTest):
 
     @pytest.mark.asyncio
     async def test_expires(self, lru):
-        expires = datetime.now() + timedelta(seconds=3)
+        lru.on_cleanup = MagicMock()
+
+        expires = datetime.now() + timedelta(seconds=1)
         lru.add("hello", "world", expires)
         assert lru["hello"] == "world"
 
-        await sleep(3)
+        await sleep(2)
         assert "hello" not in lru
+        lru.on_cleanup.assert_called_once_with("hello", "world")
 
         expires = datetime.now() + timedelta(seconds=30)
         lru.add("hello", "test", expires)
         assert lru["hello"] == "test"
 
     def test_lru(self, lru):
+        lru.on_cleanup = MagicMock()
+
         expires = datetime.now() + timedelta(seconds=3)
         for i in range(11):
             lru.add(i, i, expires)
 
         assert 0 not in lru
+        lru.on_cleanup.assert_called_once_with(0, 0)
         for i in range(1, 11):
             assert lru[i] == i
 

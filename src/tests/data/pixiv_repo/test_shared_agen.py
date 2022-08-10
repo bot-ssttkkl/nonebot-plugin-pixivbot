@@ -30,12 +30,30 @@ class TestSharedAsyncGeneratorContextManager(MyTest):
         on_stop = AsyncMock()
         on_consumers_changed = MagicMock()
 
-        yield SharedAsyncGeneratorContextManager(
+        return SharedAsyncGeneratorContextManager(
             origin_agen,
             on_each,
             on_stop,
             on_consumers_changed
         )
+
+    @pytest.mark.asyncio
+    async def test_on_each_and_on_stop(self, origin_agen):
+        from nonebot_plugin_pixivbot.data.pixiv_repo.shared_agen import SharedAsyncGeneratorContextManager
+
+        on_each = AsyncMock()
+        on_stop = AsyncMock()
+        on_consumers_changed = MagicMock()
+
+        ctx_mgr = SharedAsyncGeneratorContextManager(
+            origin_agen,
+            on_each,
+            on_stop,
+            on_consumers_changed
+        )
+
+        with ctx_mgr as iter:
+            items = [i async for i in iter]
 
         on_each.assert_has_awaits([call(i) for i in range(10)])
         on_stop.assert_awaited_once_with([i for i in range(10)])
@@ -73,6 +91,20 @@ class TestSharedAsyncGeneratorContextManager(MyTest):
         ctx_mgr._on_consumers_changed.assert_has_calls(
             [call(ctx_mgr, 1), call(ctx_mgr, 2), call(ctx_mgr, 1), call(ctx_mgr, 0), call(ctx_mgr, 1),
              call(ctx_mgr, 0)])
+
+    @pytest.mark.asyncio
+    async def test_close(self, ctx_mgr):
+        with ctx_mgr as iter:
+            await iter.__anext__()
+            await iter.__anext__()
+
+        ctx_mgr.close()
+
+        with ctx_mgr as iter:
+            await iter.__anext__()
+            await iter.__anext__()
+            with pytest.raises(StopAsyncIteration):
+                await iter.__anext__()
 
 
 class TestSharedAsyncGeneratorManager(MyTest):

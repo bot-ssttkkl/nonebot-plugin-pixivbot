@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from asyncio import Lock
+from asyncio import Lock, create_task
 from contextlib import AbstractContextManager
 from datetime import datetime, timedelta
 from functools import partial
@@ -85,15 +85,17 @@ class SharedAsyncGeneratorContextManager(AbstractContextManager, Generic[T_ITEM]
         self._consumers -= 1
         self._on_consumers_changed(self, self._consumers)
 
-    # def close(self):
-    #     self._stopped = True
-    #     self._origin.athrow(GeneratorExit)
+    async def aclose(self):
+        return await self._origin.aclose()
+
+    def close(self):
+        create_task(self.aclose())
 
 
 class SharedAsyncGeneratorManager(ABC, Generic[T_ID, T_ITEM]):
     def __init__(self):
         self._ctx_mgr = {}
-        self._paused_ctx_mgr = ExpiresLruDict(1024)
+        self._paused_ctx_mgr = ExpiresLruDict(1024, SharedAsyncGeneratorManager._cleanup)
         self._expires_time: Dict[T_ID, datetime] = {}
 
     @abstractmethod
@@ -106,6 +108,10 @@ class SharedAsyncGeneratorManager(ABC, Generic[T_ID, T_ITEM]):
     def on_agen_stop(self, identifier: T_ID, items: List[T_ITEM]) -> Union[None, Awaitable[None]]:
         pass
 
+    @staticmethod
+    def _cleanup(identifier: T_ID, ctx_mgr: SharedAsyncGeneratorContextManager[T_ITEM]):
+        ctx_mgr.close()
+
     def on_consumers_changed(self, identifier: T_ID,
                              ctx_mgr: SharedAsyncGeneratorContextManager[T_ITEM],
                              consumers: int):
@@ -115,6 +121,7 @@ class SharedAsyncGeneratorManager(ABC, Generic[T_ID, T_ITEM]):
             self._ctx_mgr[identifier] = ctx_mgr
         elif identifier in self._ctx_mgr and consumers == 0:
             del self._ctx_mgr[identifier]
+            self._cleanup(identifier, ctx_mgr)
             if identifier in self._expires_time:
                 logger.debug(f"[agen_manager] {identifier} paused")
                 self._paused_ctx_mgr.add(identifier, ctx_mgr, self._expires_time[identifier])
