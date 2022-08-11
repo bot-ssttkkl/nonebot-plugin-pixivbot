@@ -12,6 +12,15 @@ from nonebot_plugin_pixivbot.model import Illust
 conf = context.require(Config)
 
 
+async def download_image(illust: Illust):
+    with BytesIO() as bio:
+        repo = context.require(PixivRepo)
+        async for x in repo.image(illust):
+            bio.write(x)
+            break
+        return bio.getvalue()
+
+
 class IllustMessageModel(BaseModel):
     id: int = 0
     title: str = ""
@@ -42,11 +51,7 @@ class IllustMessageModel(BaseModel):
             elif conf.pixiv_block_action == BlockAction.no_reply:
                 return None
         else:
-            with BytesIO() as bio:
-                repo = context.require(PixivRepo)
-                bio.write(await repo.image(illust))
-                model.image = bio.getvalue()
-
+            model.image = await download_image(illust)
         model.title = illust.title
         model.author = f"{illust.user.name} ({illust.user.id})"
         model.create_time = illust.create_date.strftime('%Y-%m-%d %H:%M:%S')

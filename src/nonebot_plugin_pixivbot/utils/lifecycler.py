@@ -31,7 +31,7 @@ _no_bot_connect.set()
 
 def on_startup(func, replay: bool = False):
     if replay and _startup.is_set():
-        logger.debug("replaying on_startup")
+        logger.debug("[lifecycler] replaying on_startup")
         x = func()
         if isawaitable(x):
             asyncio.create_task(x)
@@ -42,7 +42,7 @@ def on_startup(func, replay: bool = False):
 
 def on_bot_connect(func, replay: bool = False):
     if replay:
-        logger.debug("replaying on_bot_connect")
+        logger.debug("[lifecycler] replaying on_bot_connect")
         for bot in _connected_bot:
             x = func(bot)
             if isawaitable(x):
@@ -64,6 +64,7 @@ def on_shutdown(func):
 async def _fire_startup():
     await _mutex.acquire()
     try:
+        logger.info("[lifecycler] on startup")
         cors = [f() for f in _on_startup_callback]
         cors = [x for x in cors if isawaitable(x)]
         if len(cors) > 0:
@@ -78,6 +79,7 @@ async def _fire_bot_connect(bot: Bot):
     await _startup.wait()
     await _mutex.acquire()
     try:
+        logger.info(f"[lifecycler] on bot {bot} connect")
         cors = [f(bot) for f in _on_bot_connect_callback]
         cors = [x for x in cors if isawaitable(x)]
         if len(cors) > 0:
@@ -93,6 +95,7 @@ async def _fire_bot_disconnect(bot: Bot):
     await _startup.wait()
     await _mutex.acquire()
     try:
+        logger.info(f"[lifecycler] on bot {bot} disconnect")
         cors = [f(bot) for f in _on_bot_disconnect_callback]
         cors = [x for x in cors if isawaitable(x)]
         if len(cors) > 0:
@@ -109,6 +112,7 @@ async def _fire_shutdown():
     await _no_bot_connect.wait()
     await _mutex.acquire()
     try:
+        logger.info(f"[lifecycler] on shutdown")
         cors = [f() for f in _on_shutdown_callback]
         cors = [x for x in cors if isawaitable(x)]
         if len(cors) > 0:
