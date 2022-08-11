@@ -64,26 +64,6 @@ class AnyPermissionInterceptor(PermissionInterceptor):
         return False
 
 
-class AllPermissionInterceptor(PermissionInterceptor):
-    def __init__(self, *interceptors: PermissionInterceptor):
-        super().__init__()
-        self.interceptors = list(interceptors)
-
-    def append(self, interceptor: PermissionInterceptor):
-        self.interceptors.append(interceptor)
-
-    async def has_permission(self, post_dest: PostDestination[UID, GID]) -> bool:
-        for inter in self.interceptors:
-            p = inter.has_permission(post_dest)
-            if isawaitable(p):
-                p = await p
-
-            if not p:
-                return False
-
-        return True
-
-
 @context.register_singleton()
 class SuperuserInterceptor(PermissionInterceptor):
     def __init__(self):
