@@ -128,7 +128,8 @@ class TestSharedAsyncGeneratorManager(MyTest):
         impl.on_agen_stop = AsyncMock()
         return impl
 
-    def test_get(self, shared_agen_mgr):
+    @pytest.mark.asyncio
+    async def test_get(self, shared_agen_mgr):
         # except same
         inst = shared_agen_mgr.get(0)
         with inst as iter:
