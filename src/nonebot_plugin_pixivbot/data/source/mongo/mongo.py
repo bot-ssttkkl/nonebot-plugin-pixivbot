@@ -14,7 +14,7 @@ from nonebot_plugin_pixivbot.utils.lifecycler import on_shutdown, on_startup
 class MongoDataSource:
     conf: Config
     mongo_migration_mgr: MongoMigrationManager
-    app_db_version = 2
+    app_db_version = 3
 
     def __init__(self):
         self._client = None
