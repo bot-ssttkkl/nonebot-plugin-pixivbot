@@ -9,7 +9,6 @@ from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.authenticator import AuthenticatorManager
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .interceptor import Interceptor
-from ...protocol_dep.postman import PostmanManager
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -17,12 +16,6 @@ GID = TypeVar("GID")
 
 @context.inject
 class PermissionInterceptor(Interceptor, ABC):
-    postman_mgr: PostmanManager
-
-    async def post_plain_text(self, message: str,
-                              post_dest: PostDestination):
-        await self.postman_mgr.send_plain_text(message, post_dest=post_dest)
-
     @abstractmethod
     def has_permission(self, post_dest: PostDestination[UID, GID]) -> Union[bool, Awaitable[bool]]:
         raise NotImplementedError()
@@ -69,26 +62,6 @@ class AnyPermissionInterceptor(PermissionInterceptor):
                 return True
 
         return False
-
-
-class AllPermissionInterceptor(PermissionInterceptor):
-    def __init__(self, *interceptors: PermissionInterceptor):
-        super().__init__()
-        self.interceptors = list(interceptors)
-
-    def append(self, interceptor: PermissionInterceptor):
-        self.interceptors.append(interceptor)
-
-    async def has_permission(self, post_dest: PostDestination[UID, GID]) -> bool:
-        for inter in self.interceptors:
-            p = inter.has_permission(post_dest)
-            if isawaitable(p):
-                p = await p
-
-            if not p:
-                return False
-
-        return True
 
 
 @context.register_singleton()

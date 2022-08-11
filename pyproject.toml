@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nonebot-plugin-pixivbot"
-version = "1.1.2-post2"
+version = "1.2.0"
 description = "Nonebot Plugin PixivBot"
 authors = ["ssttkkl <huang.wen.long@hotmail.com>"]
 readme = "README.md"
@@ -24,8 +24,9 @@ aioreactive = "^0.16.0"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^5.0.4"
-pytest = "^7.1.2"
 twine = "^4.0.1"
+nonebug = "^0.2.1"
+pytest-mock = "^3.8.2"
 
 [tool.poetry.extras]
 socks = ["aiohttp-socks"]
