@@ -65,7 +65,7 @@ jobs:
         run: |
           poetry run pytest
       #----------------------------------------------
-      #               build & publish
+      #               build & upload
       #----------------------------------------------
       - name: Build package
         run: poetry build
