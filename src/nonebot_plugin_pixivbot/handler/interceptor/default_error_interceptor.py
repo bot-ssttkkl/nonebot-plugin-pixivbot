@@ -7,7 +7,6 @@ from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError, QueryError
 from .interceptor import Interceptor
-from ...protocol_dep.postman import PostmanManager
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -16,11 +15,6 @@ GID = TypeVar("GID")
 @context.inject
 @context.register_singleton()
 class DefaultErrorInterceptor(Interceptor):
-    postman_manager: PostmanManager
-
-    async def post_plain_text(self, message: str,
-                              post_dest: PostDestination):
-        await self.postman_manager.send_plain_text(message, post_dest=post_dest)
 
     async def intercept(self, wrapped_func: Callable, *,
                         post_dest: PostDestination[UID, GID],

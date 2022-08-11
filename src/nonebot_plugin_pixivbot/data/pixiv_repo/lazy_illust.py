@@ -23,7 +23,9 @@ class LazyIllust:
 
     async def get(self):
         if self.content is None:
-            self.content = await self.src.illust_detail(self.id)
+            async for x in self.src.illust_detail(self.id):
+                self.content = x
+                break
         return self.content
 
     @property
