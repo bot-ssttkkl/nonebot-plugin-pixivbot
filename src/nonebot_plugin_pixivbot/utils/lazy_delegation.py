@@ -1,13 +1,9 @@
-from lazy import lazy
-
-
 class LazyDelegation:
     def __init__(self, builder):
+        self.cache = None
         self.builder = builder
 
-    @lazy
-    def by(self):
-        return self.builder()
-
-    def __getattr__(self, item):
-        return self.by.__getattribute__(item)
+    def __getattribute__(self, item):
+        if object.__getattribute__(self, "cache") is None:
+            object.__setattr__(self, "cache", object.__getattribute__(self, "builder")())
+        return getattr(object.__getattribute__(self, "cache"), item)
