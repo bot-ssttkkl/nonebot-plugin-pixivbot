@@ -5,7 +5,6 @@ from typing import Awaitable, Union, TypeVar, Sequence
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
-from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .interceptor.combined_interceptor import CombinedInterceptor
 from .interceptor.interceptor import Interceptor
 from ..protocol_dep.postman import PostmanManager
@@ -54,12 +53,9 @@ class Handler(ABC):
         if not self.enabled():
             return
 
-        try:
-            parsed_kwargs = self.parse_args(args, post_dest)
-            if isawaitable(parsed_kwargs):
-                parsed_kwargs = await parsed_kwargs
-        except Exception as e:
-            raise BadRequestError("参数错误") from e
+        parsed_kwargs = self.parse_args(args, post_dest)
+        if isawaitable(parsed_kwargs):
+            parsed_kwargs = await parsed_kwargs
 
         kwargs = {**kwargs, **parsed_kwargs}
 

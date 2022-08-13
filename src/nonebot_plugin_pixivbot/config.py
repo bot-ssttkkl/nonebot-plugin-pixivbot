@@ -136,6 +136,8 @@ class Config(BaseSettings):
     pixiv_random_bookmark_max_page = 2 ** 31
     pixiv_random_bookmark_max_item = 2 ** 31
 
+    pixiv_watch_interval = 3600 * 2
+
     class Config:
         extra = "ignore"
 

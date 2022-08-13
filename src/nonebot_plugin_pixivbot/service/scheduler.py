@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from inspect import isawaitable
 from typing import TypeVar, Dict, List, Sequence, Union, Optional, TYPE_CHECKING
 
@@ -97,7 +97,7 @@ class Scheduler:
     def _add_job(self, post_dest: PostDestination[UID, GID], sub: Subscription[UID, GID]):
         offset_hour, offset_minute, hours, minutes = sub.schedule
         trigger = IntervalTrigger(hours=hours, minutes=minutes,
-                                  start_date=datetime.now().replace(hour=offset_hour, minute=offset_minute,
+                                  start_date=datetime.now(timezone.utc).replace(hour=offset_hour, minute=offset_minute,
                                                                     second=0, microsecond=0) + timedelta(days=-1))
 
         job_id = self._make_job_id(sub.type, sub.identifier)

@@ -33,6 +33,9 @@ class ScheduleHandler(SubCommandHandler):
         return True
 
     def parse_args(self, args: Sequence[str], post_dest: PostIdentifier[UID, GID]) -> dict:
+        if len(args) < 2:
+            raise BadRequestError()
+        # todo
         return {"type": args[0],
                 "schedule": args[1],
                 "args": args[2:]}
@@ -81,6 +84,8 @@ class UnscheduleHandler(SubCommandHandler):
         return True
 
     def parse_args(self, args: Sequence[str], post_dest: PostIdentifier[UID, GID]) -> dict:
+        if len(args) == 0:
+            raise BadRequestError()
         return {"type": args[0]}
 
     async def actual_handle(self, *, type: str,

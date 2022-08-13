@@ -1,3 +1,4 @@
+from bson import CodecOptions
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from nonebot import logger
 from pymongo.errors import OperationFailure
@@ -76,7 +77,8 @@ class MongoDataSource:
 
     async def initialize(self):
         client = AsyncIOMotorClient(self.conf.pixiv_mongo_conn_url)
-        db = client[self.conf.pixiv_mongo_database_name]
+        options = CodecOptions(tz_aware=True)
+        db = client[self.conf.pixiv_mongo_database_name].with_options(options)
 
         # migrate
         db_version = await self._get_db_version(db)

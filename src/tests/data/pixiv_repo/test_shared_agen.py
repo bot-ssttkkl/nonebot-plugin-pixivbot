@@ -1,5 +1,5 @@
 from asyncio import sleep, create_task, gather
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import AsyncGenerator
 from unittest.mock import MagicMock, AsyncMock, call
 
@@ -24,7 +24,7 @@ class TestSharedAsyncGeneratorContextManager(MyTest):
 
     @pytest.fixture
     def ctx_mgr(self, origin_agen):
-        from nonebot_plugin_pixivbot.data.pixiv_repo.shared_agen import SharedAsyncGeneratorContextManager
+        from nonebot_plugin_pixivbot.data.utils.shared_agen import SharedAsyncGeneratorContextManager
 
         on_each = AsyncMock()
         on_stop = AsyncMock()
@@ -39,7 +39,7 @@ class TestSharedAsyncGeneratorContextManager(MyTest):
 
     @pytest.mark.asyncio
     async def test_on_each_and_on_stop(self, origin_agen):
-        from nonebot_plugin_pixivbot.data.pixiv_repo.shared_agen import SharedAsyncGeneratorContextManager
+        from nonebot_plugin_pixivbot.data.utils.shared_agen import SharedAsyncGeneratorContextManager
 
         on_each = AsyncMock()
         on_stop = AsyncMock()
@@ -65,6 +65,7 @@ class TestSharedAsyncGeneratorContextManager(MyTest):
 
         assert items == [i for i in range(10)]
 
+        # noinspection PyUnresolvedReferences
         ctx_mgr._on_consumers_changed.assert_has_calls([call(ctx_mgr, 1), call(ctx_mgr, 0)])
 
     @pytest.mark.asyncio
@@ -88,6 +89,7 @@ class TestSharedAsyncGeneratorContextManager(MyTest):
 
         await gather(consumer1, consumer2, consumer3)
 
+        # noinspection PyUnresolvedReferences
         ctx_mgr._on_consumers_changed.assert_has_calls(
             [call(ctx_mgr, 1), call(ctx_mgr, 2), call(ctx_mgr, 1), call(ctx_mgr, 0), call(ctx_mgr, 1),
              call(ctx_mgr, 0)])
@@ -110,7 +112,7 @@ class TestSharedAsyncGeneratorContextManager(MyTest):
 class TestSharedAsyncGeneratorManager(MyTest):
     @pytest.fixture
     def shared_agen_mgr(self):
-        from nonebot_plugin_pixivbot.data.pixiv_repo.shared_agen import SharedAsyncGeneratorManager
+        from nonebot_plugin_pixivbot.data.utils.shared_agen import SharedAsyncGeneratorManager
 
         class SharedAsyncGeneratorManagerImpl(SharedAsyncGeneratorManager[int, int]):
             def agen_factory(self, identifier: int, *args, **kwargs) -> AsyncGenerator[int, None]:
@@ -149,7 +151,7 @@ class TestSharedAsyncGeneratorManager(MyTest):
             await iter.__anext__()
             await iter.__anext__()
 
-            shared_agen_mgr.set_expires_time(0, datetime.now() + timedelta(seconds=1))
+            shared_agen_mgr.set_expires_time(0, datetime.now(timezone.utc) + timedelta(seconds=1))
 
         # prev inst was except to be saved
 
@@ -162,3 +164,27 @@ class TestSharedAsyncGeneratorManager(MyTest):
 
         inst2 = shared_agen_mgr.get(0)
         assert inst != inst2
+
+    @pytest.mark.asyncio
+    async def test_invalidate(self, shared_agen_mgr):
+        inst = shared_agen_mgr.get(0)
+        with inst as iter:
+            await iter.__anext__()
+            await iter.__anext__()
+
+            shared_agen_mgr.set_expires_time(0, datetime.now(timezone.utc) + timedelta(seconds=1))
+
+        # prev inst was except to be saved
+
+        inst2 = shared_agen_mgr.get(0)
+        assert inst == inst2
+
+        shared_agen_mgr.invalidate(0)
+
+        # prev inst was except to be removed
+
+        inst2 = shared_agen_mgr.get(0)
+        assert inst != inst2
+
+        # invalidate a non-existing key should not raise
+        shared_agen_mgr.invalidate(114514)

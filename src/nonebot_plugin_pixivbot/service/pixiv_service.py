@@ -29,7 +29,7 @@ class PixivService:
             raise QueryError("别看了，没有的。")
 
         winners = roulette(illusts, random_method, count)
-        logger.info(f"choice {[x.id for x in winners]}")
+        logger.info(f"[pixiv_service] choice {[x.id for x in winners]}")
         return [await x.get() for x in winners]
 
     async def illust_ranking(self, mode: RankingMode, range: Tuple[int, int]) -> List[Illust]:
@@ -46,7 +46,7 @@ class PixivService:
             if not tag:
                 tag = await self.local_tags.get_by_translated_name(word)
                 if tag:
-                    logger.info(f"found translation {word} -> {tag.name}")
+                    logger.info(f"[pixiv_service] found translation {word} -> {tag.name}")
                     word = tag.name
 
         illusts = [x async for x in self.repo.search_illust(word)]
@@ -55,6 +55,7 @@ class PixivService:
     async def get_user(self, user: Union[str, int]) -> User:
         if isinstance(user, str):
             async for x in self.repo.search_user(user):
+                logger.info(f"[pixiv_service] select user {x.name}({x.id})")
                 return x
             raise QueryError("未找到用户")
         else:

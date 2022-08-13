@@ -1,3 +1,5 @@
+from enum import Enum
+
 SEARCH_ILLUST = 0
 SEARCH_USER = 1
 USER_ILLUSTS = 2
@@ -8,3 +10,8 @@ ILLUST_DETAIL = 6
 IMAGE = 7
 RELATED_ILLUSTS = 8
 USER_DETAIL = 9
+
+
+class CacheStrategy(Enum):
+    NORMAL = 0
+    FORCE_EXPIRATION = 1

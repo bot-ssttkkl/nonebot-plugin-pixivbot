@@ -17,7 +17,7 @@ class PostDestination(ABC, Generic[UID, GID]):
 
     @property
     @abstractmethod
-    def identifier(self) -> PostIdentifier:
+    def identifier(self) -> PostIdentifier[UID, GID]:
         raise NotImplementedError()
 
     @property
