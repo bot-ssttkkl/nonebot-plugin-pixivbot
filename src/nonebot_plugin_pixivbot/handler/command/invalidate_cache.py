@@ -1,4 +1,4 @@
-from typing import TypeVar, Sequence, Any
+from typing import TypeVar, Sequence
 
 from nonebot_plugin_pixivbot.data.pixiv_repo import PixivRepo
 from nonebot_plugin_pixivbot.global_context import context
@@ -29,6 +29,7 @@ class InvalidateCacheHandler(SubCommandHandler):
     def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
         return {}
 
+    # noinspection PyMethodOverriding
     async def actual_handle(self, *, post_dest: PostDestination[UID, GID],
                             silently: bool = False):
         await self.repo.invalidate_cache()
