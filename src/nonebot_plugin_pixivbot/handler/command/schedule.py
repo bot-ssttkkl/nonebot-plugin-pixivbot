@@ -76,7 +76,7 @@ class ScheduleHandler(SubCommandHandler):
         msg += await build_subscriptions_msg(post_dest.identifier)
         msg += "\n"
         msg += "命令格式：/pixivbot schedule <type> <schedule> <..args>\n"
-        msg += "示例：/pixivbot schedule ranking 06:00*x day 1-5\n"
+        msg += "示例：/pixivbot schedule ranking 06:00*x day 1-5"
         await self.post_plain_text(message=msg, post_dest=post_dest)
 
 
@@ -111,8 +111,10 @@ class UnscheduleHandler(SubCommandHandler):
     async def actual_handle(self, *, type: ScheduleType,
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
-        await self.scheduler.unschedule(type, post_dest.identifier)
-        await self.post_plain_text(message="取消订阅成功", post_dest=post_dest)
+        if await self.scheduler.unschedule(type, post_dest.identifier):
+            await self.post_plain_text(message="取消订阅成功", post_dest=post_dest)
+        else:
+            raise BadRequestError("取消订阅失败，不存在该订阅")
 
     async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
                                         silently: bool = False,

@@ -26,6 +26,37 @@ UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
+def parse_schedule(raw_schedule: str) -> Sequence[int]:
+    start_only_mat = re.fullmatch(r'(\d+):(\d+)', raw_schedule)
+    if start_only_mat is not None:
+        g = start_only_mat.groups()
+        start_hour, start_minute = int(g[0]), int(g[1])
+        interval_hour, interval_minute = 24, 0
+    else:
+        interval_only_mat = re.fullmatch(
+            r'(\d+):(\d+)\*x', raw_schedule)
+        if interval_only_mat is not None:
+            g = interval_only_mat.groups()
+            start_hour, start_minute = 0, 0
+            interval_hour, interval_minute = int(g[0]), int(g[1])
+        else:
+            mat = re.fullmatch(
+                r'(\d+):(\d+)\+(\d+):(\d+)\*x', raw_schedule)
+            if mat is not None:
+                g = mat.groups()
+                start_hour, start_minute = int(g[0]), int(g[1])
+                interval_hour, interval_minute = int(g[2]), int(g[3])
+            else:
+                raise BadRequestError(f'{raw_schedule}不是合法的时间')
+
+    if start_hour < 0 or start_hour >= 24 or start_minute < 0 or start_minute >= 60 \
+            or interval_hour < 0 or interval_minute >= 60 \
+            or (interval_hour > 0 and interval_minute < 0) or (interval_hour == 0 and interval_minute <= 0):
+        raise BadRequestError(f'{raw_schedule}不是合法的时间')
+
+    return start_hour, start_minute, interval_hour, interval_minute
+
+
 @context.inject
 @context.register_eager_singleton()
 class Scheduler:
@@ -40,37 +71,6 @@ class Scheduler:
     @staticmethod
     def _make_job_id(type: ScheduleType, identifier: PostIdentifier[UID, GID]):
         return f'scheduler {type.name} {identifier}'
-
-    @staticmethod
-    def _parse_schedule(raw_schedule: str) -> Sequence[int]:
-        start_only_mat = re.fullmatch(r'(\d+):(\d+)', raw_schedule)
-        if start_only_mat is not None:
-            g = start_only_mat.groups()
-            start_hour, start_minute = int(g[0]), int(g[1])
-            interval_hour, interval_minute = 24, 0
-        else:
-            interval_only_mat = re.fullmatch(
-                r'(\d+):(\d+)\*x', raw_schedule)
-            if interval_only_mat is not None:
-                g = interval_only_mat.groups()
-                start_hour, start_minute = 0, 0
-                interval_hour, interval_minute = int(g[0]), int(g[1])
-            else:
-                mat = re.fullmatch(
-                    r'(\d+):(\d+)\+(\d+):(\d+)\*x', raw_schedule)
-                if mat is not None:
-                    g = mat.groups()
-                    start_hour, start_minute = int(g[0]), int(g[1])
-                    interval_hour, interval_minute = int(g[2]), int(g[3])
-                else:
-                    raise BadRequestError(f'{raw_schedule}不是合法的时间')
-
-        if start_hour < 0 or start_hour >= 24 or start_minute < 0 or start_minute >= 60 \
-                or interval_hour < 0 or interval_minute >= 60 \
-                or (interval_hour > 0 and interval_minute < 0) or (interval_hour == 0 and interval_minute <= 0):
-            raise BadRequestError(f'{raw_schedule}不是合法的时间')
-
-        return start_hour, start_minute, interval_hour, interval_minute
 
     @lazy
     def _handlers(self) -> Dict[ScheduleType, Handler]:
@@ -131,7 +131,7 @@ class Scheduler:
             args = []
 
         if isinstance(schedule, str):
-            schedule = self._parse_schedule(schedule)
+            schedule = parse_schedule(schedule)
 
         kwargs = self._handlers[type].parse_args(args, post_dest)
         if isawaitable(kwargs):
