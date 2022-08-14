@@ -130,7 +130,6 @@ class SharedAsyncGeneratorManager(ABC, Generic[T_ID, T_ITEM]):
             self._paused_ctx_mgr.pop(identifier).close()
         elif identifier in self._ctx_mgr:
             logger.debug(f"[{self.log_tag}] {identifier} was invalidated from running state")
-            self._ctx_mgr.pop(identifier).close()
 
         if identifier in self._expires_time:
             del self._expires_time[identifier]

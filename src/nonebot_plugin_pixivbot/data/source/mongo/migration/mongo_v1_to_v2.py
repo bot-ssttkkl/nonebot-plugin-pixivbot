@@ -32,22 +32,22 @@ class MongoV1ToV2(MongoMigration):
 
     async def migrate_subscription(self, db: AsyncIOMotorDatabase):
         try:
-            await db["pixiv_binding"].drop_index("user_id_1")
+            await db["subscription"].drop_index("user_id_1")
         except:
             pass
 
         try:
-            await db["pixiv_binding"].drop_index("group_id_1")
+            await db["subscription"].drop_index("group_id_1")
         except:
             pass
 
         try:
-            await db["pixiv_binding"].drop_index("type_1_user_id_1")
+            await db["subscription"].drop_index("type_1_user_id_1")
         except:
             pass
 
         try:
-            await db["pixiv_binding"].drop_index("type_1_group_id_1")
+            await db["subscription"].drop_index("type_1_group_id_1")
         except:
             pass
 

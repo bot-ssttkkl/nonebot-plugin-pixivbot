@@ -15,7 +15,7 @@ from nonebot_plugin_pixivbot.utils.lifecycler import on_shutdown, on_startup
 class MongoDataSource:
     conf: Config
     mongo_migration_mgr: MongoMigrationManager
-    app_db_version = 3
+    app_db_version = 4
 
     def __init__(self):
         self._client = None
@@ -90,8 +90,19 @@ class MongoDataSource:
 
         await self._ensure_index(db, 'pixiv_binding', [("adapter", 1), ("user_id", 1)], unique=True)
 
-        await self._ensure_index(db, 'subscription', [("adapter", 1), ("user_id", 1), ("type", 1)])
-        await self._ensure_index(db, 'subscription', [("adapter", 1), ("group_id", 1), ("type", 1)])
+        await self._ensure_index(db, 'subscription', [("subscriber.adapter", 1),
+                                                      ("subscriber.user_id", 1),
+                                                      ("type", 1)])
+        await self._ensure_index(db, 'subscription', [("subscriber.adapter", 1),
+                                                      ("subscriber.group_id", 1),
+                                                      ("type", 1)])
+
+        await self._ensure_index(db, 'watch_task', [("subscriber.adapter", 1),
+                                                    ("subscriber.user_id", 1),
+                                                    ("type", 1)])
+        await self._ensure_index(db, 'watch_task', [("subscriber.adapter", 1),
+                                                    ("subscriber.group_id", 1),
+                                                    ("type", 1)])
 
         await self._ensure_index(db, 'local_tags', [("name", 1)], unique=True)
         await self._ensure_index(db, 'local_tags', [("translated_name", 1)])

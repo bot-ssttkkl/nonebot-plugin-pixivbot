@@ -20,7 +20,7 @@ async def user_illusts(user_preview: UserPreview) -> AsyncGenerator[Illust, None
             await gen.__anext__()
 
         async for x in gen:
-            yield await x.get()
+            yield await x.get_by_subscriber()
 
 
 async def user_following_illusts(user_id: int) -> AsyncGenerator[Illust, None]:
