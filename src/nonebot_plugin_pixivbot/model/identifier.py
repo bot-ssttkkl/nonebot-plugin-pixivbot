@@ -1,6 +1,6 @@
 from typing import TypeVar, Generic, Optional
 
-from pydantic import validator
+from pydantic import root_validator
 from pydantic.generics import GenericModel
 
 UID = TypeVar("UID")
@@ -32,11 +32,11 @@ class PostIdentifier(GenericModel, Generic[UID, GID]):
     def __str__(self):
         return f"{self.adapter}:{self.user_id}:{self.group_id}"
 
-    @validator('user_id', allow_reuse=True)
-    def validator(cls, v, values):
-        if not getattr(values, "group_id", None) and not v:
-            raise ValueError("at least one of user_id and group_id should be not None")
-        return v
+    @root_validator
+    def validator(cls, values):
+        if not values.get("user_id", None) and not values.get("group_id", None):
+            raise ValueError("at least one of user_id and group_id should not be None")
+        return values
 
     class Config:
         frozen = True
