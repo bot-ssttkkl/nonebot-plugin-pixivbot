@@ -29,7 +29,7 @@ class CacheExpiredError(LocalPixivRepoError):
 
 
 def handle_expires_in(doc: Mapping, expires_in: int):
-    if datetime.now() - doc["metadata"]["update_time"] >= timedelta(expires_in):
+    if datetime.now() - doc["metadata"]["update_time"] >= timedelta(seconds=expires_in):
         raise CacheExpiredError(PixivRepoMetadata.parse_obj(doc["metadata"]))
 
 
