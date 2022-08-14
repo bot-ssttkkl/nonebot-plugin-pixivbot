@@ -1,12 +1,10 @@
 from typing import TypeVar, AsyncGenerator, Dict, Any, Optional
 
-from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.model.identifier import PostIdentifier
 from pymongo import ReturnDocument
 
+from nonebot_plugin_pixivbot.global_context import context
+from nonebot_plugin_pixivbot.model import WatchTask, WatchType, PostIdentifier
 from .source import MongoDataSource
-from ..enums import WatchType
-from ..model.watch_task import WatchTask
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -64,13 +62,14 @@ class WatchTaskRepo:
 
     async def delete_one(self, type: WatchType,
                          args: Dict[str, Any],
-                         subscriber: PostIdentifier[UID, GID]):
+                         subscriber: PostIdentifier[UID, GID]) -> bool:
         query = {
             "type": type.value,
             "args": args,
             "subscriber": subscriber.dict(),
         }
-        await self.mongo.db.watch_task.delete_one(query)
+        cnt = await self.mongo.db.watch_task.delete_one(query)
+        return cnt != 0
 
 
 __all__ = ("WatchTaskRepo",)

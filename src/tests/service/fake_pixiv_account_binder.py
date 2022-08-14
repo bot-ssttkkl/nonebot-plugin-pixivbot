@@ -15,7 +15,7 @@ class FakePixivAccountBinderMixin(MyTest):
         UID = TypeVar("UID")
 
         @context.bind_singleton_to(PixivAccountBinder)
-        class FakeBinder:
+        class FakePixivAccountBinder:
             def __init__(self):
                 self.bindings = {}
 
@@ -31,6 +31,10 @@ class FakePixivAccountBinderMixin(MyTest):
                     return False
 
             async def get_binding(self, adapter: str, user_id: UID) -> Optional[int]:
-                return self.bindings.get((adapter, user_id), None)
+                binding = self.bindings.get((adapter, user_id), None)
+                if binding:
+                    return binding.pixiv_user_id
+                else:
+                    return None
 
-        return FakeBinder
+        return FakePixivAccountBinder
