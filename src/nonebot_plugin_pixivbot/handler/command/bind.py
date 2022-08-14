@@ -22,13 +22,18 @@ class BindHandler(SubCommandHandler):
     def enabled(self) -> bool:
         return True
 
-    def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
+    async def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
         if len(args) < 1:
             raise BadRequestError()
         else:
-            pixiv_user_id = int(args[0])
+            try:
+                pixiv_user_id = int(args[0])
+            except ValueError as e:
+                raise BadRequestError("请输入正确格式的Pixiv账号") from e
+
             return {"pixiv_user_id": pixiv_user_id}
 
+    # noinspection PyMethodOverriding
     async def actual_handle(self, *, pixiv_user_id: int,
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
@@ -38,13 +43,17 @@ class BindHandler(SubCommandHandler):
     async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
                                         silently: bool = False,
                                         err: BadRequestError):
-        pixiv_user_id = await self.binder.get_binding(post_dest.adapter, post_dest.user_id)
-        if pixiv_user_id is not None:
-            msg = f"当前绑定账号：{pixiv_user_id}\n"
-        else:
-            msg = "当前未绑定Pixiv账号\n"
-        msg += "命令格式：/pixivbot bind <pixiv_user_id>"
-        await self.post_plain_text(message=msg, post_dest=post_dest)
+        if not silently:
+            if err.message:
+                await self.post_plain_text(message=err.message, post_dest=post_dest)
+            else:
+                pixiv_user_id = await self.binder.get_binding(post_dest.adapter, post_dest.user_id)
+                if pixiv_user_id is not None:
+                    msg = f"当前绑定账号：{pixiv_user_id}\n"
+                else:
+                    msg = "当前未绑定Pixiv账号\n"
+                msg += "命令格式：/pixivbot bind <pixiv_user_id>"
+                await self.post_plain_text(message=msg, post_dest=post_dest)
 
 
 @context.inject
@@ -62,12 +71,11 @@ class UnbindHandler(SubCommandHandler):
     def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
         return {}
 
+    # noinspection PyMethodOverriding
     async def actual_handle(self, *, post_dest: PostDestination[UID, GID],
                             silently: bool = False):
-        await self.binder.unbind(post_dest.adapter, post_dest.user_id)
-        await self.post_plain_text(message="Pixiv账号解绑成功", post_dest=post_dest)
-
-    async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
-                                        silently: bool = False,
-                                        err: BadRequestError):
-        await self.post_plain_text(message="当前未绑定Pixiv账号", post_dest=post_dest)
+        result = await self.binder.unbind(post_dest.adapter, post_dest.user_id)
+        if result:
+            await self.post_plain_text(message="Pixiv账号解绑成功", post_dest=post_dest)
+        else:
+            await self.post_plain_text(message="当前未绑定Pixiv账号", post_dest=post_dest)

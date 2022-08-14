@@ -1,6 +1,6 @@
 from abc import ABC
 from abc import abstractmethod
-from typing import Type, Callable, Union, Awaitable, TypeVar, Sequence, Any
+from typing import Type, Callable, Union, Awaitable, TypeVar, Sequence
 
 from nonebot import logger
 
@@ -18,6 +18,17 @@ class SubCommandHandler(Handler, ABC):
     @abstractmethod
     def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> Union[dict, Awaitable[dict]]:
         raise NotImplementedError()
+
+    async def handle(self, *args,
+                     post_dest: PostDestination[UID, GID],
+                     silently: bool = False,
+                     disabled_interceptors: bool = False,
+                     **kwargs):
+        try:
+            await super().handle(*args, post_dest=post_dest, silently=silently,
+                                 disabled_interceptors=disabled_interceptors, **kwargs)
+        except BadRequestError as e:
+            await self.handle_bad_request(err=e, post_dest=post_dest, silently=silently)
 
     async def handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
                                  silently: bool = False,
@@ -77,7 +88,4 @@ class CommandHandler(EntryHandler):
         else:
             handler = context.require(self.handlers[args[0]])
 
-        try:
-            await handler.handle(*args[1:], post_dest=post_dest)
-        except BadRequestError as e:
-            await handler.handle_bad_request(err=e, post_dest=post_dest, silently=silently)
+        await handler.handle(*args[1:], post_dest=post_dest)

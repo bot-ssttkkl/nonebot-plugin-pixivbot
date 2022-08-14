@@ -56,10 +56,10 @@ class PostDestinationFactory(ProtocolDep, ABC, Generic[UID, GID]):
 
 @context.register_singleton()
 class PostDestinationFactoryManager(ProtocolDepManager[PostDestinationFactory]):
-    def build(self, bot: Bot, user_id: Optional[UID], group_id: Optional[GID]) -> PostDestination:
+    def build(self, bot: Bot, user_id: Optional[UID], group_id: Optional[GID]) -> PostDestination[UID, GID]:
         return self[get_adapter_name(bot)].build(bot, user_id, group_id)
 
-    def from_event(self, bot: Bot, event: Event) -> PostDestination:
+    def from_event(self, bot: Bot, event: Event) -> PostDestination[UID, GID]:
         return self[get_adapter_name(bot)].from_event(bot, event)
 
 
