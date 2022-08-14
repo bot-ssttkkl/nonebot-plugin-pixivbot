@@ -1,7 +1,6 @@
 from typing import List, Dict, Any
 
 import pytest
-from frozendict import frozendict
 
 from tests import MyTest
 
@@ -22,7 +21,7 @@ class FakeWatchmanMixin(MyTest):
             async def watch(self, type: WatchType,
                             kwargs: Dict[str, Any],
                             subscriber: PostDestination[int, int]):
-                key = (subscriber.identifier, type, frozendict(kwargs))
+                key = (subscriber.identifier, type)
                 self.tasks[key] = WatchTask(
                     type=type,
                     kwargs=kwargs,
@@ -30,9 +29,8 @@ class FakeWatchmanMixin(MyTest):
                 )
 
             async def unwatch(self, type: WatchType,
-                              kwargs: Dict[str, Any],
                               subscriber: PostIdentifier[int, int]) -> bool:
-                key = (subscriber, type, frozendict(kwargs))
+                key = (subscriber, type)
                 if key in self.tasks:
                     del self.tasks[key]
                     return True

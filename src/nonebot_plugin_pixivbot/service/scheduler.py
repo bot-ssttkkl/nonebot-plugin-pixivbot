@@ -150,7 +150,7 @@ class Scheduler:
         else:
             return False
 
-    async def unschedule_all(self, subscriber: PostIdentifier[UID, GID]):
+    async def unschedule_all_by_subscriber(self, subscriber: PostIdentifier[UID, GID]):
         async for sub in self.repo.get_by_subscriber(subscriber):
             self._remove_job(sub.type, subscriber)
         await self.repo.delete_many_by_subscriber(subscriber)

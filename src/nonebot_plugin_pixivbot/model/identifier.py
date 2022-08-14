@@ -26,7 +26,7 @@ class PostIdentifier(GenericModel, Generic[UID, GID]):
     user_id: Optional[UID]
     group_id: Optional[GID]
 
-    def __init__(self, adapter: str, user_id: Optional[UID], group_id: Optional[GID]):
+    def __init__(self, adapter: str, user_id: Optional[UID] = None, group_id: Optional[GID] = None):
         super().__init__(adapter=adapter, user_id=user_id, group_id=group_id)
 
     def __str__(self):
