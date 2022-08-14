@@ -1,15 +1,16 @@
 from typing import TypeVar, Sequence, Dict, Any
 
+from nonebot_plugin_pixivbot.enums import WatchType
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import GroupAdminInterceptor, \
     AnyPermissionInterceptor, SuperuserInterceptor
 from nonebot_plugin_pixivbot.model import PostIdentifier
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
+from nonebot_plugin_pixivbot.service.pixiv_service import PixivService
+from nonebot_plugin_pixivbot.service.watchman import Watchman
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
-
 from .command import CommandHandler, SubCommandHandler
-from ...service.pixiv_service import PixivService
-from ...service.watchman import Watchman
+from ...service.pixiv_account_binder import PixivAccountBinder
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -31,7 +32,7 @@ async def get_tasks_text(identifier: PostIdentifier):
     msg = "当前订阅：\n"
     if len(tasks) > 0:
         for t in tasks:
-            args_text = " ".join(map(lambda k: f'{k}={t.args[k]}', t.args))
+            args_text = " ".join(map(lambda k: f'{k}={t.kwargs[k]}', t.kwargs))
             msg += f'{t.type} {args_text}'
     else:
         msg += '无\n'
@@ -43,6 +44,7 @@ async def get_tasks_text(identifier: PostIdentifier):
 class WatchHandler(SubCommandHandler):
     watchman: Watchman
     pixiv: PixivService
+    binder:PixivAccountBinder
 
     def __init__(self):
         super().__init__()
@@ -62,21 +64,28 @@ class WatchHandler(SubCommandHandler):
         if len(args) == 0:
             raise BadRequestError()
 
-        type = args[0]
+        type = WatchType[args[0]]
 
-        if type == "user_illusts":
+        if type == WatchType.user_illusts:
             if len(args) < 2:
                 raise BadRequestError()
 
             user = await parse_and_get_user(args[1])
             watch_args = {"user_id": user.id}
-            success_message = f"成功订阅{user.name}({user.id})老师的更新"
+            success_message = f"成功订阅{user.name}({user.id})老师的插画更新"
+        elif type == WatchType.following_illusts:
+            user_id = await self.binder.get_binding(post_dest.adapter, post_dest.user_id)
+            if not user_id:
+                raise BadRequestError("未绑定Pixiv账号")
+            watch_args = {"user_id": user_id}
+            success_message = f"成功订阅关注者的插画更新"
         else:
             raise BadRequestError("不支持该类型")
 
         return {"type": args[0], "args": watch_args, "success_message": success_message}
 
-    async def actual_handle(self, *, type: str,
+    # noinspection PyMethodOverriding
+    async def actual_handle(self, *, type: WatchType,
                             args: Dict[str, Any],
                             success_message: str,
                             post_dest: PostDestination[UID, GID],
@@ -121,17 +130,26 @@ class UnwatchHandler(SubCommandHandler):
         if len(args) == 0:
             raise BadRequestError()
 
-        type = args[0]
+        type = WatchType[args[0]]
 
-        if type == "user_illusts":
+        if type == WatchType.user_illusts:
+            if len(args) < 2:
+                raise BadRequestError()
+
             user = await parse_and_get_user(args[1])
             watch_args = {"user_id": user.id}
+        elif type == WatchType.following_illusts:
+            user_id = await self.binder.get_binding(post_dest.adapter, post_dest.user_id)
+            if not user_id:
+                raise BadRequestError("未绑定Pixiv账号")
+            watch_args = {"user_id": user_id}
         else:
             raise BadRequestError("不支持该类型")
 
         return {"type": args[0], "args": watch_args}
 
-    async def actual_handle(self, *, type: str,
+    # noinspection PyMethodOverriding
+    async def actual_handle(self, *, type: WatchType,
                             args: Dict[str, Any],
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):

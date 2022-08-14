@@ -5,7 +5,9 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from nonebot import logger, Bot
 
+from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.data.watch_task_repo import WatchTaskRepo
+from nonebot_plugin_pixivbot.enums import WatchType
 from nonebot_plugin_pixivbot.model import Illust, PostIdentifier
 from nonebot_plugin_pixivbot.model.message import IllustMessageModel
 from nonebot_plugin_pixivbot.model.watch_task import WatchTask
@@ -16,7 +18,6 @@ from nonebot_plugin_pixivbot.utils.lifecycler import on_bot_connect, on_bot_disc
 from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
 from .pkg_context import context
 from .shared_agen import WatchmanSharedAsyncGeneratorManager, WatchmanSharedAgenIdentifier
-from ...config import Config
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -25,11 +26,13 @@ PD = PostDestination[UID, GID]
 ID = PostIdentifier[UID, GID]
 
 headers = {
-    "user_illusts": "您订阅的画师更新了"
+    WatchType.user_illusts: "您订阅的画师更新了",
+    WatchType.following_illusts: "您关注的画师更新了"
 }
 
 trigger_hasher_mapper = {
-    "user_illusts": lambda args: args["user_id"]
+    WatchType.user_illusts: lambda args: args["user_id"],
+    WatchType.following_illusts: lambda args: args["user_id"],
 }
 
 
@@ -56,12 +59,14 @@ class Watchman:
 
     async def _handle(self, task: WatchTask, post_dest: PD):
         # logger.info(f"[watchman] handle user_illust {pixiv_user_id}")
-        with self.shared_agen.get(WatchmanSharedAgenIdentifier(task.type, task.args)) as iter:
+        with self.shared_agen.get(WatchmanSharedAgenIdentifier(task.type, **task.kwargs)) as iter:
             async for illust in iter:
                 if illust.create_date > task.checkpoint:
                     logger.info(f"[watchman] send illust {illust.id} to {task.subscriber}")
                     await self._post_illust(illust, header=headers.get(task.type, ""),
                                             post_dest=post_dest)
+                else:
+                    break
 
         task.checkpoint = datetime.now(timezone.utc)
 
@@ -69,14 +74,15 @@ class Watchman:
 
     @staticmethod
     def _make_job_id(task: WatchTask):
-        return f'watchman {task.type} {task.args} {task.subscriber}'
+        args = " ".join(map(lambda k: f'{k}={task.kwargs[k]}', task.kwargs))
+        return f'watchman {task.type.name} {args} {task.subscriber}'
 
     def _make_job_trigger(self, task: WatchTask):
         hasher = trigger_hasher_mapper[task.type]
-        hash_sec = hasher(task.args) % self.conf.pixiv_watch_interval
+        hash_sec = hasher(task.kwargs) % self.conf.pixiv_watch_interval
         yesterday = datetime.now(timezone.utc).replace(
-            hour=0, minute=0, second=hash_sec, microsecond=0
-        ) + timedelta(days=-1)
+            hour=0, minute=0, second=0, microsecond=0
+        ) + timedelta(days=-1) + timedelta(seconds=hash_sec)
         trigger = IntervalTrigger(seconds=self.conf.pixiv_watch_interval, start_date=yesterday)
         return trigger
 
@@ -86,12 +92,12 @@ class Watchman:
         self.apscheduler.add_job(self._handle, id=job_id, trigger=trigger,
                                  args=[task, post_dest],
                                  max_instances=1)
-        logger.success(f"[watchman] add job [{job_id}]")
+        logger.success(f"[watchman] add job \"{job_id}\"")
 
     def _remove_job(self, task: WatchTask):
         job_id = self._make_job_id(task)
         self.apscheduler.remove_job(job_id)
-        logger.success(f"[watchman] remove job [{job_id}]")
+        logger.success(f"[watchman] remove job \"{job_id}\"")
 
     async def on_bot_connect(self, bot: Bot):
         adapter = get_adapter_name(bot)
@@ -107,16 +113,16 @@ class Watchman:
             except Exception as e:
                 logger.exception(e)
 
-    async def watch(self, type: str,
+    async def watch(self, type: WatchType,
                     args: Dict[str, Any],
                     subscriber: PD):
         task = WatchTask(type=type, args=args, subscriber=subscriber.identifier)
         old_task = await self.repo.update(task)
         if old_task is not None:
             self._remove_job(old_task)
-        self._add_job(task, subscriber)
+        self._add_job(task, subscriber.normalized())
 
-    async def unwatch(self, type: str,
+    async def unwatch(self, type: WatchType,
                       args: Dict[str, Any],
                       subscriber: PD):
         old_task = await self.repo.get(type, args, subscriber.identifier)

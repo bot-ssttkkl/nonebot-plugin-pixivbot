@@ -4,5 +4,6 @@ from .pixiv_binding import PixivBinding
 from .subscription import Subscription
 from .tag import Tag
 from .user import User
+from .user_preview import UserPreview
 
-__all__ = ("Illust", "User", "Tag", "Subscription", "UserIdentifier", "PostIdentifier", "PixivBinding")
+__all__ = ("Illust", "User", "UserPreview", "Tag", "Subscription", "UserIdentifier", "PostIdentifier", "PixivBinding")

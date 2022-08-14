@@ -1,10 +1,11 @@
-from typing import TypeVar, AsyncGenerator, Dict, Any
-
-from pymongo import ReturnDocument
+from typing import TypeVar, AsyncGenerator, Dict, Any, Optional
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model.identifier import PostIdentifier
+from pymongo import ReturnDocument
+
 from .source import MongoDataSource
+from ..enums import WatchType
 from ..model.watch_task import WatchTask
 
 UID = TypeVar("UID")
@@ -18,11 +19,11 @@ ID = PostIdentifier[UID, GID]
 class WatchTaskRepo:
     mongo: MongoDataSource
 
-    async def get(self, type: str,
+    async def get(self, type: WatchType,
                   args: Dict[str, Any],
                   subscriber: ID):
         query = {
-            "type": type,
+            "type": type.value,
             "args": args,
             "subscriber": subscriber.dict(),
         }
@@ -44,23 +45,28 @@ class WatchTaskRepo:
         async for obj in self.mongo.db.watch_task.find(query):
             yield WatchTask.parse_obj(obj)
 
-    async def update(self, task: WatchTask) -> WatchTask:
+    async def update(self, task: WatchTask) -> Optional[WatchTask]:
         query = {
-            "type": task.type,
-            "args": task.args,
+            "type": task.type.value,
+            "args": task.kwargs,
             "subscriber": task.subscriber.dict(),
         }
-        return WatchTask.parse_obj(
-            await self.mongo.db.watch_task.find_one_and_replace(query, task.dict(),
-                                                                return_document=ReturnDocument.BEFORE,
-                                                                upsert=True)
-        )
+        task_dict = task.dict()
+        task_dict["type"] = task.type.value
 
-    async def delete_one(self, type: str,
+        old_doc = await self.mongo.db.watch_task.find_one_and_replace(query, task_dict,
+                                                                      return_document=ReturnDocument.BEFORE,
+                                                                      upsert=True)
+        if old_doc:
+            return WatchTask.parse_obj(old_doc)
+        else:
+            return None
+
+    async def delete_one(self, type: WatchType,
                          args: Dict[str, Any],
                          subscriber: PostIdentifier[UID, GID]):
         query = {
-            "type": type,
+            "type": type.value,
             "args": args,
             "subscriber": subscriber.dict(),
         }

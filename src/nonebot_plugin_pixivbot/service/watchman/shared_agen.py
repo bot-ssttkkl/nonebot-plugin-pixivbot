@@ -1,15 +1,18 @@
 from datetime import datetime, timedelta, timezone
-from typing import AsyncGenerator, TypeVar, Any, Mapping
+from typing import AsyncGenerator, TypeVar, Any
 
 from frozendict import frozendict
 from pydantic import BaseModel
 
 from nonebot_plugin_pixivbot.data.pixiv_repo import PixivRepo
 from nonebot_plugin_pixivbot.data.pixiv_repo.enums import CacheStrategy
-from nonebot_plugin_pixivbot.data.utils.shared_agen import SharedAsyncGeneratorManager
+from nonebot_plugin_pixivbot.data.pixiv_repo.remote_repo import RemotePixivRepo
+from nonebot_plugin_pixivbot.utils.shared_agen import SharedAsyncGeneratorManager
+from nonebot_plugin_pixivbot.enums import WatchType
 from nonebot_plugin_pixivbot.model import Illust
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .pkg_context import context
+from .user_following_illusts import user_following_illusts
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -18,13 +21,14 @@ PD = PostDestination[UID, GID]
 
 
 class WatchmanSharedAgenIdentifier(BaseModel):
-    type: str
-    args: frozendict[str, Any]
+    type: WatchType
+    kwargs: frozendict[str, Any]
 
-    def __init__(self, type: str, args: Mapping[str, Any]):
-        if not isinstance(args, frozendict):
-            args = frozendict(args)
-        super().__init__(type=type, args=args)
+    def __init__(self, type: WatchType, **kwargs):
+        super().__init__(type=type, kwargs=frozendict(kwargs))
+
+    def __str__(self):
+        return f"({self.type.name} {', '.join(map(lambda k: f'{k}={self.kwargs[k]}', {**self.kwargs}))})"
 
     class Config:
         frozen = True
@@ -36,13 +40,17 @@ class WatchmanSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[WatchmanSh
     log_tag = "watchman_shared_agen"
 
     pixiv: PixivRepo
+    remote_pixiv: RemotePixivRepo
 
     async def agen_factory(self, identifier: WatchmanSharedAgenIdentifier,
                            cache_strategy: CacheStrategy,  # 这里的cache_strategy和PixivRepo没关系
                            *args, **kwargs) -> AsyncGenerator[Illust, None]:
-        if identifier.type == "user_illusts":
-            self.set_expires_time(identifier, datetime.now(timezone.utc) + timedelta(seconds=30))  # 保证每分钟的所有task都能共享
-            async for x in self.pixiv.user_illusts(cache_strategy=CacheStrategy.FORCE_EXPIRATION, **identifier.args):
+        self.set_expires_time(identifier, datetime.now(timezone.utc) + timedelta(seconds=30))  # 保证每分钟的所有task都能共享
+        if identifier.type == WatchType.user_illusts:
+            async for x in self.pixiv.user_illusts(cache_strategy=CacheStrategy.FORCE_EXPIRATION, **identifier.kwargs):
                 yield await x.get()
+        elif identifier.type == WatchType.following_illusts:
+            async for x in user_following_illusts(identifier.kwargs["user_id"]):
+                yield x
         else:
             raise ValueError(f"invalid type: {identifier.type}")

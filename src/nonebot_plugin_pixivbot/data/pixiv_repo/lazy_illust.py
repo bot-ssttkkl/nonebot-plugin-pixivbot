@@ -21,7 +21,7 @@ class LazyIllust:
         self.id = id
         self.content = content
 
-    async def get(self):
+    async def get(self) -> Illust:
         if self.content is None:
             async for x in self.src.illust_detail(self.id):
                 self.content = x

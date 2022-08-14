@@ -24,7 +24,7 @@ class TestSharedAsyncGeneratorContextManager(MyTest):
 
     @pytest.fixture
     def ctx_mgr(self, origin_agen):
-        from nonebot_plugin_pixivbot.data.utils.shared_agen import SharedAsyncGeneratorContextManager
+        from nonebot_plugin_pixivbot.utils.shared_agen import SharedAsyncGeneratorContextManager
 
         on_each = AsyncMock()
         on_stop = AsyncMock()
@@ -39,7 +39,7 @@ class TestSharedAsyncGeneratorContextManager(MyTest):
 
     @pytest.mark.asyncio
     async def test_on_each_and_on_stop(self, origin_agen):
-        from nonebot_plugin_pixivbot.data.utils.shared_agen import SharedAsyncGeneratorContextManager
+        from nonebot_plugin_pixivbot.utils.shared_agen import SharedAsyncGeneratorContextManager
 
         on_each = AsyncMock()
         on_stop = AsyncMock()
@@ -112,7 +112,7 @@ class TestSharedAsyncGeneratorContextManager(MyTest):
 class TestSharedAsyncGeneratorManager(MyTest):
     @pytest.fixture
     def shared_agen_mgr(self):
-        from nonebot_plugin_pixivbot.data.utils.shared_agen import SharedAsyncGeneratorManager
+        from nonebot_plugin_pixivbot.utils.shared_agen import SharedAsyncGeneratorManager
 
         class SharedAsyncGeneratorManagerImpl(SharedAsyncGeneratorManager[int, int]):
             def agen_factory(self, identifier: int, *args, **kwargs) -> AsyncGenerator[int, None]:

@@ -136,6 +136,13 @@ class Config(BaseSettings):
     pixiv_random_bookmark_max_page = 2 ** 31
     pixiv_random_bookmark_max_item = 2 ** 31
 
+    pixiv_random_following_illust_query_enabled = True
+    pixiv_random_following_illust_method = RandomIllustMethod.timedelta_proportion
+    pixiv_random_following_illust_min_bookmark = 0
+    pixiv_random_following_illust_min_view = 0
+    pixiv_random_following_illust_max_page = 2 ** 31
+    pixiv_random_following_illust_max_item = 2 ** 31
+
     pixiv_watch_interval = 3600 * 2
 
     class Config:

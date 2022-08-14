@@ -1,6 +1,6 @@
 from enum import Enum
 
-__all__ = ("BlockAction", "DownloadQuantity", "RandomIllustMethod", "RankingMode")
+__all__ = ("BlockAction", "DownloadQuantity", "RandomIllustMethod", "RankingMode", "WatchType")
 
 
 class BlockAction(Enum):
@@ -32,3 +32,8 @@ class RankingMode(Enum):
     week_original = 'week_original'
     week_rookie = 'week_rookie'
     day_manga = 'day_manga'
+
+
+class WatchType(Enum):
+    user_illusts = "user_illusts"
+    following_illusts = "following_illusts"

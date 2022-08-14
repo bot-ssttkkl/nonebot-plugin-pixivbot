@@ -93,7 +93,7 @@ class SharedAsyncGeneratorManager(ABC, Generic[T_ID, T_ITEM]):
     @abstractmethod
     def agen_factory(self, identifier: T_ID,
                      cache_strategy: CacheStrategy,
-                     *args, **kwargs) -> AsyncGenerator[T_ITEM, None]:
+                     **kwargs) -> AsyncGenerator[T_ITEM, None]:
         raise NotImplementedError()
 
     async def on_agen_next(self, identifier: T_ID, item: T_ITEM):
@@ -112,24 +112,24 @@ class SharedAsyncGeneratorManager(ABC, Generic[T_ID, T_ITEM]):
                              ctx_mgr: SharedAsyncGeneratorContextManager[T_ITEM],
                              consumers: int):
         if identifier in self._paused_ctx_mgr and consumers > 0:
-            logger.debug(f"[{self.log_tag}] {identifier} re-started because new consumer started")
+            logger.debug(f"[{self.log_tag}] {identifier} re-started")
             del self._paused_ctx_mgr[identifier]
             self._ctx_mgr[identifier] = ctx_mgr
         elif identifier in self._ctx_mgr and consumers == 0:
             del self._ctx_mgr[identifier]
             if identifier in self._expires_time:
-                logger.debug(f"[{self.log_tag}] {identifier} paused because all consumers exited")
+                logger.debug(f"[{self.log_tag}] {identifier} paused")
                 self._paused_ctx_mgr.add(identifier, ctx_mgr, self._expires_time[identifier])
             else:
                 self._cleanup(identifier, ctx_mgr)
-                logger.debug(f"[{self.log_tag}] {identifier} stopped because all consumers exited")
+                logger.debug(f"[{self.log_tag}] {identifier} stopped")
 
     def invalidate(self, identifier: T_ID):
         if identifier in self._paused_ctx_mgr:
-            logger.debug(f"[{self.log_tag}] {identifier} was invalidated")
+            logger.debug(f"[{self.log_tag}] {identifier} was invalidated from paused state")
             self._paused_ctx_mgr.pop(identifier).close()
         elif identifier in self._ctx_mgr:
-            logger.debug(f"[{self.log_tag}] {identifier} was invalidated")
+            logger.debug(f"[{self.log_tag}] {identifier} was invalidated from running state")
             self._ctx_mgr.pop(identifier).close()
 
         if identifier in self._expires_time:
@@ -147,11 +147,11 @@ class SharedAsyncGeneratorManager(ABC, Generic[T_ID, T_ITEM]):
             self._expires_time[identifier] = expires_time
             logger.debug(f"[{self.log_tag}] {identifier} will expire at {expires_time}")
         elif self._expires_time[identifier] != expires_time:
-            raise RuntimeError(f"{identifier}'s expires time already set")
+            logger.warning(f"[{self.log_tag}] {identifier}'s expires time was already set")
 
     def get(self, identifier: Any,
             cache_strategy: CacheStrategy = CacheStrategy.NORMAL,
-            *args, **kwargs) \
+            **kwargs) \
             -> SharedAsyncGeneratorContextManager[T_ITEM]:
         if cache_strategy == CacheStrategy.FORCE_EXPIRATION:
             self.invalidate(identifier)
@@ -161,7 +161,7 @@ class SharedAsyncGeneratorManager(ABC, Generic[T_ID, T_ITEM]):
         elif identifier in self._ctx_mgr:
             return self._ctx_mgr[identifier]
         else:
-            origin = self.agen_factory(identifier, cache_strategy, *args, **kwargs)
+            origin = self.agen_factory(identifier, cache_strategy, **kwargs)
             self._ctx_mgr[identifier] = SharedAsyncGeneratorContextManager(
                 origin=origin,
                 on_each=lambda item: self.on_agen_next(identifier, item),
