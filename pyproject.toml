@@ -22,6 +22,7 @@ lazy = "^1.4"
 aiohttp-socks = { version = "^0.7.1", optional = true }
 aioreactive = "^0.16.0"
 frozendict = "^2.3.4"
+tzlocal = "^4.2"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^5.0.4"
