@@ -2,6 +2,7 @@ from io import BytesIO
 from typing import Optional
 
 from pydantic import BaseModel
+from tzlocal import get_localzone
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.data.pixiv_repo import PixivRepo
@@ -54,7 +55,7 @@ class IllustMessageModel(BaseModel):
             model.image = await download_image(illust)
         model.title = illust.title
         model.author = f"{illust.user.name} ({illust.user.id})"
-        model.create_time = illust.create_date.strftime('%Y-%m-%d %H:%M:%S')
+        model.create_time = illust.create_date.astimezone(get_localzone()).strftime('%Y-%m-%d %H:%M:%S')
         model.link = f"https://www.pixiv.net/artworks/{illust.id}"
 
         return model
