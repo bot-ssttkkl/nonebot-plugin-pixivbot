@@ -14,6 +14,12 @@ class TestWatchHandler(FakeWatchmanMixin,
                        FakePostDestinationMixin,
                        FakePostmanManagerMixin,
                        MyTest):
+    help_text = "\n" \
+                "命令格式：/pixivbot watch <type> [..args]\n" \
+                "参数：\n" \
+                "  <type>：可选值有user_illusts, following_illusts" \
+                "  [...args]：根据<type>不同需要提供不同的参数\n" \
+                "示例：/pixivbot watch user_illusts <用户名>\n"
 
     @pytest.mark.asyncio
     async def test_handle_no_arg_no_sub(self, fake_post_destination,
@@ -24,10 +30,7 @@ class TestWatchHandler(FakeWatchmanMixin,
 
         post_dest = fake_post_destination(1234, 56789)
         except_msg = "当前订阅：\n" \
-                     "无\n" \
-                     "\n" \
-                     "命令格式：/pixivbot watch <type> <..args>\n" \
-                     "示例：/pixivbot watch user_illusts <用户名>\n"
+                     "无\n" + self.help_text
 
         await context.require(WatchHandler).handle(post_dest=post_dest)
         assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
@@ -43,10 +46,7 @@ class TestWatchHandler(FakeWatchmanMixin,
         post_dest = fake_post_destination(1234, 56789)
         except_msg = "当前订阅：\n" \
                      "user_illusts user_id=54321\n" \
-                     "following_illusts sender_user_id=1234 pixiv_user_id=0\n" \
-                     "\n" \
-                     "命令格式：/pixivbot watch <type> <..args>\n" \
-                     "示例：/pixivbot watch user_illusts <用户名>\n"
+                     "following_illusts sender_user_id=1234 pixiv_user_id=0\n" + self.help_text
 
         await context.require(fake_watchman).watch(
             type=WatchType.user_illusts,
@@ -182,11 +182,9 @@ class TestWatchHandler(FakeWatchmanMixin,
 
         post_dest = fake_post_destination(1234, 56789)
         except_msg = "未知订阅类型：invalid_arg_lol\n" \
-                     "当前订阅：\n" \
-                     "无\n" \
                      "\n" \
-                     "命令格式：/pixivbot watch <type> <..args>\n" \
-                     "示例：/pixivbot watch user_illusts <用户名>\n"
+                     "当前订阅：\n" \
+                     "无\n" + self.help_text
 
         await context.require(WatchHandler).handle("invalid_arg_lol", "00:30*x", post_dest=post_dest)
         assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
@@ -201,10 +199,7 @@ class TestWatchHandler(FakeWatchmanMixin,
 
         post_dest = fake_post_destination(1234, 56789)
         except_msg = "当前订阅：\n" \
-                     "无\n" \
-                     "\n" \
-                     "命令格式：/pixivbot watch <type> <..args>\n" \
-                     "示例：/pixivbot watch user_illusts <用户名>\n"
+                     "无\n" + self.help_text
 
         await context.require(WatchHandler).handle("user_illusts", post_dest=post_dest)
         assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
@@ -217,6 +212,12 @@ class TestUnwatchHandler(FakeWatchmanMixin,
                          FakePostDestinationMixin,
                          FakePostmanManagerMixin,
                          MyTest):
+    help_text = "\n" \
+                "命令格式：/pixivbot unwatch <type> [..args]\n" \
+                "参数：\n" \
+                "  <type>：可选值有user_illusts, following_illusts" \
+                "  [...args]：根据<type>不同需要提供不同的参数\n" \
+                "示例：/pixivbot unwatch user_illusts <用户名>\n"
 
     @pytest.mark.asyncio
     async def test_handle_no_arg_no_sub(self, fake_post_destination,
@@ -227,10 +228,7 @@ class TestUnwatchHandler(FakeWatchmanMixin,
 
         post_dest = fake_post_destination(1234, 56789)
         except_msg = "当前订阅：\n" \
-                     "无\n" \
-                     "\n" \
-                     "命令格式：/pixivbot unwatch <type> <..args>\n" \
-                     "示例：/pixivbot unwatch user_illusts <用户名>\n"
+                     "无\n" + self.help_text
 
         await context.require(UnwatchHandler).handle(post_dest=post_dest)
         assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
@@ -246,10 +244,7 @@ class TestUnwatchHandler(FakeWatchmanMixin,
         post_dest = fake_post_destination(1234, 56789)
         except_msg = "当前订阅：\n" \
                      "user_illusts user_id=54321\n" \
-                     "following_illusts sender_user_id=1234 pixiv_user_id=0\n" \
-                     "\n" \
-                     "命令格式：/pixivbot unwatch <type> <..args>\n" \
-                     "示例：/pixivbot unwatch user_illusts <用户名>\n"
+                     "following_illusts sender_user_id=1234 pixiv_user_id=0\n" + self.help_text
 
         await context.require(fake_watchman).watch(
             type=WatchType.user_illusts,
@@ -388,11 +383,9 @@ class TestUnwatchHandler(FakeWatchmanMixin,
 
         post_dest = fake_post_destination(1234, 56789)
         except_msg = "未知订阅类型：invalid_arg_lol\n" \
-                     "当前订阅：\n" \
-                     "无\n" \
                      "\n" \
-                     "命令格式：/pixivbot unwatch <type> <..args>\n" \
-                     "示例：/pixivbot unwatch user_illusts <用户名>\n"
+                     "当前订阅：\n" \
+                     "无\n" + self.help_text
 
         await context.require(UnwatchHandler).handle("invalid_arg_lol", post_dest=post_dest)
         assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)

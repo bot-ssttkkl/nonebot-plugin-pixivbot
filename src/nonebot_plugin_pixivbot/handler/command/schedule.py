@@ -74,9 +74,14 @@ class ScheduleHandler(SubCommandHandler):
             msg += '\n'
 
         msg += await build_subscriptions_msg(post_dest.identifier)
-        msg += "\n"
-        msg += "命令格式：/pixivbot schedule <type> <schedule> <..args>\n"
-        msg += "示例：/pixivbot schedule ranking 06:00*x day 1-5"
+        msg += "\n" \
+               "命令格式：/pixivbot schedule <type> <schedule> [..args]\n" \
+               "参数：\n" \
+               "  <type>：可选值有random_bookmark, random_recommended_illust, random_illust, " \
+               "random_user_illust, ranking\n" \
+               "  <schedule>：格式为HH:mm（每日固定时间点推送）或HH:mm*x（间隔时间推送）\n" \
+               "  [...args]：根据<type>不同需要提供不同的参数\n" \
+               "示例：/pixivbot schedule ranking 06:00*x day 1-5"
         await self.post_plain_text(message=msg, post_dest=post_dest)
 
 

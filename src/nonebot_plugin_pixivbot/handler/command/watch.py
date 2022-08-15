@@ -115,12 +115,15 @@ class WatchHandler(SubCommandHandler):
         msg = ""
         if err.message:
             msg += err.message
-            msg += '\n'
+            msg += '\n\n'
 
         msg += await build_tasks_msg(post_dest.identifier)
-        msg += "\n"
-        msg += "命令格式：/pixivbot watch <type> <..args>\n"
-        msg += "示例：/pixivbot watch user_illusts <用户名>\n"
+        msg += "\n" \
+               "命令格式：/pixivbot watch <type> [..args]\n" \
+               "参数：\n" \
+               "  <type>：可选值有user_illusts, following_illusts" \
+               "  [...args]：根据<type>不同需要提供不同的参数\n" \
+               "示例：/pixivbot watch user_illusts <用户名>\n"
         await self.post_plain_text(message=msg, post_dest=post_dest)
 
 
@@ -176,10 +179,13 @@ class UnwatchHandler(SubCommandHandler):
         msg = ""
         if err.message:
             msg += err.message
-            msg += '\n'
+            msg += '\n\n'
 
         msg += await build_tasks_msg(post_dest.identifier)
-        msg += "\n"
-        msg += "命令格式：/pixivbot unwatch <type> <..args>\n"
-        msg += "示例：/pixivbot unwatch user_illusts <用户名>\n"
+        msg += "\n" \
+               "命令格式：/pixivbot unwatch <type> [..args]\n" \
+               "参数：\n" \
+               "  <type>：可选值有user_illusts, following_illusts" \
+               "  [...args]：根据<type>不同需要提供不同的参数\n" \
+               "示例：/pixivbot unwatch user_illusts <用户名>\n"
         await self.post_plain_text(message=msg, post_dest=post_dest)

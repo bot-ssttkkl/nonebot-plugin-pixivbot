@@ -14,6 +14,14 @@ class TestScheduleHandler(FakeSchedulerMixin,
                           FakePostmanManagerMixin,
                           FakePixivAccountBinderMixin,
                           MyTest):
+    help_text = "\n" \
+                "命令格式：/pixivbot schedule <type> <schedule> [..args]\n" \
+                "参数：\n" \
+                "  <type>：可选值有random_bookmark, random_recommended_illust, random_illust, " \
+                "random_user_illust, ranking\n" \
+                "  <schedule>：格式为HH:mm（每日固定时间点推送）或HH:mm*x（间隔时间推送）\n" \
+                "  [...args]：根据<type>不同需要提供不同的参数\n" \
+                "示例：/pixivbot schedule ranking 06:00*x day 1-5"
 
     @pytest.mark.asyncio
     async def test_handle_no_arg_no_sub(self, fake_post_destination,
@@ -24,10 +32,7 @@ class TestScheduleHandler(FakeSchedulerMixin,
 
         post_dest = fake_post_destination(1234, 56789)
         except_msg = "当前订阅：\n" \
-                     "无\n" \
-                     "\n" \
-                     "命令格式：/pixivbot schedule <type> <schedule> <..args>\n" \
-                     "示例：/pixivbot schedule ranking 06:00*x day 1-5"
+                     "无\n" + self.help_text
 
         await context.require(ScheduleHandler).handle(post_dest=post_dest)
         assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
@@ -43,10 +48,7 @@ class TestScheduleHandler(FakeSchedulerMixin,
         post_dest = fake_post_destination(1234, 56789)
         except_msg = "当前订阅：\n" \
                      "random_bookmark 00:00+00:30*x\n" \
-                     "ranking 06:00+00:00*x\n" \
-                     "\n" \
-                     "命令格式：/pixivbot schedule <type> <schedule> <..args>\n" \
-                     "示例：/pixivbot schedule ranking 06:00*x day 1-5"
+                     "ranking 06:00+00:00*x\n" + self.help_text
 
         context.require(fake_scheduler).subscriptions[
             (post_dest.identifier, ScheduleType.random_bookmark)
@@ -103,10 +105,7 @@ class TestScheduleHandler(FakeSchedulerMixin,
         post_dest = fake_post_destination(1234, 56789)
         except_msg = "未知订阅类型：invalid_arg_lol\n" \
                      "当前订阅：\n" \
-                     "无\n" \
-                     "\n" \
-                     "命令格式：/pixivbot schedule <type> <schedule> <..args>\n" \
-                     "示例：/pixivbot schedule ranking 06:00*x day 1-5"
+                     "无\n" + self.help_text
 
         await context.require(ScheduleHandler).handle("invalid_arg_lol", "00:30*x", post_dest=post_dest)
         assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
@@ -122,10 +121,7 @@ class TestScheduleHandler(FakeSchedulerMixin,
 
         post_dest = fake_post_destination(1234, 56789)
         except_msg = "当前订阅：\n" \
-                     "无\n" \
-                     "\n" \
-                     "命令格式：/pixivbot schedule <type> <schedule> <..args>\n" \
-                     "示例：/pixivbot schedule ranking 06:00*x day 1-5"
+                     "无\n" + self.help_text
 
         await context.require(ScheduleHandler).handle("random_bookmark", post_dest=post_dest)
         assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
