@@ -40,9 +40,9 @@ class BindHandler(SubCommandHandler):
         await self.binder.bind(post_dest.adapter, post_dest.user_id, pixiv_user_id)
         await self.post_plain_text(message="Pixiv账号绑定成功", post_dest=post_dest)
 
-    async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
-                                        silently: bool = False,
-                                        err: BadRequestError):
+    async def actual_handle_bad_request(self, err: BadRequestError,
+                                        *, post_dest: PostDestination[UID, GID],
+                                        silently: bool = False):
         if not silently:
             if err.message:
                 await self.post_plain_text(message=err.message, post_dest=post_dest)

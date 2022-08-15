@@ -109,9 +109,9 @@ class WatchHandler(SubCommandHandler):
         await self.watchman.watch(type, watch_kwargs, post_dest)
         await self.post_plain_text(success_message, post_dest)
 
-    async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
-                                        silently: bool = False,
-                                        err: BadRequestError):
+    async def actual_handle_bad_request(self, err: BadRequestError,
+                                        *, post_dest: PostDestination[UID, GID],
+                                        silently: bool = False):
         msg = ""
         if err.message:
             msg += err.message
@@ -173,9 +173,9 @@ class UnwatchHandler(SubCommandHandler):
         else:
             raise BadRequestError("取消订阅失败，不存在该订阅")
 
-    async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
-                                        silently: bool = False,
-                                        err: BadRequestError):
+    async def actual_handle_bad_request(self, err: BadRequestError,
+                                        *, post_dest: PostDestination[UID, GID],
+                                        silently: bool = False):
         msg = ""
         if err.message:
             msg += err.message

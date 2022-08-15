@@ -65,9 +65,9 @@ class ScheduleHandler(SubCommandHandler):
         await self.scheduler.schedule(type, schedule, args, post_dest=post_dest)
         await self.post_plain_text(message="订阅成功", post_dest=post_dest)
 
-    async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
-                                        silently: bool = False,
-                                        err: BadRequestError):
+    async def actual_handle_bad_request(self, err: BadRequestError,
+                                        *, post_dest: PostDestination[UID, GID],
+                                        silently: bool = False):
         msg = ""
         if err.message:
             msg += err.message
@@ -121,9 +121,9 @@ class UnscheduleHandler(SubCommandHandler):
         else:
             raise BadRequestError("取消订阅失败，不存在该订阅")
 
-    async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
-                                        silently: bool = False,
-                                        err: BadRequestError):
+    async def actual_handle_bad_request(self, err: BadRequestError,
+                                        *, post_dest: PostDestination[UID, GID],
+                                        silently: bool = False):
         msg = ""
         if err.message:
             msg += err.message

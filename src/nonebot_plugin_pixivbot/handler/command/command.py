@@ -30,20 +30,18 @@ class SubCommandHandler(Handler, ABC):
         except BadRequestError as e:
             await self.handle_bad_request(err=e, post_dest=post_dest, silently=silently)
 
-    async def handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
-                                 silently: bool = False,
-                                 err: BadRequestError):
+    async def handle_bad_request(self, err: BadRequestError, *,
+                                 post_dest: PostDestination[UID, GID],
+                                 silently: bool = False):
         if self.interceptor is not None:
-            await self.interceptor.intercept(self.actual_handle_bad_request,
-                                             post_dest=post_dest, silently=silently,
-                                             err=err)
+            await self.interceptor.intercept(self.actual_handle_bad_request, err,
+                                             post_dest=post_dest, silently=silently)
         else:
-            await self.actual_handle_bad_request(post_dest=post_dest, silently=silently,
-                                                 err=err)
+            await self.actual_handle_bad_request(err, post_dest=post_dest, silently=silently)
 
-    async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
-                                        silently: bool = False,
-                                        err: BadRequestError):
+    async def actual_handle_bad_request(self, err: BadRequestError, *,
+                                        post_dest: PostDestination[UID, GID],
+                                        silently: bool = False):
         if not silently:
             await self.post_plain_text(err.message, post_dest=post_dest)
 
@@ -75,6 +73,7 @@ class CommandHandler(EntryHandler):
     def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
         return {"args": args[0]}
 
+    # noinspection PyMethodOverriding
     async def actual_handle(self, *, args: Sequence[str],
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
