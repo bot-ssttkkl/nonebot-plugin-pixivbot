@@ -32,7 +32,7 @@ class PostIdentifier(GenericModel, Generic[UID, GID]):
     def __str__(self):
         return f"{self.adapter}:{self.user_id}:{self.group_id}"
 
-    @root_validator
+    @root_validator(allow_reuse=True)
     def validator(cls, values):
         if not values.get("user_id", None) and not values.get("group_id", None):
             raise ValueError("at least one of user_id and group_id should not be None")

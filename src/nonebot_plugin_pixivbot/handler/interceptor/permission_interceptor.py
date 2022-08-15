@@ -24,7 +24,7 @@ class PermissionInterceptor(Interceptor, ABC):
             -> Union[Optional[str], Awaitable[Optional[str]]]:
         return None
 
-    async def intercept(self, wrapped_func: Callable, *,
+    async def intercept(self, wrapped_func: Callable, *args,
                         post_dest: PostDestination[UID, GID],
                         silently: bool,
                         **kwargs):
@@ -33,7 +33,7 @@ class PermissionInterceptor(Interceptor, ABC):
             p = await p
 
         if p:
-            await wrapped_func(post_dest=post_dest, silently=silently, **kwargs)
+            await wrapped_func(*args, post_dest=post_dest, silently=silently, **kwargs)
         else:
             logger.debug(f"permission denied {post_dest}")
             if not silently:

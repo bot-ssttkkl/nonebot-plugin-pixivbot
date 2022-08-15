@@ -14,9 +14,9 @@ GID = TypeVar("GID")
 class RecordReqInterceptor(Interceptor):
     recorder: Recorder
 
-    async def intercept(self, wrapped_func: Callable, *,
+    async def intercept(self, wrapped_func: Callable, *args,
                         post_dest: PostDestination[UID, GID],
                         silently: bool,
                         **kwargs):
-        await wrapped_func(post_dest=post_dest, silently=silently, **kwargs)
+        await wrapped_func(*args, post_dest=post_dest, silently=silently, **kwargs)
         self.recorder.record_req(Req(wrapped_func, **kwargs), post_dest.identifier)

@@ -53,23 +53,29 @@ class Handler(ABC):
         if not self.enabled():
             return
 
+        if self.interceptor is not None and not disabled_interceptors:
+            await self.interceptor.intercept(self.handle_with_args, *args,
+                                             post_dest=post_dest,
+                                             silently=silently,
+                                             **kwargs)
+        else:
+            await self.handle_with_args(*args, post_dest=post_dest, silently=silently, **kwargs)
+
+    async def handle_with_args(self, *args,
+                               post_dest: PD,
+                               silently: bool = False,
+                               **kwargs):
         parsed_kwargs = self.parse_args(args, post_dest)
         if isawaitable(parsed_kwargs):
             parsed_kwargs = await parsed_kwargs
 
         kwargs = {**kwargs, **parsed_kwargs}
-
-        if self.interceptor is not None and not disabled_interceptors:
-            await self.interceptor.intercept(self.actual_handle,
-                                             post_dest=post_dest,
-                                             silently=silently,
-                                             **kwargs)
-        else:
-            await self.actual_handle(post_dest=post_dest, silently=silently, **kwargs)
+        await self.actual_handle(post_dest=post_dest, silently=silently, **kwargs)
 
     @abstractmethod
     async def actual_handle(self, *, post_dest: PD,
-                            silently: bool = False, **kwargs):
+                            silently: bool = False,
+                            **kwargs):
         """
         处理指令
         :param post_dest: PostDestination

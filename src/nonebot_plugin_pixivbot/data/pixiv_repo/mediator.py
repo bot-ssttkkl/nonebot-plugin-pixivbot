@@ -82,6 +82,7 @@ async def _load_many_from_local_and_remote_and_update(
                 if loaded_items >= max_item or loaded_pages >= max_page:
                     return
         finally:
+            # TODO: load remaining items on last page
             if metadata:
                 await cache_appender(content, metadata)
 
@@ -114,6 +115,7 @@ async def _load_many_from_remote_and_update(
             if loaded_items >= max_item or loaded_pages >= max_page:
                 return
     finally:
+        # TODO: load remaining items on last page
         if metadata:
             await cache_updater(content, metadata)
 
