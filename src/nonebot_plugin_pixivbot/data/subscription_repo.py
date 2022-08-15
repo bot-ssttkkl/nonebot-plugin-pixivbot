@@ -1,9 +1,9 @@
 from typing import TypeVar, AsyncGenerator, Optional
 
-from pymongo import ReturnDocument
-
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier, ScheduleType
+from pymongo import ReturnDocument
+
 from .source import MongoDataSource
 from .utils.process_subscriber import process_subscriber
 
@@ -43,9 +43,9 @@ class SubscriptionRepo:
         sub_dict = subscription.dict()
         sub_dict["type"] = subscription.type.value
 
-        old_doc = self.mongo.db.subscription.find_one_and_replace(query, sub_dict,
-                                                                  return_document=ReturnDocument.BEFORE,
-                                                                  upsert=True)
+        old_doc = await self.mongo.db.subscription.find_one_and_replace(query, sub_dict,
+                                                                        return_document=ReturnDocument.BEFORE,
+                                                                        upsert=True)
         if old_doc:
             return Subscription.parse_obj(old_doc)
         else:
