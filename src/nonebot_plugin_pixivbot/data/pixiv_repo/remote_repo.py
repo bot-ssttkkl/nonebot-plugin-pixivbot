@@ -189,6 +189,7 @@ class RemotePixivRepo(AbstractPixivRepo):
             loaded_items += len(page)
             logger.debug(f"[remote] {loaded_pages} pages loaded ({loaded_items} items in total)")
 
+            metadata.pages = loaded_pages
             yield page, metadata
 
             next_qs = metadata.next_qs

@@ -439,7 +439,7 @@ class LocalPixivRepo(AbstractPixivRepo):
         logger.debug(f"[local] append search_user {word} "
                      f"({len(content)} items) "
                      f"{metadata_to_text(metadata)}")
-        return await self._append_and_check_users("search_illust_cache", {"word": word}, content, metadata)
+        return await self._append_and_check_users("search_user_cache", {"word": word}, content, metadata)
 
     # ================ user_illusts ================
     def user_illusts(self, user_id: int, *, offset: int = 0) \
