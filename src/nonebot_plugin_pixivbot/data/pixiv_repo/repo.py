@@ -7,9 +7,9 @@ from nonebot import logger
 from pydantic import BaseModel
 
 from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.utils.shared_agen import SharedAsyncGeneratorManager
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User, UserPreview
+from nonebot_plugin_pixivbot.utils.shared_agen import SharedAsyncGeneratorManager
 from . import LazyIllust
 from .abstract_repo import AbstractPixivRepo
 from .abstract_repo import PixivRepoMetadata
@@ -207,6 +207,7 @@ class PixivRepo(AbstractPixivRepo):
     _remote: RemotePixivRepo
 
     async def invalidate_cache(self):
+        self._shared_agen_mgr.invalidate_all()
         await self._local.invalidate_cache()
 
     async def illust_detail(self, illust_id: int,

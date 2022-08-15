@@ -130,9 +130,21 @@ class SharedAsyncGeneratorManager(ABC, Generic[T_ID, T_ITEM]):
             self._paused_ctx_mgr.pop(identifier).close()
         elif identifier in self._ctx_mgr:
             logger.debug(f"[{self.log_tag}] {identifier} was invalidated from running state")
+            self._ctx_mgr.pop(identifier)
 
         if identifier in self._expires_time:
             del self._expires_time[identifier]
+
+    def invalidate_all(self):
+        for identifier in self._paused_ctx_mgr:
+            logger.debug(f"[{self.log_tag}] {identifier} was invalidated from paused state")
+            self._paused_ctx_mgr.pop(identifier).close()
+
+        for identifier in self._ctx_mgr:
+            logger.debug(f"[{self.log_tag}] {identifier} was invalidated from running state")
+            self._ctx_mgr.pop(identifier)
+
+        self._expires_time.clear()
 
     def get_expires_time(self, identifier: T_ID) -> Optional[datetime]:
         return self._expires_time.get(identifier, None)
