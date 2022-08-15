@@ -16,7 +16,7 @@ class LoadingInterceptor(Interceptor):
         await shield(self.post_plain_text("努力加载中", post_dest))
 
     async def intercept(self, wrapped_func: Callable,
-                        *, post_dest: PostDestination[UID, GID],
+                        *args, post_dest: PostDestination[UID, GID],
                         silently: bool,
                         **kwargs):
         task: Optional[Task] = None
@@ -24,7 +24,7 @@ class LoadingInterceptor(Interceptor):
             task = create_task(self.send_delayed_loading(post_dest))
 
         try:
-            await wrapped_func(post_dest=post_dest, silently=silently, **kwargs)
+            await wrapped_func(*args, post_dest=post_dest, silently=silently, **kwargs)
         finally:
             if task and not task.done():
                 task.cancel()

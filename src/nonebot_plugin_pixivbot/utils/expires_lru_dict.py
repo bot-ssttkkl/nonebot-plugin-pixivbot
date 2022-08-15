@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from collections.abc import MutableMapping
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import total_ordering
 from heapq import heappop, heapify, heappush
 from typing import TypeVar, Generic, Iterator, List, Dict, Optional, Callable
@@ -30,7 +30,7 @@ class ExpiresLruDict(MutableMapping[_KT, _VT], Generic[_KT, _VT]):
         self._in_expires_heap: Dict[_KT, bool] = {}
 
     def _collate(self, ensure_size_for_put: bool):
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         while len(self._expires_heap) > 0 and self._expires_heap[0].expires_time <= now:
             k = self._expires_heap[0].key
             if k in self._data:

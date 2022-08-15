@@ -1,6 +1,6 @@
 from abc import ABC
 from abc import abstractmethod
-from typing import Type, Callable, Union, Awaitable, TypeVar, Sequence, Any
+from typing import Type, Callable, Union, Awaitable, TypeVar, Sequence
 
 from nonebot import logger
 
@@ -19,20 +19,29 @@ class SubCommandHandler(Handler, ABC):
     def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> Union[dict, Awaitable[dict]]:
         raise NotImplementedError()
 
-    async def handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
-                                 silently: bool = False,
-                                 err: BadRequestError):
-        if self.interceptor is not None:
-            await self.interceptor.intercept(self.actual_handle_bad_request,
-                                             post_dest=post_dest, silently=silently,
-                                             err=err)
-        else:
-            await self.actual_handle_bad_request(post_dest=post_dest, silently=silently,
-                                                 err=err)
+    async def handle(self, *args,
+                     post_dest: PostDestination[UID, GID],
+                     silently: bool = False,
+                     disabled_interceptors: bool = False,
+                     **kwargs):
+        try:
+            await super().handle(*args, post_dest=post_dest, silently=silently,
+                                 disabled_interceptors=disabled_interceptors, **kwargs)
+        except BadRequestError as e:
+            await self.handle_bad_request(err=e, post_dest=post_dest, silently=silently)
 
-    async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
-                                        silently: bool = False,
-                                        err: BadRequestError):
+    async def handle_bad_request(self, err: BadRequestError, *,
+                                 post_dest: PostDestination[UID, GID],
+                                 silently: bool = False):
+        if self.interceptor is not None:
+            await self.interceptor.intercept(self.actual_handle_bad_request, err,
+                                             post_dest=post_dest, silently=silently)
+        else:
+            await self.actual_handle_bad_request(err, post_dest=post_dest, silently=silently)
+
+    async def actual_handle_bad_request(self, err: BadRequestError, *,
+                                        post_dest: PostDestination[UID, GID],
+                                        silently: bool = False):
         if not silently:
             await self.post_plain_text(err.message, post_dest=post_dest)
 
@@ -64,6 +73,7 @@ class CommandHandler(EntryHandler):
     def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
         return {"args": args[0]}
 
+    # noinspection PyMethodOverriding
     async def actual_handle(self, *, args: Sequence[str],
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
@@ -77,7 +87,4 @@ class CommandHandler(EntryHandler):
         else:
             handler = context.require(self.handlers[args[0]])
 
-        try:
-            await handler.handle(*args[1:], post_dest=post_dest)
-        except BadRequestError as e:
-            await handler.handle_bad_request(err=e, post_dest=post_dest, silently=silently)
+        await handler.handle(*args[1:], post_dest=post_dest)

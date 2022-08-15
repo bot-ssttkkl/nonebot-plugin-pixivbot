@@ -1,11 +1,11 @@
-from typing import TypeVar, AsyncGenerator
-
-from pymongo import ReturnDocument
+from typing import TypeVar, AsyncGenerator, Optional
 
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.model import Subscription
-from nonebot_plugin_pixivbot.model.identifier import PostIdentifier
+from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier, ScheduleType
+from pymongo import ReturnDocument
+
 from .source import MongoDataSource
+from .utils.process_subscriber import process_subscriber
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -18,48 +18,52 @@ ID = PostIdentifier[UID, GID]
 class SubscriptionRepo:
     mongo: MongoDataSource
 
-    async def get(self, identifier: ID) -> AsyncGenerator[Subscription, None]:
-        if identifier.group_id:
-            query = {"adapter": identifier.adapter, "group_id": identifier.group_id}
-        elif identifier.user_id:
-            query = {"adapter": identifier.adapter, "user_id": identifier.user_id}
-        else:
-            raise ValueError("at least one of user_id and group_id should be not None")
-
+    async def get_by_subscriber(self, subscriber: ID) -> AsyncGenerator[Subscription, None]:
+        query = {
+            "subscriber": process_subscriber(subscriber).dict()
+        }
         async for obj in self.mongo.db.subscription.find(query):
             yield Subscription.parse_obj(obj)
 
-    async def get_all(self, adapter: str) -> AsyncGenerator[Subscription, None]:
-        query = {"adapter": adapter}
-
+    async def get_by_adapter(self, adapter: str) -> AsyncGenerator[Subscription, None]:
+        query = {
+            "subscriber.adapter": adapter
+        }
         async for obj in self.mongo.db.subscription.find(query):
             yield Subscription.parse_obj(obj)
 
-    async def update(self, subscription: Subscription) -> Subscription:
-        if subscription.group_id:
-            query = {"adapter": subscription.adapter, "group_id": subscription.group_id, "type": subscription.type}
-        elif subscription.user_id:
-            query = {"adapter": subscription.adapter, "user_id": subscription.user_id, "type": subscription.type}
-        else:
-            raise ValueError("at least one of user_id and group_id should be not None")
+    async def update(self, subscription: Subscription) -> Optional[Subscription]:
+        subscription.subscriber = process_subscriber(subscription.subscriber)
 
-        return await self.mongo.db.subscription.find_one_and_replace(query, subscription.dict(),
-                                                                     return_document=ReturnDocument.BEFORE,
-                                                                     upsert=True)
+        query = {
+            "type": subscription.type.value,
+            "subscriber": subscription.subscriber.dict()
+        }
 
-    async def delete(self, identifier: ID, type: str):
-        if identifier.group_id:
-            query = {"adapter": identifier.adapter, "group_id": identifier.group_id, "type": type}
-        elif identifier.user_id:
-            query = {"adapter": identifier.adapter, "user_id": identifier.user_id, "type": type}
-        else:
-            raise ValueError("at least one of user_id and group_id should be not None")
+        sub_dict = subscription.dict()
+        sub_dict["type"] = subscription.type.value
 
-        if type == 'all':
-            del query["type"]
-            await self.mongo.db.subscription.delete_many(query)
+        old_doc = await self.mongo.db.subscription.find_one_and_replace(query, sub_dict,
+                                                                        return_document=ReturnDocument.BEFORE,
+                                                                        upsert=True)
+        if old_doc:
+            return Subscription.parse_obj(old_doc)
         else:
-            await self.mongo.db.subscription.delete_one(query)
+            return None
+
+    async def delete_one(self, subscriber: ID, type: ScheduleType) -> bool:
+        query = {
+            "type": type.value,
+            "subscriber": process_subscriber(subscriber).dict()
+        }
+        cnt = await self.mongo.db.subscription.delete_one(query)
+        return cnt == 1
+
+    async def delete_many_by_subscriber(self, subscriber: ID):
+        query = {
+            "subscriber": process_subscriber(subscriber)
+        }
+        await self.mongo.db.subscription.delete_many(query)
 
 
 __all__ = ("SubscriptionRepo",)

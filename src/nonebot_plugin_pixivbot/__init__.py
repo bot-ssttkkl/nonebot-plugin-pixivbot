@@ -12,10 +12,8 @@ from .providers import provide
 
 provide(context)
 
-# ================= register query =================
-from .query import *
-
-# =============== register scheduler ===============
-from .service.scheduler import Scheduler
+# =========== register query & service ============
+from . import query
+from . import service
 
 __all__ = ("context",)
