@@ -1,4 +1,4 @@
-from typing import TypeVar, AsyncGenerator, Optional
+from typing import TypeVar, AsyncGenerator, Optional, Any, Dict
 
 from pymongo import ReturnDocument
 
@@ -49,6 +49,7 @@ class WatchTaskRepo:
 
         query = {
             "type": task.type.value,
+            "kwargs": task.kwargs,
             "subscriber": task.subscriber.dict(),
         }
 
@@ -64,9 +65,11 @@ class WatchTaskRepo:
             return None
 
     async def delete_one(self, type: WatchType,
+                         kwargs: Dict[str, Any],
                          subscriber: PostIdentifier[UID, GID]) -> bool:
         query = {
             "type": type.value,
+            "kwargs": kwargs,
             "subscriber": process_subscriber(subscriber).dict(),
         }
         cnt = await self.mongo.db.watch_task.delete_one(query)

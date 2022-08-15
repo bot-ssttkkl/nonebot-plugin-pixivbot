@@ -100,8 +100,10 @@ class Watchman:
 
     @staticmethod
     def _make_job_id(type: WatchType,
+                     kwargs: Dict[str, Any],
                      subscriber: PostIdentifier[UID, GID]):
-        return f'watchman {type.name} {subscriber}'
+        args = ', '.join(map(lambda k: f'{k}={kwargs[k]}', kwargs))
+        return f'watchman {type.name} {args} {subscriber}'
 
     def _make_job_trigger(self, task: WatchTask):
         hasher = trigger_hasher_mapper[task.type]
@@ -113,7 +115,7 @@ class Watchman:
         return trigger
 
     def _add_job(self, task: WatchTask, post_dest: PD):
-        job_id = self._make_job_id(task.type, task.subscriber)
+        job_id = self._make_job_id(task.type, task.kwargs, task.subscriber)
         trigger = self._make_job_trigger(task)
         self.apscheduler.add_job(self._handle, id=job_id, trigger=trigger,
                                  args=[task, post_dest],
@@ -121,8 +123,9 @@ class Watchman:
         logger.success(f"[watchman] add job \"{job_id}\" on {trigger}")
 
     def _remove_job(self, type: WatchType,
+                    kwargs: Dict[str, Any],
                     subscriber: PostIdentifier[UID, GID]):
-        job_id = self._make_job_id(type, subscriber)
+        job_id = self._make_job_id(type, kwargs, subscriber)
         self.apscheduler.remove_job(job_id)
         logger.success(f"[watchman] remove job \"{job_id}\"")
 
@@ -136,7 +139,7 @@ class Watchman:
         adapter = get_adapter_name(bot)
         async for task in self.repo.get_by_adapter(adapter):
             try:
-                self._remove_job(task.type, task.subscriber)
+                self._remove_job(task.type, task.kwargs, task.subscriber)
             except Exception as e:
                 logger.exception(e)
 
@@ -146,20 +149,21 @@ class Watchman:
         task = WatchTask(type=type, kwargs=kwargs, subscriber=subscriber.identifier)
         old_task = await self.repo.update(task)
         if old_task is not None:
-            self._remove_job(old_task.type, old_task.subscriber)
+            self._remove_job(old_task.type, old_task.kwargs, old_task.subscriber)
         self._add_job(task, subscriber.normalized())
 
     async def unwatch(self, type: WatchType,
+                      kwargs: Dict[str, Any],
                       subscriber: ID) -> bool:
-        if await self.repo.delete_one(type, subscriber):
-            self._remove_job(type, subscriber)
+        if await self.repo.delete_one(type, kwargs, subscriber):
+            self._remove_job(type, kwargs, subscriber)
             return True
         else:
             return False
 
     async def unwatch_all_by_subscriber(self, subscriber: ID):
         async for task in self.repo.get_by_subscriber(subscriber):
-            self._remove_job(task.type, subscriber)
+            self._remove_job(task.type, task.kwargs, subscriber)
         await self.repo.delete_many_by_subscriber(subscriber)
 
     async def get_by_subscriber(self, subscriber: ID):

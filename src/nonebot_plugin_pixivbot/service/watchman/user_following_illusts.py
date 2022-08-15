@@ -51,6 +51,6 @@ async def user_following_illusts(user_id: int) -> AsyncGenerator[Illust, None]:
 
             yield peeked[select]
             peeked[select] = None
-    except GeneratorExit as e:
+    except GeneratorExit:
         for gen in gen:
-            await gen.athrow(e)
+            await gen.aclose()

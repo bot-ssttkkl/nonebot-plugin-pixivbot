@@ -37,6 +37,33 @@ async def build_tasks_msg(identifier: PostIdentifier):
     return msg
 
 
+async def parse_user_illusts_args(args: Sequence[str]):
+    if len(args) < 2:
+        raise BadRequestError()
+
+    user = await parse_and_get_user(args[1])
+
+    watch_args = {"user_id": user.id}
+    message = f"{user.name}({user.id})老师的插画更新"
+
+    return watch_args, message
+
+
+async def parse_following_illusts_args(args: Sequence[str], post_dest: PostDestination[UID, GID]):
+    if len(args) > 1:
+        user = await parse_and_get_user(args[1])
+
+        watch_args = {"pixiv_user_id": user.id,
+                      "sender_user_id": post_dest.user_id}
+        message = f"{user.name}({user.id})用户的关注者插画更新"
+    else:
+        watch_args = {"pixiv_user_id": 0,
+                      "sender_user_id": post_dest.user_id}
+        message = f"关注者插画更新"
+
+    return watch_args, message
+
+
 @context.inject
 @context.require(CommandHandler).sub_command("watch")
 class WatchHandler(SubCommandHandler):
@@ -56,33 +83,6 @@ class WatchHandler(SubCommandHandler):
     def enabled(self) -> bool:
         return True
 
-    @staticmethod
-    async def parse_user_illusts_args(args: Sequence[str]):
-        if len(args) < 2:
-            raise BadRequestError()
-
-        user = await parse_and_get_user(args[1])
-
-        watch_args = {"user_id": user.id}
-        message = f"{user.name}({user.id})老师的插画更新"
-
-        return watch_args, message
-
-    @staticmethod
-    async def parse_following_illusts_args(args: Sequence[str], post_dest: PostDestination[UID, GID]):
-        if len(args) > 1:
-            user = await parse_and_get_user(args[1])
-
-            watch_args = {"pixiv_user_id": user.id,
-                          "sender_user_id": post_dest.user_id}
-            message = f"{user.name}({user.id})用户的关注者插画更新"
-        else:
-            watch_args = {"pixiv_user_id": 0,
-                          "sender_user_id": post_dest.user_id}
-            message = f"关注者插画更新"
-
-        return watch_args, message
-
     async def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
         if len(args) == 0:
             raise BadRequestError()
@@ -90,23 +90,23 @@ class WatchHandler(SubCommandHandler):
         try:
             type = WatchType[args[0]]
             if type == WatchType.user_illusts:
-                watch_args, message = await self.parse_user_illusts_args(args)
+                watch_kwargs, message = await parse_user_illusts_args(args)
             elif type == WatchType.following_illusts:
-                watch_args, message = await self.parse_following_illusts_args(args, post_dest)
+                watch_kwargs, message = await parse_following_illusts_args(args, post_dest)
             else:
                 raise KeyError()
         except KeyError as e:
             raise BadRequestError(f"未知订阅类型：{args[0]}") from e
 
-        return {"type": type, "args": watch_args, "success_message": "成功订阅" + message}
+        return {"type": type, "watch_kwargs": watch_kwargs, "success_message": "成功订阅" + message}
 
     # noinspection PyMethodOverriding
     async def actual_handle(self, *, type: WatchType,
-                            args: Dict[str, Any],
+                            watch_kwargs: Dict[str, Any],
                             success_message: str,
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
-        await self.watchman.watch(type, args, post_dest)
+        await self.watchman.watch(type, watch_kwargs, post_dest)
         await self.post_plain_text(success_message, post_dest)
 
     async def actual_handle_bad_request(self, *, post_dest: PostDestination[UID, GID],
@@ -149,16 +149,23 @@ class UnwatchHandler(SubCommandHandler):
 
         try:
             type = WatchType[args[0]]
+            if type == WatchType.user_illusts:
+                watch_kwargs, message = await parse_user_illusts_args(args)
+            elif type == WatchType.following_illusts:
+                watch_kwargs, message = await parse_following_illusts_args(args, post_dest)
+            else:
+                raise KeyError()
         except KeyError as e:
             raise BadRequestError(f"未知订阅类型：{args[0]}") from e
 
-        return {"type": type}
+        return {"type": type, "watch_kwargs": watch_kwargs}
 
     # noinspection PyMethodOverriding
     async def actual_handle(self, *, type: WatchType,
+                            watch_kwargs: Dict[str, Any],
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
-        if await self.watchman.unwatch(type, post_dest.identifier):
+        if await self.watchman.unwatch(type, watch_kwargs, post_dest.identifier):
             await self.post_plain_text(message="成功取消订阅", post_dest=post_dest)
         else:
             raise BadRequestError("取消订阅失败，不存在该订阅")

@@ -283,7 +283,30 @@ class TestUnwatchHandler(FakeWatchmanMixin,
             subscriber=post_dest
         )
 
-        await context.require(UnwatchHandler).handle("user_illusts", post_dest=post_dest)
+        await context.require(UnwatchHandler).handle("user_illusts", "54321", post_dest=post_dest)
+        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+
+        tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
+        assert len(tasks) == 0
+
+    @pytest.mark.asyncio
+    async def test_handle_user_illusts_by_name(self, fake_post_destination,
+                                               fake_postman_manager,
+                                               fake_watchman):
+        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.handler.command.watch import UnwatchHandler
+        from nonebot_plugin_pixivbot.model import WatchType
+
+        post_dest = fake_post_destination(1234, 56789)
+        except_msg = "成功取消订阅"
+
+        await context.require(fake_watchman).watch(
+            type=WatchType.user_illusts,
+            kwargs={"user_id": 54321},
+            subscriber=post_dest
+        )
+
+        await context.require(UnwatchHandler).handle("user_illusts", "TestUser", post_dest=post_dest)
         assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
@@ -303,6 +326,50 @@ class TestUnwatchHandler(FakeWatchmanMixin,
         await context.require(fake_watchman).watch(
             type=WatchType.following_illusts,
             kwargs={"pixiv_user_id": 54321, "sender_user_id": 1234},
+            subscriber=post_dest
+        )
+
+        await context.require(UnwatchHandler).handle("following_illusts", "54321", post_dest=post_dest)
+        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+
+        tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
+        assert len(tasks) == 0
+
+    @pytest.mark.asyncio
+    async def test_handle_following_illusts_by_name(self, fake_post_destination,
+                                                    fake_postman_manager,
+                                                    fake_watchman):
+        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.handler.command.watch import UnwatchHandler
+        from nonebot_plugin_pixivbot.model import WatchType
+
+        post_dest = fake_post_destination(1234, 56789)
+        except_msg = "成功取消订阅"
+        await context.require(fake_watchman).watch(
+            type=WatchType.following_illusts,
+            kwargs={"pixiv_user_id": 54321, "sender_user_id": 1234},
+            subscriber=post_dest
+        )
+
+        await context.require(UnwatchHandler).handle("following_illusts", "TestUser", post_dest=post_dest)
+        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+
+        tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
+        assert len(tasks) == 0
+
+    @pytest.mark.asyncio
+    async def test_handle_following_illusts_by_bind(self, fake_post_destination,
+                                                    fake_postman_manager,
+                                                    fake_watchman):
+        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.handler.command.watch import UnwatchHandler
+        from nonebot_plugin_pixivbot.model import WatchType
+
+        post_dest = fake_post_destination(1234, 56789)
+        except_msg = "成功取消订阅"
+        await context.require(fake_watchman).watch(
+            type=WatchType.following_illusts,
+            kwargs={"pixiv_user_id": 0, "sender_user_id": 1234},
             subscriber=post_dest
         )
 

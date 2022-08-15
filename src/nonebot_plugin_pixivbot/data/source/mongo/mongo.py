@@ -99,10 +99,10 @@ class MongoDataSource:
 
         await self._ensure_index(db, 'watch_task', [("subscriber.adapter", 1),
                                                     ("subscriber.user_id", 1),
-                                                    ("type", 1)], unique=True)
+                                                    ("type", 1)])
         await self._ensure_index(db, 'watch_task', [("subscriber.adapter", 1),
                                                     ("subscriber.group_id", 1),
-                                                    ("type", 1)], unique=True)
+                                                    ("type", 1)])
 
         await self._ensure_index(db, 'local_tags', [("name", 1)], unique=True)
         await self._ensure_index(db, 'local_tags', [("translated_name", 1)])
