@@ -24,6 +24,7 @@ class IllustHandler(CommonHandler, Generic[UID, GID]):
         except ValueError:
             raise BadRequestError(f"{args[0]}不是合法的插画ID")
 
+    # noinspection PyMethodOverriding
     async def actual_handle(self, *, illust_id: int,
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):

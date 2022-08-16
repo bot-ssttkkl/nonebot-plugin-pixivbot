@@ -1,10 +1,10 @@
+import importlib.resources as pkg_resources
 import json
 from typing import Union, List, Tuple
 
 import pytest
-from tests import MyTest
 
-import importlib.resources as pkg_resources
+from tests import MyTest
 
 
 class FakePixivServiceMixin(MyTest):
@@ -13,7 +13,7 @@ class FakePixivServiceMixin(MyTest):
         from nonebot_plugin_pixivbot.model import Illust
 
         from . import resources
-        with pkg_resources.open_text(resources, 'sample_illusts.json', "r") as f:
+        with pkg_resources.open_text(resources, 'sample_illusts.json') as f:
             obj = json.load(f)
 
         samples = []
@@ -31,6 +31,9 @@ class FakePixivServiceMixin(MyTest):
 
         @context.bind_singleton_to(PixivService)
         class FakePixivService:
+            def get_sample(self, num: int) -> Illust:
+                return sample_illusts[num]
+
             async def illust_ranking(self, mode: RankingMode, range: Tuple[int, int]) -> List[Illust]:
                 count = range[1] - range[0] + 1
                 return sample_illusts[:count]

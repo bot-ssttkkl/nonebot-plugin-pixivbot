@@ -35,7 +35,7 @@ class TestScheduleHandler(FakeSchedulerMixin,
                      "无\n" + self.help_text
 
         await context.require(ScheduleHandler).handle(post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest,  except_msg)
 
     @pytest.mark.asyncio
     async def test_handle_no_arg(self, fake_post_destination,
@@ -69,7 +69,7 @@ class TestScheduleHandler(FakeSchedulerMixin,
         )
 
         await context.require(ScheduleHandler).handle(post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest,  except_msg)
 
     @pytest.mark.asyncio
     async def test_handle_interval_schedule(self, fake_post_destination,
@@ -89,7 +89,7 @@ class TestScheduleHandler(FakeSchedulerMixin,
         )
 
         await context.require(ScheduleHandler).handle("random_bookmark", "00:30*x", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest,  except_msg)
         assert context.require(fake_scheduler).subscriptions[
                    (post_dest.identifier, ScheduleType.random_bookmark)
                ] == except_sub
@@ -108,7 +108,7 @@ class TestScheduleHandler(FakeSchedulerMixin,
                      "无\n" + self.help_text
 
         await context.require(ScheduleHandler).handle("invalid_arg_lol", "00:30*x", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest,  except_msg)
         assert (post_dest.identifier, ScheduleType.random_bookmark) not in context.require(fake_scheduler).subscriptions
 
     @pytest.mark.asyncio
@@ -124,7 +124,7 @@ class TestScheduleHandler(FakeSchedulerMixin,
                      "无\n" + self.help_text
 
         await context.require(ScheduleHandler).handle("random_bookmark", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest,  except_msg)
         assert (post_dest.identifier, ScheduleType.random_bookmark) not in context.require(fake_scheduler).subscriptions
 
 
@@ -149,7 +149,7 @@ class TestUnscheduleHandler(FakeSchedulerMixin,
                      "命令格式：/pixivbot unschedule <type>"
 
         await context.require(UnscheduleHandler).handle(post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest,  except_msg)
 
     @pytest.mark.asyncio
     async def test_handle_no_arg(self, fake_post_destination,
@@ -185,7 +185,7 @@ class TestUnscheduleHandler(FakeSchedulerMixin,
         )
 
         await context.require(UnscheduleHandler).handle(post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest,  except_msg)
 
     @pytest.mark.asyncio
     async def test_handle(self, fake_post_destination,
@@ -208,7 +208,7 @@ class TestUnscheduleHandler(FakeSchedulerMixin,
         )
 
         await context.require(UnscheduleHandler).handle("random_bookmark", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest,  except_msg)
         assert (post_dest.identifier, ScheduleType.random_bookmark) not in context.require(fake_scheduler).subscriptions
 
     @pytest.mark.asyncio
@@ -227,7 +227,7 @@ class TestUnscheduleHandler(FakeSchedulerMixin,
                      "命令格式：/pixivbot unschedule <type>"
 
         await context.require(UnscheduleHandler).handle("random_bookmark", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest,  except_msg)
         assert (post_dest.identifier, ScheduleType.random_bookmark) not in context.require(fake_scheduler).subscriptions
 
     @pytest.mark.asyncio
@@ -246,5 +246,5 @@ class TestUnscheduleHandler(FakeSchedulerMixin,
                      "命令格式：/pixivbot unschedule <type>"
 
         await context.require(UnscheduleHandler).handle("invalid_arg_lol", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest,  except_msg)
         assert (post_dest.identifier, ScheduleType.random_bookmark) not in context.require(fake_scheduler).subscriptions

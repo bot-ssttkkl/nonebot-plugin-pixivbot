@@ -1,3 +1,5 @@
+from typing import Union
+
 import pytest
 
 from tests import MyTest
@@ -15,6 +17,10 @@ class FakePostmanManagerMixin(MyTest):
         class FakePostmanManager:
             def __init__(self):
                 self.calls = []
+
+            def assert_call(self, post_dest: PostDestination[int, int],
+                            message: Union[str, IllustMessageModel, IllustMessagesModel]):
+                assert (post_dest, message) in self.calls
 
             async def send_plain_text(self, message: str,
                                       *, post_dest: PostDestination[int, int]):

@@ -33,7 +33,7 @@ class TestWatchHandler(FakeWatchmanMixin,
                      "无\n" + self.help_text
 
         await context.require(WatchHandler).handle(post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
     @pytest.mark.asyncio
     async def test_handle_no_arg(self, fake_post_destination,
@@ -61,7 +61,7 @@ class TestWatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(WatchHandler).handle(post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
     @pytest.mark.asyncio
     async def test_handle_user_illusts(self, fake_post_destination,
@@ -80,7 +80,7 @@ class TestWatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(WatchHandler).handle("user_illusts", "54321", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
         assert tasks[0] == except_task
@@ -102,7 +102,7 @@ class TestWatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(WatchHandler).handle("user_illusts", "TestUser", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
         assert tasks[0] == except_task
@@ -124,7 +124,7 @@ class TestWatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(WatchHandler).handle("following_illusts", "54321", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
         assert tasks[0] == except_task
@@ -146,7 +146,7 @@ class TestWatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(WatchHandler).handle("following_illusts", "TestUser", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
         assert tasks[0] == except_task
@@ -168,7 +168,7 @@ class TestWatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(WatchHandler).handle("following_illusts", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
         assert tasks[0] == except_task
@@ -187,7 +187,7 @@ class TestWatchHandler(FakeWatchmanMixin,
                      "无\n" + self.help_text
 
         await context.require(WatchHandler).handle("invalid_arg_lol", "00:30*x", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
         assert len(await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)) == 0
 
     @pytest.mark.asyncio
@@ -202,7 +202,7 @@ class TestWatchHandler(FakeWatchmanMixin,
                      "无\n" + self.help_text
 
         await context.require(WatchHandler).handle("user_illusts", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
         assert len(await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)) == 0
 
 
@@ -231,7 +231,7 @@ class TestUnwatchHandler(FakeWatchmanMixin,
                      "无\n" + self.help_text
 
         await context.require(UnwatchHandler).handle(post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
     @pytest.mark.asyncio
     async def test_handle_no_arg(self, fake_post_destination,
@@ -259,7 +259,7 @@ class TestUnwatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(UnwatchHandler).handle(post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
     @pytest.mark.asyncio
     async def test_handle_user_illusts(self, fake_post_destination,
@@ -279,7 +279,7 @@ class TestUnwatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(UnwatchHandler).handle("user_illusts", "54321", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
         assert len(tasks) == 0
@@ -302,7 +302,7 @@ class TestUnwatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(UnwatchHandler).handle("user_illusts", "TestUser", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
         assert len(tasks) == 0
@@ -325,7 +325,7 @@ class TestUnwatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(UnwatchHandler).handle("following_illusts", "54321", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
         assert len(tasks) == 0
@@ -347,7 +347,7 @@ class TestUnwatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(UnwatchHandler).handle("following_illusts", "TestUser", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
         assert len(tasks) == 0
@@ -369,7 +369,7 @@ class TestUnwatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(UnwatchHandler).handle("following_illusts", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
         assert len(tasks) == 0
@@ -388,5 +388,5 @@ class TestUnwatchHandler(FakeWatchmanMixin,
                      "无\n" + self.help_text
 
         await context.require(UnwatchHandler).handle("invalid_arg_lol", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
         assert len(await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)) == 0
