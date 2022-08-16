@@ -1,7 +1,7 @@
 import pytest
 
 from tests import MyTest
-from tests.model.mock_illust_message_model import MockMessageModelMixin
+from tests.model.mock_message import MockMessageModelMixin
 from tests.protocol_dep.fake_post_dest import FakePostDestinationMixin
 from tests.protocol_dep.fake_postman import FakePostmanManagerMixin
 from tests.service.fake_pixiv_service import FakePixivServiceMixin

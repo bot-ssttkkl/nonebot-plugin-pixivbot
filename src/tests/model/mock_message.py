@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Sequence
 
 import pytest
 from tzlocal import get_localzone
