@@ -19,4 +19,4 @@ class RecordReqInterceptor(Interceptor):
                         silently: bool,
                         **kwargs):
         await wrapped_func(*args, post_dest=post_dest, silently=silently, **kwargs)
-        self.recorder.record_req(Req(wrapped_func, **kwargs), post_dest.identifier)
+        self.recorder.record_req(Req(wrapped_func, *args, **kwargs), post_dest.identifier)
