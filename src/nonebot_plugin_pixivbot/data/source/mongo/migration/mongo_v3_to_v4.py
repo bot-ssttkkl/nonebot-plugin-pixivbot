@@ -30,10 +30,38 @@ class MongoV3ToV4(MongoMigration):
                 {
                     "$set": {
                         "subscriber": {
-                            "adapter": "$$ROOT.adapter",
-                            "user_id": "$$ROOT.user_id",
-                            "group_id": "$$ROOT.group_id",
-                        }
+                            "$let": {
+                                "vars": {
+                                    "adapter": "$$ROOT.adapter",
+                                    "user_id": "$$ROOT.user_id",
+                                    "group_id": "$$ROOT.group_id",
+                                },
+                                "in": {
+                                    "adapter": {
+                                        "$cond": {
+                                            "if": {"$ne": [{"$type": "$$adapter"}, "missing"]},
+                                            "then": "$$adapter",
+                                            "else": None
+                                        },
+                                    },
+                                    "user_id": {
+                                        "$cond": {
+                                            "if": {"$ne": [{"$type": "$$user_id"}, "missing"]},
+                                            "then": "$$user_id",
+                                            "else": None
+                                        },
+                                    },
+                                    "group_id": {
+                                        "$cond": {
+                                            "if": {"$ne": [{"$type": "$$group_id"}, "missing"]},
+                                            "then": "$$group_id",
+                                            "else": None
+                                        },
+                                    }
+                                }
+                            }
+                        },
+                        "tz": "Asia/Shanghai"
                     }
                 },
                 {
