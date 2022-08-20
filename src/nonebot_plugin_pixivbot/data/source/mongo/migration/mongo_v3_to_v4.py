@@ -33,7 +33,8 @@ class MongoV3ToV4(MongoMigration):
                             "adapter": "$$ROOT.adapter",
                             "user_id": "$$ROOT.user_id",
                             "group_id": "$$ROOT.group_id",
-                        }
+                        },
+                        "tz": "Asia/Shanghai"
                     }
                 },
                 {

@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import TypeVar, Generic, Sequence, Dict, Any
 
+import tzlocal
 from pydantic.generics import GenericModel
 
 from nonebot_plugin_pixivbot.model import PostIdentifier
@@ -22,6 +23,7 @@ class Subscription(GenericModel, Generic[UID, GID]):
     kwargs: Dict[str, Any]
     subscriber: PostIdentifier[UID, GID]
     schedule: Sequence[int]
+    tz: str = tzlocal.get_localzone_name()
 
 
 __all__ = ("Subscription", "ScheduleType")
