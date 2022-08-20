@@ -9,8 +9,7 @@ nonebot-plugin-pixivbot
 # ================= provide beans =================
 from importlib import import_module
 
-import nonebot.plugin
-from nonebot import require, logger
+from nonebot import logger
 
 from .global_context import context
 from .providers import provide

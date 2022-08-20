@@ -1,4 +1,4 @@
-from typing import TypeVar, Union, Sequence, Any
+from typing import TypeVar, Union, Sequence
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
