@@ -68,7 +68,7 @@ class FakePixivServiceMixin(MyTest):
             async def random_user_illust(self, user: Union[str, int], *, count: int = 1) -> Tuple[User, List[Illust]]:
                 random.shuffle(sample_illusts)
                 ans = sample_illusts[:count]
-                return ans
+                return await self.get_user(user), ans
 
             async def random_recommended_illust(self, *, count: int = 1) -> List[Illust]:
                 random.shuffle(sample_illusts)

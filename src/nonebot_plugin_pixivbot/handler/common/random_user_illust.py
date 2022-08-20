@@ -29,6 +29,7 @@ class RandomUserIllustHandler(CommonHandler):
 
         return {"user": user.id}
 
+    # noinspection PyMethodOverriding
     async def actual_handle(self, *, user: Union[str, int],
                             count: int = 1,
                             post_dest: PostDestination[UID, GID],
@@ -36,5 +37,5 @@ class RandomUserIllustHandler(CommonHandler):
         userinfo, illusts = await self.service.random_user_illust(user, count=count)
 
         await self.post_illusts(illusts,
-                                header=f"这是您点的{userinfo.name}老师({userinfo.id})的图",
+                                header=f"这是您点的{userinfo.name}({userinfo.id})老师的图",
                                 post_dest=post_dest)
