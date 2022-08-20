@@ -40,11 +40,11 @@ class CombinedInterceptor(Interceptor):
                 result = self.y.find(interceptor_type)
             return result
 
-    async def intercept(self, wrapped_func: Callable, *,
+    async def intercept(self, wrapped_func: Callable, *args,
                         post_dest: PostDestination[UID, GID],
                         silently: bool,
                         **kwargs):
         await self.x.intercept(
-            partial(self.y.intercept, wrapped_func),
+            partial(self.y.intercept, wrapped_func), *args,
             post_dest=post_dest, silently=silently, **kwargs
         )

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Union, Optional, AsyncGenerator
 
 from pydantic import BaseModel
@@ -10,7 +10,7 @@ from .lazy_illust import LazyIllust
 
 
 class PixivRepoMetadata(BaseModel):
-    update_time: datetime = datetime.now()
+    update_time: datetime = datetime.now(timezone.utc)
     pages: Optional[int]
     next_qs: Optional[dict]
 
@@ -49,7 +49,8 @@ class AbstractPixivRepo(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def illust_ranking(self, mode: RankingMode) -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
+    def illust_ranking(self, mode: Union[str, RankingMode]) \
+            -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
         raise NotImplementedError()
 
     @abstractmethod

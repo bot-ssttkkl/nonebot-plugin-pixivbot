@@ -1,5 +1,5 @@
 from asyncio import sleep
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 
 import pytest
@@ -18,7 +18,7 @@ class TestExpiresLruDict(MyTest):
     async def test_expires(self, lru):
         lru.on_cleanup = MagicMock()
 
-        expires = datetime.now() + timedelta(seconds=1)
+        expires = datetime.now(timezone.utc) + timedelta(seconds=1)
         lru.add("hello", "world", expires)
         assert lru["hello"] == "world"
 
@@ -26,14 +26,14 @@ class TestExpiresLruDict(MyTest):
         assert "hello" not in lru
         lru.on_cleanup.assert_called_once_with("hello", "world")
 
-        expires = datetime.now() + timedelta(seconds=30)
+        expires = datetime.now(timezone.utc) + timedelta(seconds=30)
         lru.add("hello", "test", expires)
         assert lru["hello"] == "test"
 
     def test_lru(self, lru):
         lru.on_cleanup = MagicMock()
 
-        expires = datetime.now() + timedelta(seconds=3)
+        expires = datetime.now(timezone.utc) + timedelta(seconds=3)
         for i in range(11):
             lru.add(i, i, expires)
 
@@ -44,7 +44,7 @@ class TestExpiresLruDict(MyTest):
 
     @pytest.mark.asyncio
     async def test_expires_lru(self, lru):
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         for i in range(5):
             lru.add(i, i, now + timedelta(seconds=2))
         for i in range(5, 10):
@@ -58,7 +58,7 @@ class TestExpiresLruDict(MyTest):
             assert lru[i] == i
         # except: 5 6 7 8 9
 
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         for i in range(10, 18):
             lru.add(i, i, now + timedelta(seconds=20))
         # except: 8 9 10 11 12 13 14 15 16 17
@@ -74,13 +74,13 @@ class TestExpiresLruDict(MyTest):
 
     @pytest.mark.asyncio
     async def test_collate_expires_heap(self, lru):
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         for i in range(20):
             lru.add(i, i, now + timedelta(milliseconds=100 * i))
 
         await sleep(3)
 
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         lru.add("hello", "world", now + timedelta(seconds=20))
 
         for i in range(20):

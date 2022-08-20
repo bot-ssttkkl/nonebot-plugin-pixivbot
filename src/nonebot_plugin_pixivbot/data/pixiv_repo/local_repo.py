@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Union, Sequence, Any, Mapping, AsyncGenerator
 
 import bson
@@ -29,7 +29,7 @@ class CacheExpiredError(LocalPixivRepoError):
 
 
 def handle_expires_in(doc: Mapping, expires_in: int):
-    if datetime.now() - doc["metadata"]["update_time"] >= timedelta(seconds=expires_in):
+    if datetime.now(timezone.utc) - doc["metadata"]["update_time"] >= timedelta(seconds=expires_in):
         raise CacheExpiredError(PixivRepoMetadata.parse_obj(doc["metadata"]))
 
 
@@ -59,6 +59,7 @@ class LocalPixivRepo(AbstractPixivRepo):
                     tags[t.name] = t
 
         await self.local_tags.insert_many(tags.values())
+        logger.debug(f"[local] add {len(tags)} local tags")
 
     async def _illusts_agen(self, collection_name: str,
                             query: dict,
@@ -371,7 +372,7 @@ class LocalPixivRepo(AbstractPixivRepo):
 
     # ================ user_detail ================
     async def user_detail(self, user_id: int) \
-            -> AsyncGenerator[Union[Illust, PixivRepoMetadata], None]:
+            -> AsyncGenerator[Union[User, PixivRepoMetadata], None]:
         logger.debug(f"[local] user_detail {user_id}")
         doc = await self.mongo.db.user_detail_cache.find_one({"user.id": user_id})
         if doc is not None:
@@ -386,7 +387,7 @@ class LocalPixivRepo(AbstractPixivRepo):
         logger.debug(f"[local] update user_detail {user.id} {metadata_to_text(metadata)}")
 
         if not metadata:
-            metadata = PixivRepoMetadata(update_time=datetime.now())
+            metadata = PixivRepoMetadata(update_time=datetime.now(timezone.utc))
 
         await self.mongo.db.user_detail_cache.update_one(
             {"user.id": user.id},
@@ -439,7 +440,7 @@ class LocalPixivRepo(AbstractPixivRepo):
         logger.debug(f"[local] append search_user {word} "
                      f"({len(content)} items) "
                      f"{metadata_to_text(metadata)}")
-        return await self._append_and_check_users("search_illust_cache", {"word": word}, content, metadata)
+        return await self._append_and_check_users("search_user_cache", {"word": word}, content, metadata)
 
     # ================ user_illusts ================
     def user_illusts(self, user_id: int, *, offset: int = 0) \
@@ -535,8 +536,11 @@ class LocalPixivRepo(AbstractPixivRepo):
                                                     metadata)
 
     # ================ illust_ranking ================
-    def illust_ranking(self, mode: RankingMode, *, offset: int = 0) \
+    def illust_ranking(self, mode: Union[str, RankingMode], *, offset: int = 0) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
+        if isinstance(mode, str):
+            mode = RankingMode[mode]
+
         logger.debug(f"[local] illust_ranking {mode}")
 
         return self._get_illusts("other_cache", {"type": mode.name + "_ranking"},

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from math import ceil
 from typing import TypeVar
 
@@ -37,7 +37,7 @@ class CooldownInterceptor(PermissionInterceptor):
                 or str(identifier) in self.conf.pixiv_no_query_cooldown_users:
             return True
 
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         if identifier not in self.last_query_time:
             self.last_query_time[identifier] = now
             return True
@@ -54,7 +54,7 @@ class CooldownInterceptor(PermissionInterceptor):
 
     def get_permission_denied_msg(self, post_dest: PostDestination[UID, GID]) -> str:
         identifier = UserIdentifier(post_dest.adapter, post_dest.user_id)
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         delta = now - self.last_query_time[identifier]
         cooldown = ceil(self.conf.pixiv_query_cooldown - delta.total_seconds())
         return f"你的CD还有{cooldown}s转好"

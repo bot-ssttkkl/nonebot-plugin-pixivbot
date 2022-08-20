@@ -37,8 +37,10 @@ class RandomBookmarkHandler(CommonHandler):
             except ValueError:
                 raise BadRequestError(f"{args[0]}不是合法的ID")
 
+        # 因为群组的订阅会把PostIdentifier的user_id抹去，所以这里必须传递sender_user_id
         return {"pixiv_user_id": pixiv_user_id, "sender_user_id": sender_user_id}
 
+    # noinspection PyMethodOverriding
     async def actual_handle(self, *, sender_user_id: UID,
                             pixiv_user_id: int = 0,
                             count: int = 1,

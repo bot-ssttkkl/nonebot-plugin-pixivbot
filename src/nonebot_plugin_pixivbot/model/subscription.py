@@ -1,6 +1,6 @@
-from typing import TypeVar, Generic, Sequence, Dict, Any, Optional
+from enum import Enum
+from typing import TypeVar, Generic, Sequence, Dict, Any
 
-from pydantic import validator
 from pydantic.generics import GenericModel
 
 from nonebot_plugin_pixivbot.model import PostIdentifier
@@ -9,27 +9,19 @@ UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
+class ScheduleType(Enum):
+    random_bookmark = "random_bookmark"
+    random_recommended_illust = "random_recommended_illust"
+    random_illust = "random_illust"
+    random_user_illust = "random_user_illust"
+    ranking = "ranking"
+
+
 class Subscription(GenericModel, Generic[UID, GID]):
-    adapter: str
-    user_id: Optional[UID]
-    group_id: Optional[GID]
-    type: str
+    type: ScheduleType
     kwargs: Dict[str, Any]
+    subscriber: PostIdentifier[UID, GID]
     schedule: Sequence[int]
 
-    @validator("user_id", allow_reuse=True)
-    def validate(cls, user_id, values):
-        group_id = None
-        if "group_id" in values:
-            group_id = values["group_id"]
 
-        if not user_id and not group_id:
-            raise ValueError("at least one of user_id and group_id should be not None")
-        return user_id
-
-    @property
-    def identifier(self):
-        return PostIdentifier(self.adapter, self.user_id, self.group_id)
-
-
-__all__ = ("Subscription",)
+__all__ = ("Subscription", "ScheduleType")

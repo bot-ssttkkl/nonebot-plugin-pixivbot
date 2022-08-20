@@ -1,4 +1,4 @@
-from typing import TypeVar, Generic, Sequence, Any
+from typing import TypeVar, Generic, Sequence
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
@@ -24,6 +24,7 @@ class IllustHandler(CommonHandler, Generic[UID, GID]):
         except ValueError:
             raise BadRequestError(f"{args[0]}不是合法的插画ID")
 
+    # noinspection PyMethodOverriding
     async def actual_handle(self, *, illust_id: int,
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):

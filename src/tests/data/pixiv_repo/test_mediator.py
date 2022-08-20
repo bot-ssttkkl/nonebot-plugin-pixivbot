@@ -1,6 +1,6 @@
 from asyncio import sleep
 from datetime import datetime
-from unittest.mock import AsyncMock, call
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -55,7 +55,7 @@ class TestMediateSingle(MyTest):
 
         content = None
         metadata = None
-        async for x in mediate_single(cache_factory_with_cache, remote_factory, cache_updater):
+        async for x in mediate_single(cache_factory_with_cache, remote_factory, {}, cache_updater):
             if isinstance(x, PixivRepoMetadata):
                 metadata = x
             else:
@@ -74,7 +74,7 @@ class TestMediateSingle(MyTest):
 
         content = None
         metadata = None
-        async for x in mediate_single(cache_factory_with_expired_cache, remote_factory, cache_updater):
+        async for x in mediate_single(cache_factory_with_expired_cache, remote_factory, {}, cache_updater):
             if isinstance(x, PixivRepoMetadata):
                 metadata = x
             else:
@@ -96,9 +96,15 @@ class TestMediateCollection(MyTest):
 
         async def agen():
             await sleep(0.1)
+
+            cache_metadata.pages = 0
             yield cache_metadata
+
             for i in range(30):
                 yield i
+
+            cache_metadata.pages = 5
+            yield cache_metadata
 
             # meta, 0, 1, ..., 29
 
@@ -114,9 +120,15 @@ class TestMediateCollection(MyTest):
 
         async def agen():
             await sleep(0.1)
+
+            cache_metadata.pages = 0
             yield cache_metadata
+
             for i in range(30):
                 yield i
+
+            cache_metadata.pages = 5
+            yield cache_metadata
 
             # meta, 0, 1, ..., 29
 
@@ -175,13 +187,11 @@ class TestMediateMany(TestMediateCollection):
         from nonebot_plugin_pixivbot.data.pixiv_repo.mediator import mediate_many
         from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
 
-        cache_updater = AsyncMock()
         cache_appender = AsyncMock()
 
         items = []
         metadata = None
-        async for x in mediate_many(cache_factory_with_cache_and_empty_next_qs, remote_factory,
-                                    cache_updater, cache_appender):
+        async for x in mediate_many(cache_factory_with_cache_and_empty_next_qs, remote_factory, {}, cache_appender):
             if not isinstance(x, PixivRepoMetadata):
                 items.append(x)
             else:
@@ -189,7 +199,6 @@ class TestMediateMany(TestMediateCollection):
 
         assert items == [x for x in range(30)]
         assert metadata.update_time == datetime.fromtimestamp(0)  # assert metadata comes from cache
-        cache_updater.assert_not_awaited()
         cache_appender.assert_not_awaited()
 
     @pytest.mark.asyncio
@@ -197,13 +206,14 @@ class TestMediateMany(TestMediateCollection):
         from nonebot_plugin_pixivbot.data.pixiv_repo.mediator import mediate_many
         from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
 
-        cache_updater = AsyncMock()
-        cache_appender = AsyncMock()
+        cache_appender_calls = []
+
+        async def cache_appender(items, metadata):
+            cache_appender_calls.append((list(items), metadata))
 
         items = []
         metadata = None
-        async for x in mediate_many(cache_factory_with_cache, remote_factory,
-                                    cache_updater, cache_appender):
+        async for x in mediate_many(cache_factory_with_cache, remote_factory, {}, cache_appender):
             if not isinstance(x, PixivRepoMetadata):
                 items.append(x)
             else:
@@ -211,21 +221,25 @@ class TestMediateMany(TestMediateCollection):
 
         assert items == [x for x in range(90)]
         assert metadata.update_time != datetime.fromtimestamp(0)  # assert metadata comes from remote
-        cache_updater.assert_not_awaited()
-        cache_appender.assert_awaited_once_with([x for x in range(30, 90)], metadata)
+        assert cache_appender_calls == [
+            ([x for x in range(30, 50)], PixivRepoMetadata(pages=6, next_qs={"next": 50})),
+            ([x for x in range(50, 70)], PixivRepoMetadata(pages=7, next_qs={"next": 70})),
+            ([x for x in range(70, 90)], PixivRepoMetadata(pages=8, next_qs={"next": 90})),
+        ]
 
     @pytest.mark.asyncio
     async def test_with_remote(self, cache_factory_with_no_cache, remote_factory):
         from nonebot_plugin_pixivbot.data.pixiv_repo.mediator import mediate_many
         from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
 
-        cache_updater = AsyncMock()
-        cache_appender = AsyncMock()
+        cache_appender_calls = []
+
+        async def cache_appender(items, metadata):
+            cache_appender_calls.append((list(items), metadata))
 
         items = []
         metadata = None
-        async for x in mediate_many(cache_factory_with_no_cache, remote_factory,
-                                    cache_updater, cache_appender):
+        async for x in mediate_many(cache_factory_with_no_cache, remote_factory, {}, cache_appender):
             if not isinstance(x, PixivRepoMetadata):
                 items.append(x)
             else:
@@ -233,8 +247,11 @@ class TestMediateMany(TestMediateCollection):
 
         assert items == [x for x in range(60)]
         assert metadata.update_time != datetime.fromtimestamp(0)  # assert metadata comes from remote
-        cache_updater.assert_awaited_once_with([x for x in range(60)], metadata)
-        cache_appender.assert_not_awaited()
+        assert cache_appender_calls == [
+            ([x for x in range(0, 20)], PixivRepoMetadata(pages=1, next_qs={"next": 20})),
+            ([x for x in range(20, 40)], PixivRepoMetadata(pages=2, next_qs={"next": 40})),
+            ([x for x in range(40, 60)], PixivRepoMetadata(pages=3, next_qs={"next": 60})),
+        ]
 
 
 class TestMediateAppend(TestMediateCollection):
@@ -243,13 +260,11 @@ class TestMediateAppend(TestMediateCollection):
         from nonebot_plugin_pixivbot.data.pixiv_repo.mediator import mediate_append
         from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
 
-        cache_updater = AsyncMock()
         cache_appender = AsyncMock()
 
         items = []
         metadata = None
-        async for x in mediate_append(cache_factory_with_cache_and_empty_next_qs, remote_factory,
-                                      cache_updater, cache_appender):
+        async for x in mediate_append(cache_factory_with_cache_and_empty_next_qs, remote_factory, {}, cache_appender):
             if not isinstance(x, PixivRepoMetadata):
                 items.append(x)
             else:
@@ -257,7 +272,6 @@ class TestMediateAppend(TestMediateCollection):
 
         assert items == [x for x in range(30)]
         assert metadata.update_time == datetime.fromtimestamp(0)  # assert metadata comes from cache
-        cache_updater.assert_not_awaited()
         cache_appender.assert_not_awaited()
 
     @pytest.mark.asyncio
@@ -265,13 +279,14 @@ class TestMediateAppend(TestMediateCollection):
         from nonebot_plugin_pixivbot.data.pixiv_repo.mediator import mediate_append
         from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
 
-        cache_updater = AsyncMock()
-        cache_appender = AsyncMock()
+        cache_appender_calls = []
+
+        async def cache_appender(items, metadata):
+            cache_appender_calls.append((list(items), metadata))
 
         items = []
         metadata = None
-        async for x in mediate_append(cache_factory_with_cache, remote_factory,
-                                      cache_updater, cache_appender):
+        async for x in mediate_append(cache_factory_with_cache, remote_factory, {}, cache_appender):
             if not isinstance(x, PixivRepoMetadata):
                 items.append(x)
             else:
@@ -279,21 +294,25 @@ class TestMediateAppend(TestMediateCollection):
 
         assert items == [x for x in range(90)]
         assert metadata.update_time != datetime.fromtimestamp(0)  # assert metadata comes from remote
-        cache_updater.assert_not_awaited()
-        cache_appender.assert_awaited_once_with([x for x in range(30, 90)], metadata)
+        assert cache_appender_calls == [
+            ([x for x in range(30, 50)], PixivRepoMetadata(pages=6, next_qs={"next": 50})),
+            ([x for x in range(50, 70)], PixivRepoMetadata(pages=7, next_qs={"next": 70})),
+            ([x for x in range(70, 90)], PixivRepoMetadata(pages=8, next_qs={"next": 90})),
+        ]
 
     @pytest.mark.asyncio
     async def test_with_remote(self, cache_factory_with_no_cache, remote_factory):
         from nonebot_plugin_pixivbot.data.pixiv_repo.mediator import mediate_append
         from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
 
-        cache_updater = AsyncMock()
-        cache_appender = AsyncMock()
+        cache_appender_calls = []
+
+        async def cache_appender(items, metadata):
+            cache_appender_calls.append((list(items), metadata))
 
         items = []
         metadata = None
-        async for x in mediate_append(cache_factory_with_no_cache, remote_factory,
-                                      cache_updater, cache_appender):
+        async for x in mediate_append(cache_factory_with_no_cache, remote_factory, {}, cache_appender):
             if not isinstance(x, PixivRepoMetadata):
                 items.append(x)
             else:
@@ -301,8 +320,11 @@ class TestMediateAppend(TestMediateCollection):
 
         assert items == [x for x in range(60)]
         assert metadata.update_time != datetime.fromtimestamp(0)  # assert metadata comes from remote
-        cache_updater.assert_awaited_once_with([x for x in range(60)], metadata)
-        cache_appender.assert_not_awaited()
+        assert cache_appender_calls == [
+            ([x for x in range(0, 20)], PixivRepoMetadata(pages=1, next_qs={"next": 20})),
+            ([x for x in range(20, 40)], PixivRepoMetadata(pages=2, next_qs={"next": 40})),
+            ([x for x in range(40, 60)], PixivRepoMetadata(pages=3, next_qs={"next": 60})),
+        ]
 
     @pytest.mark.asyncio
     async def test_with_expired_cache(self, cache_factory_with_cache,
@@ -319,20 +341,17 @@ class TestMediateAppend(TestMediateCollection):
             else:
                 return cache_factory_with_cache()
 
+        cache_appender_calls = []
+
         async def cache_appender(items, metadata):
             nonlocal cache_updated
-
-            await sleep(0.1)
             cache_updated = True
+            cache_appender_calls.append((list(items), metadata))
             return True
-
-        cache_updater = AsyncMock()
-        cache_appender = AsyncMock(side_effect=cache_appender)
 
         items = []
         metadata = []
-        async for x in mediate_append(cache_factory, remote_factory,
-                                      cache_updater, cache_appender):
+        async for x in mediate_append(cache_factory, remote_factory, {}, cache_appender):
             if not isinstance(x, PixivRepoMetadata):
                 items.append(x)
             else:
@@ -341,11 +360,14 @@ class TestMediateAppend(TestMediateCollection):
         assert items == [x for x in range(90)]
         assert metadata[0].update_time == datetime.fromtimestamp(0)  # assert the first metadata comes from cache
         assert metadata[-1].update_time != datetime.fromtimestamp(0)  # assert the last metadata comes from remote
-        cache_updater.assert_not_awaited()
 
         # assert the first call for peek remote update with updated metadata
-        assert cache_appender.await_args_list[0].args[0] == [x for x in range(20)]
-        assert cache_appender.await_args_list[0].args[1].next_qs == metadata[0].next_qs
+        assert cache_appender_calls[0][0] == [x for x in range(20)]
+        assert cache_appender_calls[0][1].next_qs == metadata[0].next_qs
 
         # assert the second call for append remote data
-        assert cache_appender.await_args_list[1] == call([x for x in range(30, 90)], metadata[-1])
+        assert cache_appender_calls[1:] == [
+            ([x for x in range(30, 50)], PixivRepoMetadata(pages=6, next_qs={"next": 50})),
+            ([x for x in range(50, 70)], PixivRepoMetadata(pages=7, next_qs={"next": 70})),
+            ([x for x in range(70, 90)], PixivRepoMetadata(pages=8, next_qs={"next": 90})),
+        ]

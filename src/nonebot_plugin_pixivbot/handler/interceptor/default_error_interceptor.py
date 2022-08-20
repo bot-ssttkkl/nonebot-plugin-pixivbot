@@ -16,12 +16,12 @@ GID = TypeVar("GID")
 @context.register_singleton()
 class DefaultErrorInterceptor(Interceptor):
 
-    async def intercept(self, wrapped_func: Callable, *,
+    async def intercept(self, wrapped_func: Callable, *args,
                         post_dest: PostDestination[UID, GID],
                         silently: bool,
                         **kwargs):
         try:
-            await wrapped_func(post_dest=post_dest, silently=silently, **kwargs)
+            await wrapped_func(*args, post_dest=post_dest, silently=silently, **kwargs)
         except asyncio.TimeoutError:
             logger.warning("Timeout")
             if not silently:

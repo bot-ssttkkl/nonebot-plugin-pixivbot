@@ -1,6 +1,6 @@
 from enum import Enum
 
-__all__ = ("BlockAction", "DownloadQuantity", "RandomIllustMethod", "RankingMode")
+__all__ = ("BlockAction", "DownloadQuantity", "RandomIllustMethod", "RankingMode",)
 
 
 class BlockAction(Enum):
