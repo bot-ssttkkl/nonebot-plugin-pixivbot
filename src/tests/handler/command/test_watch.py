@@ -33,7 +33,7 @@ class TestWatchHandler(FakeWatchmanMixin,
                      "无\n" + self.help_text
 
         await context.require(WatchHandler).handle(post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
     @pytest.mark.asyncio
     async def test_handle_no_arg(self, fake_post_destination,
@@ -61,7 +61,7 @@ class TestWatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(WatchHandler).handle(post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
     @pytest.mark.asyncio
     async def test_handle_user_illusts(self, fake_post_destination,
@@ -80,7 +80,7 @@ class TestWatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(WatchHandler).handle("user_illusts", "54321", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
         assert tasks[0] == except_task
@@ -102,10 +102,27 @@ class TestWatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(WatchHandler).handle("user_illusts", "TestUser", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
         assert tasks[0] == except_task
+
+    @pytest.mark.asyncio
+    async def test_handle_user_illusts_by_name_no_data(self, fake_post_destination,
+                                                       fake_pixiv_service,
+                                                       fake_postman_manager,
+                                                       fake_watchman):
+        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.handler.command.watch import WatchHandler
+        from nonebot_plugin_pixivbot.utils.errors import QueryError
+
+        context.require(fake_pixiv_service).no_data = True
+
+        post_dest = fake_post_destination(1234, 56789)
+
+        # 因为Watch不是EntryHandler，没有配置异常拦截器
+        with pytest.raises(QueryError) as e:
+            await context.require(WatchHandler).handle("user_illusts", "NoSuchUser", post_dest=post_dest)
 
     @pytest.mark.asyncio
     async def test_handle_following_illusts(self, fake_post_destination,
@@ -124,7 +141,7 @@ class TestWatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(WatchHandler).handle("following_illusts", "54321", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
         assert tasks[0] == except_task
@@ -146,10 +163,27 @@ class TestWatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(WatchHandler).handle("following_illusts", "TestUser", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
         assert tasks[0] == except_task
+
+    @pytest.mark.asyncio
+    async def test_handle_following_illusts_by_name_no_data(self, fake_post_destination,
+                                                            fake_pixiv_service,
+                                                            fake_postman_manager,
+                                                            fake_watchman):
+        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.handler.command.watch import WatchHandler
+        from nonebot_plugin_pixivbot.utils.errors import QueryError
+
+        context.require(fake_pixiv_service).no_data = True
+
+        post_dest = fake_post_destination(1234, 56789)
+
+        # 因为Watch不是EntryHandler，没有配置异常拦截器
+        with pytest.raises(QueryError) as e:
+            await context.require(WatchHandler).handle("following_illusts", "NoSuchUser", post_dest=post_dest)
 
     @pytest.mark.asyncio
     async def test_handle_following_illusts_by_bind(self, fake_post_destination,
@@ -168,7 +202,7 @@ class TestWatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(WatchHandler).handle("following_illusts", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
         assert tasks[0] == except_task
@@ -187,7 +221,7 @@ class TestWatchHandler(FakeWatchmanMixin,
                      "无\n" + self.help_text
 
         await context.require(WatchHandler).handle("invalid_arg_lol", "00:30*x", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
         assert len(await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)) == 0
 
     @pytest.mark.asyncio
@@ -202,7 +236,7 @@ class TestWatchHandler(FakeWatchmanMixin,
                      "无\n" + self.help_text
 
         await context.require(WatchHandler).handle("user_illusts", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
         assert len(await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)) == 0
 
 
@@ -231,7 +265,7 @@ class TestUnwatchHandler(FakeWatchmanMixin,
                      "无\n" + self.help_text
 
         await context.require(UnwatchHandler).handle(post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
     @pytest.mark.asyncio
     async def test_handle_no_arg(self, fake_post_destination,
@@ -259,7 +293,7 @@ class TestUnwatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(UnwatchHandler).handle(post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
     @pytest.mark.asyncio
     async def test_handle_user_illusts(self, fake_post_destination,
@@ -279,7 +313,7 @@ class TestUnwatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(UnwatchHandler).handle("user_illusts", "54321", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
         assert len(tasks) == 0
@@ -302,10 +336,27 @@ class TestUnwatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(UnwatchHandler).handle("user_illusts", "TestUser", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
         assert len(tasks) == 0
+
+    @pytest.mark.asyncio
+    async def test_handle_user_illusts_by_name_no_data(self, fake_post_destination,
+                                                       fake_pixiv_service,
+                                                       fake_postman_manager,
+                                                       fake_watchman):
+        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.handler.command.watch import UnwatchHandler
+        from nonebot_plugin_pixivbot.utils.errors import QueryError
+
+        context.require(fake_pixiv_service).no_data = True
+
+        post_dest = fake_post_destination(1234, 56789)
+
+        # 因为Watch不是EntryHandler，没有配置异常拦截器
+        with pytest.raises(QueryError) as e:
+            await context.require(UnwatchHandler).handle("user_illusts", "NoSuchUser", post_dest=post_dest)
 
     @pytest.mark.asyncio
     async def test_handle_following_illusts(self, fake_post_destination,
@@ -325,7 +376,7 @@ class TestUnwatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(UnwatchHandler).handle("following_illusts", "54321", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
         assert len(tasks) == 0
@@ -347,10 +398,27 @@ class TestUnwatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(UnwatchHandler).handle("following_illusts", "TestUser", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
         assert len(tasks) == 0
+
+    @pytest.mark.asyncio
+    async def test_handle_following_illusts_by_name_no_data(self, fake_post_destination,
+                                                            fake_pixiv_service,
+                                                            fake_postman_manager,
+                                                            fake_watchman):
+        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.handler.command.watch import UnwatchHandler
+        from nonebot_plugin_pixivbot.utils.errors import QueryError
+
+        context.require(fake_pixiv_service).no_data = True
+
+        post_dest = fake_post_destination(1234, 56789)
+
+        # 因为Watch不是EntryHandler，没有配置异常拦截器
+        with pytest.raises(QueryError) as e:
+            await context.require(UnwatchHandler).handle("following_illusts", "NoSuchUser", post_dest=post_dest)
 
     @pytest.mark.asyncio
     async def test_handle_following_illusts_by_bind(self, fake_post_destination,
@@ -369,7 +437,7 @@ class TestUnwatchHandler(FakeWatchmanMixin,
         )
 
         await context.require(UnwatchHandler).handle("following_illusts", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
         assert len(tasks) == 0
@@ -388,5 +456,5 @@ class TestUnwatchHandler(FakeWatchmanMixin,
                      "无\n" + self.help_text
 
         await context.require(UnwatchHandler).handle("invalid_arg_lol", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
         assert len(await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)) == 0

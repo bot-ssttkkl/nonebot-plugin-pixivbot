@@ -21,7 +21,7 @@ class TestBindHandler(FakePostDestinationMixin,
         except_msg = "当前未绑定Pixiv账号\n命令格式：/pixivbot bind <pixiv_user_id>"
 
         await bind_handler.handle(post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
 
     @pytest.mark.asyncio
     async def test_handle_bind(self, fake_post_destination, fake_postman_manager, fake_pixiv_account_binder):
@@ -34,7 +34,7 @@ class TestBindHandler(FakePostDestinationMixin,
         except_msg = "Pixiv账号绑定成功"
 
         await bind_handler.handle(123321, post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
         assert context.require(fake_pixiv_account_binder).bindings[("test", 1234)] == PixivBinding(adapter="test",
                                                                                                    user_id=1234,
                                                                                                    pixiv_user_id=123321)
@@ -49,7 +49,7 @@ class TestBindHandler(FakePostDestinationMixin,
         except_msg = "请输入正确格式的Pixiv账号"
 
         await bind_handler.handle("invalid_arg_lol", post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
         assert ("test", 1234) not in context.require(fake_pixiv_account_binder).bindings
 
 
@@ -72,7 +72,7 @@ class TestUnbindHandler(FakePostDestinationMixin,
         except_msg = "Pixiv账号解绑成功"
 
         await context.require(UnbindHandler).handle(post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
         assert ("test", 1234) not in context.require(fake_pixiv_account_binder).bindings
 
     @pytest.mark.asyncio
@@ -84,4 +84,4 @@ class TestUnbindHandler(FakePostDestinationMixin,
         except_msg = "当前未绑定Pixiv账号"
 
         await context.require(UnbindHandler).handle(post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)

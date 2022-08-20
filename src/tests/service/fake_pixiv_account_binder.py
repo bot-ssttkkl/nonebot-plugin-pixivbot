@@ -6,7 +6,7 @@ from tests import MyTest
 
 
 class FakePixivAccountBinderMixin(MyTest):
-    @pytest.fixture
+    @pytest.fixture(autouse=True)
     def fake_pixiv_account_binder(self, load_pixivbot):
         from nonebot_plugin_pixivbot import context
         from nonebot_plugin_pixivbot.model import PixivBinding
