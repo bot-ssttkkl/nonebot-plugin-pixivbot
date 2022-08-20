@@ -1,6 +1,5 @@
-from asyncio import Event
-
 from nonebot import Bot
+from nonebot.internal.adapter import Event
 from nonebot.rule import to_me
 from nonebot.typing import T_State
 
