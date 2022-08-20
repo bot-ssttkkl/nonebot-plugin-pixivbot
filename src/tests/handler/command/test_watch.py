@@ -108,6 +108,23 @@ class TestWatchHandler(FakeWatchmanMixin,
         assert tasks[0] == except_task
 
     @pytest.mark.asyncio
+    async def test_handle_user_illusts_by_name_no_data(self, fake_post_destination,
+                                                       fake_pixiv_service,
+                                                       fake_postman_manager,
+                                                       fake_watchman):
+        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.handler.command.watch import WatchHandler
+        from nonebot_plugin_pixivbot.utils.errors import QueryError
+
+        context.require(fake_pixiv_service).no_data = True
+
+        post_dest = fake_post_destination(1234, 56789)
+
+        # 因为Watch不是EntryHandler，没有配置异常拦截器
+        with pytest.raises(QueryError) as e:
+            await context.require(WatchHandler).handle("user_illusts", "NoSuchUser", post_dest=post_dest)
+
+    @pytest.mark.asyncio
     async def test_handle_following_illusts(self, fake_post_destination,
                                             fake_postman_manager,
                                             fake_watchman):
@@ -150,6 +167,23 @@ class TestWatchHandler(FakeWatchmanMixin,
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
         assert tasks[0] == except_task
+
+    @pytest.mark.asyncio
+    async def test_handle_following_illusts_by_name_no_data(self, fake_post_destination,
+                                                            fake_pixiv_service,
+                                                            fake_postman_manager,
+                                                            fake_watchman):
+        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.handler.command.watch import WatchHandler
+        from nonebot_plugin_pixivbot.utils.errors import QueryError
+
+        context.require(fake_pixiv_service).no_data = True
+
+        post_dest = fake_post_destination(1234, 56789)
+
+        # 因为Watch不是EntryHandler，没有配置异常拦截器
+        with pytest.raises(QueryError) as e:
+            await context.require(WatchHandler).handle("following_illusts", "NoSuchUser", post_dest=post_dest)
 
     @pytest.mark.asyncio
     async def test_handle_following_illusts_by_bind(self, fake_post_destination,
@@ -308,6 +342,23 @@ class TestUnwatchHandler(FakeWatchmanMixin,
         assert len(tasks) == 0
 
     @pytest.mark.asyncio
+    async def test_handle_user_illusts_by_name_no_data(self, fake_post_destination,
+                                                       fake_pixiv_service,
+                                                       fake_postman_manager,
+                                                       fake_watchman):
+        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.handler.command.watch import UnwatchHandler
+        from nonebot_plugin_pixivbot.utils.errors import QueryError
+
+        context.require(fake_pixiv_service).no_data = True
+
+        post_dest = fake_post_destination(1234, 56789)
+
+        # 因为Watch不是EntryHandler，没有配置异常拦截器
+        with pytest.raises(QueryError) as e:
+            await context.require(UnwatchHandler).handle("user_illusts", "NoSuchUser", post_dest=post_dest)
+
+    @pytest.mark.asyncio
     async def test_handle_following_illusts(self, fake_post_destination,
                                             fake_postman_manager,
                                             fake_watchman):
@@ -351,6 +402,23 @@ class TestUnwatchHandler(FakeWatchmanMixin,
 
         tasks = await context.require(fake_watchman).get_by_subscriber(post_dest.identifier)
         assert len(tasks) == 0
+
+    @pytest.mark.asyncio
+    async def test_handle_following_illusts_by_name_no_data(self, fake_post_destination,
+                                                            fake_pixiv_service,
+                                                            fake_postman_manager,
+                                                            fake_watchman):
+        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.handler.command.watch import UnwatchHandler
+        from nonebot_plugin_pixivbot.utils.errors import QueryError
+
+        context.require(fake_pixiv_service).no_data = True
+
+        post_dest = fake_post_destination(1234, 56789)
+
+        # 因为Watch不是EntryHandler，没有配置异常拦截器
+        with pytest.raises(QueryError) as e:
+            await context.require(UnwatchHandler).handle("following_illusts", "NoSuchUser", post_dest=post_dest)
 
     @pytest.mark.asyncio
     async def test_handle_following_illusts_by_bind(self, fake_post_destination,

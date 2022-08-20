@@ -85,3 +85,20 @@ class TestRandomBookmarkHandler(FakePixivServiceMixin,
         await context.require(RandomBookmarkHandler).handle("5a4b321", count=3, post_dest=post_dest)
 
         context.require(fake_postman_manager).assert_call(post_dest, except_msg)
+
+    @pytest.mark.asyncio
+    async def test_handle_no_data(self, fake_post_destination,
+                                  fake_pixiv_service,
+                                  fake_postman_manager,
+                                  mock_illust_message_model):
+        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.handler.common import RandomBookmarkHandler
+
+        post_dest = fake_post_destination(123456, 56789)
+        except_msg = "总之是Pixiv返回的错误信息"
+
+        context.require(fake_pixiv_service).no_data = True
+
+        await context.require(RandomBookmarkHandler).handle("54321", post_dest=post_dest)
+
+        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
