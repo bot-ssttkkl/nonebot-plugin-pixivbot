@@ -136,7 +136,8 @@ class SharedAsyncGeneratorManager(ABC, Generic[T_ID, T_ITEM]):
             del self._expires_time[identifier]
 
     def invalidate_all(self):
-        for identifier in self._paused_ctx_mgr:
+        keys = list(self._paused_ctx_mgr.keys())
+        for identifier in keys:
             logger.debug(f"[{self.log_tag}] {identifier} was invalidated from paused state")
             self._paused_ctx_mgr.pop(identifier).close()
 

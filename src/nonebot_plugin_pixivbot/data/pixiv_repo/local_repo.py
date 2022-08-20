@@ -59,6 +59,7 @@ class LocalPixivRepo(AbstractPixivRepo):
                     tags[t.name] = t
 
         await self.local_tags.insert_many(tags.values())
+        logger.debug(f"[local] add {len(tags)} local tags")
 
     async def _illusts_agen(self, collection_name: str,
                             query: dict,
