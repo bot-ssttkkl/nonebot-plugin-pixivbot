@@ -371,7 +371,7 @@ class LocalPixivRepo(AbstractPixivRepo):
 
     # ================ user_detail ================
     async def user_detail(self, user_id: int) \
-            -> AsyncGenerator[Union[Illust, PixivRepoMetadata], None]:
+            -> AsyncGenerator[Union[User, PixivRepoMetadata], None]:
         logger.debug(f"[local] user_detail {user_id}")
         doc = await self.mongo.db.user_detail_cache.find_one({"user.id": user_id})
         if doc is not None:
@@ -535,8 +535,11 @@ class LocalPixivRepo(AbstractPixivRepo):
                                                     metadata)
 
     # ================ illust_ranking ================
-    def illust_ranking(self, mode: RankingMode, *, offset: int = 0) \
+    def illust_ranking(self, mode: Union[str, RankingMode], *, offset: int = 0) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
+        if isinstance(mode, str):
+            mode = RankingMode[mode]
+
         logger.debug(f"[local] illust_ranking {mode}")
 
         return self._get_illusts("other_cache", {"type": mode.name + "_ranking"},

@@ -7,20 +7,21 @@ from .local_repo import NoSuchItemError, CacheExpiredError
 T = TypeVar("T")
 
 
-async def mediate_single(cache_factory: Callable[[], AsyncGenerator[Union[T, PixivRepoMetadata], None]],
+async def mediate_single(cache_factory: Callable[..., AsyncGenerator[Union[T, PixivRepoMetadata], None]],
                          remote_factory: Callable[..., AsyncGenerator[Union[T, PixivRepoMetadata], None]],
+                         query_kwargs: Mapping[str, Any],
                          cache_updater: Callable[[T, Optional[PixivRepoMetadata]], Awaitable[Any]],
                          force_expiration: bool = False) -> AsyncGenerator[Union[T, PixivRepoMetadata], None]:
     try:
         if force_expiration:
             raise NoSuchItemError()
-        async for x in cache_factory():
+        async for x in cache_factory(**query_kwargs):
             yield x
     except (NoSuchItemError, CacheExpiredError):
         content = None
         metadata = None
 
-        async for x in remote_factory():
+        async for x in remote_factory(**query_kwargs):
             if isinstance(x, PixivRepoMetadata):
                 metadata = x
             else:
@@ -37,8 +38,9 @@ async def mediate_single(cache_factory: Callable[[], AsyncGenerator[Union[T, Pix
 
 
 async def _load_many_from_local_and_remote_and_update(
-        cache_factory: Callable[[], AsyncGenerator[Union[T, PixivRepoMetadata], None]],
+        cache_factory: Callable[..., AsyncGenerator[Union[T, PixivRepoMetadata], None]],
         remote_factory: Callable[..., AsyncGenerator[Union[T, PixivRepoMetadata], None]],
+        query_kwargs: Mapping[str, Any],
         cache_appender: Callable[[List[T], Optional[PixivRepoMetadata]], Awaitable[Any]],
         max_item: int,
         max_page: int):
@@ -47,7 +49,7 @@ async def _load_many_from_local_and_remote_and_update(
 
     # first load from cache
     metadata = None
-    async for x in cache_factory():
+    async for x in cache_factory(**query_kwargs):
         if isinstance(x, PixivRepoMetadata):
             metadata = x
             loaded_pages = metadata.pages
@@ -62,36 +64,32 @@ async def _load_many_from_local_and_remote_and_update(
 
     # then check metadata["next_qs"] and load from remote
     if metadata and metadata.next_qs:
-        async for x in _load_many_from_remote_and_append(remote_factory, cache_appender,
+        async for x in _load_many_from_remote_and_append(remote_factory, metadata.next_qs,
+                                                         cache_appender,
                                                          max_item - loaded_items, max_page - loaded_pages,
-                                                         metadata.next_qs):
-            if isinstance(x, PixivRepoMetadata):
-                x.pages += loaded_pages
+                                                         loaded_pages):
             yield x
 
 
 async def _load_many_from_remote_and_append(
         remote_factory: Callable[..., AsyncGenerator[Union[T, PixivRepoMetadata], None]],
+        query_kwargs: Mapping[str, Any],
         cache_appender: Callable[[T, Optional[PixivRepoMetadata]], Awaitable[Any]],
         max_item: int,
         max_page: int,
-        next_qs: Optional[Mapping[str, Any]] = None):
-    if next_qs is None:
-        next_qs = {}
-
+        metadata_page_offset: int = 0):
     loaded_items = 0
     loaded_pages = 0
 
     buffer = []
 
-    async for item in remote_factory(**next_qs):
+    async for item in remote_factory(**query_kwargs):
         if isinstance(item, PixivRepoMetadata):
+            item.pages += metadata_page_offset
             loaded_pages = item.pages
-            metadata = item
-            metadata.pages = loaded_pages
 
             if len(buffer) > 0:
-                await cache_appender(buffer, metadata)
+                await cache_appender(buffer, item)
 
                 for x in buffer:
                     yield x
@@ -108,8 +106,9 @@ async def _load_many_from_remote_and_append(
             buffer.append(item)
 
 
-async def mediate_many(cache_factory: Callable[[], AsyncGenerator[Union[T, PixivRepoMetadata], None]],
+async def mediate_many(cache_factory: Callable[..., AsyncGenerator[Union[T, PixivRepoMetadata], None]],
                        remote_factory: Callable[..., AsyncGenerator[Union[T, PixivRepoMetadata], None]],
+                       query_kwargs: Mapping[str, Any],
                        cache_appender: Callable[[List[T], Optional[PixivRepoMetadata]], Awaitable[Any]],
                        max_item: int = 2 ** 31,
                        max_page: int = 2 ** 31,
@@ -118,17 +117,20 @@ async def mediate_many(cache_factory: Callable[[], AsyncGenerator[Union[T, Pixiv
         if force_expiration:
             raise NoSuchItemError()
 
-        async for x in _load_many_from_local_and_remote_and_update(cache_factory, remote_factory, cache_appender,
+        async for x in _load_many_from_local_and_remote_and_update(cache_factory, remote_factory, query_kwargs,
+                                                                   cache_appender,
                                                                    max_item, max_page):
             yield x
     except (CacheExpiredError, NoSuchItemError):
-        async for x in _load_many_from_remote_and_append(remote_factory, cache_appender,
+        async for x in _load_many_from_remote_and_append(remote_factory, query_kwargs,
+                                                         cache_appender,
                                                          max_item, max_page):
             yield x
 
 
-async def mediate_append(cache_factory: Callable[[], AsyncGenerator[Union[T, PixivRepoMetadata], None]],
+async def mediate_append(cache_factory: Callable[..., AsyncGenerator[Union[T, PixivRepoMetadata], None]],
                          remote_factory: Callable[..., AsyncGenerator[Union[T, PixivRepoMetadata], None]],
+                         query_kwargs: Mapping[str, Any],
                          cache_appender: Callable[[List[T], Optional[PixivRepoMetadata]], Awaitable[bool]],
                          max_item: int = 2 ** 31,
                          max_page: int = 2 ** 31,
@@ -136,7 +138,7 @@ async def mediate_append(cache_factory: Callable[[], AsyncGenerator[Union[T, Pix
     try:
         if force_expiration:
             metadata = None
-            async for x in cache_factory():
+            async for x in cache_factory(**query_kwargs):
                 if isinstance(x, PixivRepoMetadata):
                     metadata = x
                     break
@@ -146,11 +148,13 @@ async def mediate_append(cache_factory: Callable[[], AsyncGenerator[Union[T, Pix
             else:
                 raise CacheExpiredError(metadata)
 
-        async for x in _load_many_from_local_and_remote_and_update(cache_factory, remote_factory, cache_appender,
+        async for x in _load_many_from_local_and_remote_and_update(cache_factory, remote_factory, query_kwargs,
+                                                                   cache_appender,
                                                                    max_item, max_page):
             yield x
     except NoSuchItemError:
-        async for x in _load_many_from_remote_and_append(remote_factory, cache_appender,
+        async for x in _load_many_from_remote_and_append(remote_factory, query_kwargs,
+                                                         cache_appender,
                                                          max_item, max_page):
             yield x
     except CacheExpiredError as e:
@@ -162,7 +166,7 @@ async def mediate_append(cache_factory: Callable[[], AsyncGenerator[Union[T, Pix
         buffer = []
         metadata = e.metadata
 
-        async for x in remote_factory():
+        async for x in remote_factory(**query_kwargs):
             if isinstance(x, PixivRepoMetadata):
                 loaded_pages = x.pages
                 # we don't use this metadata
@@ -180,7 +184,8 @@ async def mediate_append(cache_factory: Callable[[], AsyncGenerator[Union[T, Pix
                 loaded_items += 1
                 buffer.append(x)
 
-        async for x in _load_many_from_local_and_remote_and_update(cache_factory, remote_factory, cache_appender,
+        async for x in _load_many_from_local_and_remote_and_update(cache_factory, remote_factory, query_kwargs,
+                                                                   cache_appender,
                                                                    max_item, max_page):
             yield x
 

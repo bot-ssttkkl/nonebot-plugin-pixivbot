@@ -49,7 +49,8 @@ class AbstractPixivRepo(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def illust_ranking(self, mode: RankingMode) -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
+    def illust_ranking(self, mode: Union[str, RankingMode]) \
+            -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
         raise NotImplementedError()
 
     @abstractmethod
