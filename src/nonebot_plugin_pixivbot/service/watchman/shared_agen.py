@@ -7,9 +7,9 @@ from pydantic import BaseModel
 from nonebot_plugin_pixivbot.data.pixiv_repo import PixivRepo
 from nonebot_plugin_pixivbot.data.pixiv_repo.enums import CacheStrategy
 from nonebot_plugin_pixivbot.data.pixiv_repo.remote_repo import RemotePixivRepo
-from nonebot_plugin_pixivbot.utils.shared_agen import SharedAsyncGeneratorManager
 from nonebot_plugin_pixivbot.model import Illust, WatchType
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
+from nonebot_plugin_pixivbot.utils.shared_agen import SharedAsyncGeneratorManager
 from .pkg_context import context
 from .user_following_illusts import user_following_illusts
 
