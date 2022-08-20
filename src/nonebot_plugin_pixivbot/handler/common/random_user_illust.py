@@ -1,4 +1,4 @@
-from typing import TypeVar, Union, Sequence, Any
+from typing import TypeVar, Union, Sequence
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
@@ -23,11 +23,12 @@ class RandomUserIllustHandler(CommonHandler):
         return self.conf.pixiv_random_user_illust_query_enabled
 
     async def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
-        user = args[0]
-        if isinstance(user, str):
-            user = await self.service.get_user(user)
-
-        return {"user": user.id}
+        try:
+            user_id = int(args[0])
+            return {"user": user_id}
+        except ValueError:
+            user = await self.service.get_user(args[0])
+            return {"user": user.id}
 
     # noinspection PyMethodOverriding
     async def actual_handle(self, *, user: Union[str, int],
