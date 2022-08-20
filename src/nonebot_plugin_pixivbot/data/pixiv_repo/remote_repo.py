@@ -376,8 +376,11 @@ class RemotePixivRepo(AbstractPixivRepo):
                                  min_view=self._conf.pixiv_random_related_illust_min_view,
                                  illust_id=illust_id, **kwargs)
 
-    def illust_ranking(self, mode: RankingMode, **kwargs) \
+    def illust_ranking(self, mode: Union[str, RankingMode], **kwargs) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
+        if isinstance(mode, str):
+            mode = RankingMode[mode]
+
         logger.debug(f"[repo] illust_ranking {mode}")
         return self._get_illusts(self._papi.illust_ranking,
                                  block_tags=self._conf.pixiv_block_tags,

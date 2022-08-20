@@ -55,7 +55,7 @@ class TestMediateSingle(MyTest):
 
         content = None
         metadata = None
-        async for x in mediate_single(cache_factory_with_cache, remote_factory, cache_updater):
+        async for x in mediate_single(cache_factory_with_cache, remote_factory, {}, cache_updater):
             if isinstance(x, PixivRepoMetadata):
                 metadata = x
             else:
@@ -74,7 +74,7 @@ class TestMediateSingle(MyTest):
 
         content = None
         metadata = None
-        async for x in mediate_single(cache_factory_with_expired_cache, remote_factory, cache_updater):
+        async for x in mediate_single(cache_factory_with_expired_cache, remote_factory, {}, cache_updater):
             if isinstance(x, PixivRepoMetadata):
                 metadata = x
             else:
@@ -191,7 +191,7 @@ class TestMediateMany(TestMediateCollection):
 
         items = []
         metadata = None
-        async for x in mediate_many(cache_factory_with_cache_and_empty_next_qs, remote_factory, cache_appender):
+        async for x in mediate_many(cache_factory_with_cache_and_empty_next_qs, remote_factory, {}, cache_appender):
             if not isinstance(x, PixivRepoMetadata):
                 items.append(x)
             else:
@@ -213,7 +213,7 @@ class TestMediateMany(TestMediateCollection):
 
         items = []
         metadata = None
-        async for x in mediate_many(cache_factory_with_cache, remote_factory, cache_appender):
+        async for x in mediate_many(cache_factory_with_cache, remote_factory, {}, cache_appender):
             if not isinstance(x, PixivRepoMetadata):
                 items.append(x)
             else:
@@ -239,7 +239,7 @@ class TestMediateMany(TestMediateCollection):
 
         items = []
         metadata = None
-        async for x in mediate_many(cache_factory_with_no_cache, remote_factory, cache_appender):
+        async for x in mediate_many(cache_factory_with_no_cache, remote_factory, {}, cache_appender):
             if not isinstance(x, PixivRepoMetadata):
                 items.append(x)
             else:
@@ -264,7 +264,7 @@ class TestMediateAppend(TestMediateCollection):
 
         items = []
         metadata = None
-        async for x in mediate_append(cache_factory_with_cache_and_empty_next_qs, remote_factory, cache_appender):
+        async for x in mediate_append(cache_factory_with_cache_and_empty_next_qs, remote_factory, {}, cache_appender):
             if not isinstance(x, PixivRepoMetadata):
                 items.append(x)
             else:
@@ -286,7 +286,7 @@ class TestMediateAppend(TestMediateCollection):
 
         items = []
         metadata = None
-        async for x in mediate_append(cache_factory_with_cache, remote_factory, cache_appender):
+        async for x in mediate_append(cache_factory_with_cache, remote_factory, {}, cache_appender):
             if not isinstance(x, PixivRepoMetadata):
                 items.append(x)
             else:
@@ -312,7 +312,7 @@ class TestMediateAppend(TestMediateCollection):
 
         items = []
         metadata = None
-        async for x in mediate_append(cache_factory_with_no_cache, remote_factory, cache_appender):
+        async for x in mediate_append(cache_factory_with_no_cache, remote_factory, {}, cache_appender):
             if not isinstance(x, PixivRepoMetadata):
                 items.append(x)
             else:
@@ -351,7 +351,7 @@ class TestMediateAppend(TestMediateCollection):
 
         items = []
         metadata = []
-        async for x in mediate_append(cache_factory, remote_factory, cache_appender):
+        async for x in mediate_append(cache_factory, remote_factory, {}, cache_appender):
             if not isinstance(x, PixivRepoMetadata):
                 items.append(x)
             else:
