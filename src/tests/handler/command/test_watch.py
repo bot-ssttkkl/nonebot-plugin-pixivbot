@@ -21,6 +21,13 @@ class TestWatchHandler(FakeWatchmanMixin,
                 "  [...args]：根据<type>不同需要提供不同的参数\n" \
                 "示例：/pixivbot watch user_illusts <用户名>\n"
 
+    @pytest.fixture(autouse=True)
+    def remove_interceptor(self, load_pixivbot):
+        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.handler.command.watch import WatchHandler
+
+        context.require(WatchHandler).interceptor = None
+
     @pytest.mark.asyncio
     async def test_handle_no_arg_no_sub(self, fake_post_destination,
                                         fake_postman_manager,
@@ -253,6 +260,13 @@ class TestUnwatchHandler(FakeWatchmanMixin,
                 "  [...args]：根据<type>不同需要提供不同的参数\n" \
                 "示例：/pixivbot unwatch user_illusts <用户名>\n"
 
+    @pytest.fixture(autouse=True)
+    def remove_interceptor(self, load_pixivbot):
+        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.handler.command.watch import UnwatchHandler
+
+        context.require(UnwatchHandler).interceptor = None
+
     @pytest.mark.asyncio
     async def test_handle_no_arg_no_sub(self, fake_post_destination,
                                         fake_postman_manager,
@@ -353,10 +367,11 @@ class TestUnwatchHandler(FakeWatchmanMixin,
         context.require(fake_pixiv_service).no_data = True
 
         post_dest = fake_post_destination(1234, 56789)
+        except_msg = "总之是Pixiv返回的错误信息"
 
-        # 因为Watch不是EntryHandler，没有配置异常拦截器
         with pytest.raises(QueryError) as e:
             await context.require(UnwatchHandler).handle("user_illusts", "NoSuchUser", post_dest=post_dest)
+        assert e.value.message == except_msg
 
     @pytest.mark.asyncio
     async def test_handle_following_illusts(self, fake_post_destination,
@@ -415,10 +430,11 @@ class TestUnwatchHandler(FakeWatchmanMixin,
         context.require(fake_pixiv_service).no_data = True
 
         post_dest = fake_post_destination(1234, 56789)
+        except_msg = "总之是Pixiv返回的错误信息"
 
-        # 因为Watch不是EntryHandler，没有配置异常拦截器
         with pytest.raises(QueryError) as e:
             await context.require(UnwatchHandler).handle("following_illusts", "NoSuchUser", post_dest=post_dest)
+        assert e.value.message == except_msg
 
     @pytest.mark.asyncio
     async def test_handle_following_illusts_by_bind(self, fake_post_destination,

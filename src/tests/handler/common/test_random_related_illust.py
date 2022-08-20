@@ -14,6 +14,12 @@ class TestRandomRelatedIllustHandler(FakePixivServiceMixin,
                                      FakePostDestinationMixin,
                                      FakePostmanManagerMixin,
                                      MyTest):
+    @pytest.fixture(autouse=True)
+    def remove_interceptor(self, load_pixivbot):
+        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.handler.common import RandomRelatedIllustHandler
+
+        context.require(RandomRelatedIllustHandler).interceptor = None
 
     @pytest.mark.asyncio
     async def test_handle(self, fake_post_destination,
@@ -44,14 +50,14 @@ class TestRandomRelatedIllustHandler(FakePixivServiceMixin,
                                     mock_illust_message_model):
         from nonebot_plugin_pixivbot import context
         from nonebot_plugin_pixivbot.handler.common import RandomRelatedIllustHandler
+        from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 
         post_dest = fake_post_destination(123456, 56789)
         except_msg = "你还没有发送过请求"
 
-        await context.require(RandomRelatedIllustHandler).handle(count=3, post_dest=post_dest)
-
-        context.require(fake_pixiv_service).random_related_illust.assert_not_awaited()
-        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
+        with pytest.raises(BadRequestError) as e:
+            await context.require(RandomRelatedIllustHandler).handle(count=3, post_dest=post_dest)
+        assert e.value.message == except_msg
 
     @pytest.mark.asyncio
     async def test_handle_no_data(self, fake_post_destination,
@@ -61,6 +67,7 @@ class TestRandomRelatedIllustHandler(FakePixivServiceMixin,
                                   mock_illust_message_model):
         from nonebot_plugin_pixivbot import context
         from nonebot_plugin_pixivbot.handler.common import RandomRelatedIllustHandler
+        from nonebot_plugin_pixivbot.utils.errors import QueryError
 
         post_dest = fake_post_destination(123456, 56789)
         context.require(fake_recorder).record_resp(114514, post_dest.identifier)
@@ -68,6 +75,6 @@ class TestRandomRelatedIllustHandler(FakePixivServiceMixin,
 
         context.require(fake_pixiv_service).no_data = True
 
-        await context.require(RandomRelatedIllustHandler).handle(post_dest=post_dest)
-
-        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
+        with pytest.raises(QueryError) as e:
+            await context.require(RandomRelatedIllustHandler).handle(post_dest=post_dest)
+        assert e.value.message == except_msg

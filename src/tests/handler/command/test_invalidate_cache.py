@@ -21,6 +21,13 @@ class TestInvalidateCache(FakePostDestinationMixin,
 
         return PixivRepo
 
+    @pytest.fixture(autouse=True)
+    def remove_interceptor(self, load_pixivbot):
+        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.handler.command import InvalidateCacheHandler
+
+        context.require(InvalidateCacheHandler).interceptor = None
+
     @pytest.mark.asyncio
     async def test_handle(self, fake_post_destination,
                           fake_pixiv_repo, fake_postman_manager):

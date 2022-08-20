@@ -23,6 +23,13 @@ class TestScheduleHandler(FakeSchedulerMixin,
                 "  [...args]：根据<type>不同需要提供不同的参数\n" \
                 "示例：/pixivbot schedule ranking 06:00*x day 1-5"
 
+    @pytest.fixture(autouse=True)
+    def remove_interceptor(self, load_pixivbot):
+        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.handler.command.schedule import ScheduleHandler
+
+        context.require(ScheduleHandler).interceptor = None
+
     @pytest.mark.asyncio
     async def test_handle_no_arg_no_sub(self, fake_post_destination,
                                         fake_postman_manager,
@@ -134,6 +141,13 @@ class TestUnscheduleHandler(FakeSchedulerMixin,
                             FakePostmanManagerMixin,
                             FakePixivAccountBinderMixin,
                             MyTest):
+
+    @pytest.fixture(autouse=True)
+    def remove_interceptor(self, load_pixivbot):
+        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.handler.command.schedule import UnscheduleHandler
+
+        context.require(UnscheduleHandler).interceptor = None
 
     @pytest.mark.asyncio
     async def test_handle_no_arg_no_sub(self, fake_post_destination,

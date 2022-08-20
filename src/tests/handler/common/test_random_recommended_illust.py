@@ -12,6 +12,13 @@ class TestRandomRecommendedIllustHandler(FakePixivServiceMixin,
                                          FakePostDestinationMixin,
                                          FakePostmanManagerMixin,
                                          MyTest):
+    @pytest.fixture(autouse=True)
+    def remove_interceptor(self, load_pixivbot):
+        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.handler.common import RandomRecommendedIllustHandler
+
+        context.require(RandomRecommendedIllustHandler).interceptor = None
+
     @pytest.mark.asyncio
     async def test_handle(self, fake_post_destination,
                           fake_pixiv_service,
@@ -37,12 +44,13 @@ class TestRandomRecommendedIllustHandler(FakePixivServiceMixin,
                                   mock_illust_message_model):
         from nonebot_plugin_pixivbot import context
         from nonebot_plugin_pixivbot.handler.common import RandomRecommendedIllustHandler
+        from nonebot_plugin_pixivbot.utils.errors import QueryError
 
         post_dest = fake_post_destination(123456, 56789)
         except_msg = "总之是Pixiv返回的错误信息"
 
         context.require(fake_pixiv_service).no_data = True
 
-        await context.require(RandomRecommendedIllustHandler).handle(post_dest=post_dest)
-
-        context.require(fake_postman_manager).assert_call(post_dest, except_msg)
+        with pytest.raises(QueryError) as e:
+            await context.require(RandomRecommendedIllustHandler).handle(post_dest=post_dest)
+        assert e.value.message == except_msg

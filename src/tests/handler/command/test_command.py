@@ -40,6 +40,13 @@ class TestCommandHandler(FakePostDestinationMixin,
 
         return StubHandler
 
+    @pytest.fixture(autouse=True)
+    def remove_interceptor(self, load_pixivbot):
+        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.handler.command import CommandHandler
+
+        context.require(CommandHandler).interceptor = None
+
     @pytest.mark.asyncio
     async def test_no_arg(self, fake_post_destination,
                           fake_postman_manager,
@@ -47,13 +54,13 @@ class TestCommandHandler(FakePostDestinationMixin,
         from nonebot_plugin_pixivbot import context
         from nonebot_plugin_pixivbot.handler.command import CommandHandler, HelpHandler
 
-        post_dest = fake_post_destination(123456, 56789)
         help_handler = context.require(HelpHandler)
-        cmd_handler = context.require(CommandHandler)
-
+        help_handler.interceptor = None
         spy = mocker.spy(help_handler, "handle")
 
-        await cmd_handler.handle([], post_dest=post_dest)
+        post_dest = fake_post_destination(123456, 56789)
+
+        await context.require(CommandHandler).handle([], post_dest=post_dest)
         spy.assert_called_once()
 
     @pytest.mark.asyncio
@@ -63,10 +70,9 @@ class TestCommandHandler(FakePostDestinationMixin,
         from nonebot_plugin_pixivbot.handler.command import CommandHandler
 
         post_dest = fake_post_destination(123456, 56789)
-        cmd_handler = context.require(CommandHandler)
 
-        await cmd_handler.handle(["this_should_be_an_invalid_cmd"], post_dest=post_dest)
-        context.require(fake_postman_manager).assert_call(post_dest,  f"不存在命令 'this_should_be_an_invalid_cmd'")
+        await context.require(CommandHandler).handle(["this_should_be_an_invalid_cmd"], post_dest=post_dest)
+        context.require(fake_postman_manager).assert_call(post_dest, f"不存在命令 'this_should_be_an_invalid_cmd'")
 
     @pytest.mark.asyncio
     async def test(self, fake_post_destination, fake_postman_manager, stub_handler):
@@ -74,7 +80,6 @@ class TestCommandHandler(FakePostDestinationMixin,
         from nonebot_plugin_pixivbot.handler.command import CommandHandler
 
         post_dest = fake_post_destination(123456, 56789)
-        cmd_handler = context.require(CommandHandler)
 
-        await cmd_handler.handle(["stub", "aa", "bb"], post_dest=post_dest)
-        context.require(fake_postman_manager).assert_call(post_dest,  f"stub a=aa b=bb")
+        await context.require(CommandHandler).handle(["stub", "aa", "bb"], post_dest=post_dest)
+        context.require(fake_postman_manager).assert_call(post_dest, f"stub a=aa b=bb")
