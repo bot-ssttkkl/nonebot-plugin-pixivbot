@@ -19,7 +19,7 @@ class Interceptor(ABC):
         await self.postman_manager.send_plain_text(message, post_dest=post_dest)
 
     @abstractmethod
-    async def intercept(self, wrapped_func: Callable, *,
+    async def intercept(self, wrapped_func: Callable, *args,
                         post_dest: PostDestination[UID, GID],
                         silently: bool,
                         **kwargs):
@@ -27,9 +27,9 @@ class Interceptor(ABC):
 
     def __call__(self, wrapped: Callable):
         @wraps(wrapped)
-        async def wrapper(post_dest: PostDestination[UID, GID],
+        async def wrapper(*args, post_dest: PostDestination[UID, GID],
                           silently: bool,
                           **kwargs):
-            await self.intercept(wrapped, post_dest=post_dest, silently=silently, **kwargs)
+            await self.intercept(wrapped, *args, post_dest=post_dest, silently=silently, **kwargs)
 
         return wrapper

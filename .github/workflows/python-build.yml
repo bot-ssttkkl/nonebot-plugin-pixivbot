@@ -5,16 +5,15 @@ name: Python package
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "release" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "release" ]
 
 permissions:
   contents: read
 
 jobs:
-  deploy:
-
+  package:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -35,11 +34,6 @@ jobs:
       #----------------------------------------------
       #  -----  install & configure poetry  -----
       #----------------------------------------------
-      - name: Load cached Poetry installation
-        uses: actions/cache@v2
-        with:
-          path: ~/.local  # the path depends on the OS
-          key: poetry-2  # increment to reset cache
       - name: Install Poetry
         uses: snok/install-poetry@v1
 
@@ -71,7 +65,7 @@ jobs:
         run: |
           poetry run pytest
       #----------------------------------------------
-      #               build & publish
+      #               build & upload
       #----------------------------------------------
       - name: Build package
         run: poetry build

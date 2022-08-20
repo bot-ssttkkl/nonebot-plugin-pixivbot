@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Union, Optional, AsyncGenerator
 
 from pydantic import BaseModel
@@ -10,7 +10,7 @@ from .lazy_illust import LazyIllust
 
 
 class PixivRepoMetadata(BaseModel):
-    update_time: datetime = datetime.now()
+    update_time: datetime = datetime.now(timezone.utc)
     pages: Optional[int]
     next_qs: Optional[dict]
 

@@ -13,9 +13,13 @@ class PixivBindingRepo:
     mongo: MongoDataSource
 
     async def get(self, adapter: str, user_id: UID) -> Optional[PixivBinding]:
-        return await self.mongo.db.pixiv_binding.find_one(
+        doc = await self.mongo.db.pixiv_binding.find_one(
             {"adapter": adapter, "user_id": user_id}
         )
+        if doc:
+            return PixivBinding.parse_obj(doc)
+        else:
+            return None
 
     async def update(self, binding: PixivBinding):
         await self.mongo.db.pixiv_binding.update_one(

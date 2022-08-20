@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Union, Sequence, Any, Mapping, AsyncGenerator
 
 import bson
@@ -29,7 +29,7 @@ class CacheExpiredError(LocalPixivRepoError):
 
 
 def handle_expires_in(doc: Mapping, expires_in: int):
-    if datetime.now() - doc["metadata"]["update_time"] >= timedelta(expires_in):
+    if datetime.now(timezone.utc) - doc["metadata"]["update_time"] >= timedelta(seconds=expires_in):
         raise CacheExpiredError(PixivRepoMetadata.parse_obj(doc["metadata"]))
 
 
@@ -386,7 +386,7 @@ class LocalPixivRepo(AbstractPixivRepo):
         logger.debug(f"[local] update user_detail {user.id} {metadata_to_text(metadata)}")
 
         if not metadata:
-            metadata = PixivRepoMetadata(update_time=datetime.now())
+            metadata = PixivRepoMetadata(update_time=datetime.now(timezone.utc))
 
         await self.mongo.db.user_detail_cache.update_one(
             {"user.id": user.id},
@@ -439,7 +439,7 @@ class LocalPixivRepo(AbstractPixivRepo):
         logger.debug(f"[local] append search_user {word} "
                      f"({len(content)} items) "
                      f"{metadata_to_text(metadata)}")
-        return await self._append_and_check_users("search_illust_cache", {"word": word}, content, metadata)
+        return await self._append_and_check_users("search_user_cache", {"word": word}, content, metadata)
 
     # ================ user_illusts ================
     def user_illusts(self, user_id: int, *, offset: int = 0) \

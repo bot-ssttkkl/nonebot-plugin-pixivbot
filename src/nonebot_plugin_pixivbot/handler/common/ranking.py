@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Union, TypeVar, Any, Tuple
+from typing import Sequence, Union, TypeVar, Tuple
 
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.global_context import context

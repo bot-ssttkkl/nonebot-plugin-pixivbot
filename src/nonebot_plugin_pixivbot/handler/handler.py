@@ -5,7 +5,6 @@ from typing import Awaitable, Union, TypeVar, Sequence
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
-from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .interceptor.combined_interceptor import CombinedInterceptor
 from .interceptor.interceptor import Interceptor
 from ..protocol_dep.postman import PostmanManager
@@ -54,26 +53,29 @@ class Handler(ABC):
         if not self.enabled():
             return
 
-        try:
-            parsed_kwargs = self.parse_args(args, post_dest)
-            if isawaitable(parsed_kwargs):
-                parsed_kwargs = await parsed_kwargs
-        except Exception as e:
-            raise BadRequestError("参数错误") from e
-
-        kwargs = {**kwargs, **parsed_kwargs}
-
         if self.interceptor is not None and not disabled_interceptors:
-            await self.interceptor.intercept(self.actual_handle,
+            await self.interceptor.intercept(self.handle_with_args, *args,
                                              post_dest=post_dest,
                                              silently=silently,
                                              **kwargs)
         else:
-            await self.actual_handle(post_dest=post_dest, silently=silently, **kwargs)
+            await self.handle_with_args(*args, post_dest=post_dest, silently=silently, **kwargs)
+
+    async def handle_with_args(self, *args,
+                               post_dest: PD,
+                               silently: bool = False,
+                               **kwargs):
+        parsed_kwargs = self.parse_args(args, post_dest)
+        if isawaitable(parsed_kwargs):
+            parsed_kwargs = await parsed_kwargs
+
+        kwargs = {**kwargs, **parsed_kwargs}
+        await self.actual_handle(post_dest=post_dest, silently=silently, **kwargs)
 
     @abstractmethod
     async def actual_handle(self, *, post_dest: PD,
-                            silently: bool = False, **kwargs):
+                            silently: bool = False,
+                            **kwargs):
         """
         处理指令
         :param post_dest: PostDestination

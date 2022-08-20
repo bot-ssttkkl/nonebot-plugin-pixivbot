@@ -1,5 +1,4 @@
 from abc import ABC
-from asyncio import create_task, gather
 from typing import TypeVar, Optional, Sequence
 
 from nonebot_plugin_pixivbot.global_context import context
@@ -48,6 +47,7 @@ class CommonHandler(EntryHandler, ABC):
 
     def __init__(self):
         super().__init__()
+        # noinspection PyTypeChecker
         self.postman_manager = RecordPostmanManager(self.postman_manager)
         self.add_interceptor(context.require(CooldownInterceptor))
         self.add_interceptor(context.require(TimeoutInterceptor))
@@ -65,18 +65,6 @@ class CommonHandler(EntryHandler, ABC):
                            header: Optional[str] = None,
                            number: Optional[int] = None,
                            post_dest: PD):
-        tasks = [
-            create_task(
-                IllustMessageModel.from_illust(x, number=number + i if number is not None else None)
-            ) for i, x in enumerate(illusts)
-        ]
-        await gather(*tasks)
-
-        messages = []
-        for t in tasks:
-            result = await t
-            if result:
-                messages.append(result)
-
-        model = IllustMessagesModel(header=header, messages=messages)
-        await self.postman_manager.send_illusts(model, post_dest=post_dest)
+        model = await IllustMessagesModel.from_illusts(illusts, header=header, number=number)
+        if model:
+            await self.postman_manager.send_illusts(model, post_dest=post_dest)
