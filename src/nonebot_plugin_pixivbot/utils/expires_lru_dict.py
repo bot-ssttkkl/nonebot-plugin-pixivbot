@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from functools import total_ordering
 from heapq import heappop, heapify, heappush
-from typing import TypeVar, Generic, Iterator, List, Dict, Optional, Callable
+from typing import TypeVar, Generic, Iterator, List, Optional, Callable
 
 _KT = TypeVar("_KT")
 _VT = TypeVar("_VT")
@@ -12,8 +12,9 @@ _VT = TypeVar("_VT")
 
 @dataclass(frozen=True)
 @total_ordering
-class ExpiresNode(Generic[_KT]):
+class ExpiresNode(Generic[_KT, _VT]):
     key: _KT
+    value: _VT
     expires_time: datetime
 
     def __le__(self, other: "ExpiresNode"):
@@ -25,24 +26,22 @@ class ExpiresLruDict(MutableMapping[_KT, _VT], Generic[_KT, _VT]):
         self.maxsize = maxsize
         self.on_cleanup = on_cleanup
 
-        self._data = OrderedDict[_KT, _VT]()
-        self._expires_heap: List[ExpiresNode[_KT]] = []
-        self._in_expires_heap: Dict[_KT, bool] = {}
+        self._data = OrderedDict[_KT, ExpiresNode[_KT, _VT]]()
+        self._expires_heap: List[ExpiresNode[_KT, _VT]] = []
 
     def _collate(self, ensure_size_for_put: bool):
         now = datetime.now(timezone.utc)
         while len(self._expires_heap) > 0 and self._expires_heap[0].expires_time <= now:
-            k = self._expires_heap[0].key
-            if k in self._data:
-                v = self._data.pop(k)
-                self.on_cleanup and self.on_cleanup(k, v)
+            node = self._expires_heap[0]
+            if self._data.get(node.key, None) is node:
+                del self._data[node.key]
+                self.on_cleanup and self.on_cleanup(node.key, node.value)
 
-            del self._in_expires_heap[k]
             heappop(self._expires_heap)
 
         if ensure_size_for_put and len(self._data) == self.maxsize:
-            k, v = self._data.popitem(last=False)
-            self.on_cleanup and self.on_cleanup(k, v)
+            key, node = self._data.popitem(last=False)
+            self.on_cleanup and self.on_cleanup(key, node.value)
             # we will not remove items from expires_heap
             # until its size reach the threshold (checked on add)
 
@@ -50,36 +49,31 @@ class ExpiresLruDict(MutableMapping[_KT, _VT], Generic[_KT, _VT]):
         threshold = 2 * self.maxsize - 1
 
         if len(self._expires_heap) > threshold:
-            # rebuild _expires_heap & _in_expires_heap
-            expires_time_mapping = {}
-            for node in self._expires_heap:
-                expires_time_mapping[node.key] = expires_time_mapping[node.expires_time]
-
+            # rebuild _expires_heap
             self._expires_heap = []
-            self._in_expires_heap = []
-            for key in self._data:
-                self._expires_heap[key] = ExpiresNode(
-                    key=key,
-                    expires_time=expires_time_mapping[key]
-                )
-                self._in_expires_heap[key] = True
+            for node in self._data.values():
+                self._expires_heap.append(node)
             heapify(self._expires_heap)
 
     def add(self, key: _KT, value: _VT, expires_time: datetime):
         self._collate(True)
 
-        if not self._in_expires_heap.get(key, False):
-            heappush(self._expires_heap, ExpiresNode(key, expires_time))
-            self._in_expires_heap[key] = True
-        self._collate_expires_heap()
+        if self.__contains__(key):
+            raise KeyError(key)
 
-        self._data.__setitem__(key, value)
+        node = ExpiresNode(key, value, expires_time)
+        self._data.__setitem__(key, node)
+        heappush(self._expires_heap, node)
+
+        self._collate_expires_heap()
 
     def __setitem__(self, key: _KT, value: _VT) -> None:
         self._collate(False)
         if key not in self._data:
             raise KeyError(key)
-        self._data.__setitem__(key, value)
+
+        node = self._data.__getitem__(key)
+        self._data[key] = ExpiresNode(key, value, node.expires_time)
 
     def __delitem__(self, key: _KT) -> None:
         self._collate(False)
@@ -90,7 +84,7 @@ class ExpiresLruDict(MutableMapping[_KT, _VT], Generic[_KT, _VT]):
 
     def __getitem__(self, key: _KT) -> _VT:
         self._collate(False)
-        return self._data.__getitem__(key)
+        return self._data.__getitem__(key).value
 
     def __len__(self) -> int:
         self._collate(False)
@@ -98,4 +92,5 @@ class ExpiresLruDict(MutableMapping[_KT, _VT], Generic[_KT, _VT]):
 
     def __iter__(self) -> Iterator[_KT]:
         self._collate(False)
-        return self._data.__iter__()
+        for node in self._data.__iter__():
+            yield node.value
