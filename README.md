@@ -118,6 +118,8 @@ pixiv_random_bookmark_min_bookmark=0
 pixiv_random_bookmark_min_view=0
 pixiv_random_bookmark_max_page=2147483647
 pixiv_random_bookmark_max_item=2147483647
+
+pixiv_watch_interval=7200  # 更新推送的查询间隔
 ```
 
 ## Special Thanks
