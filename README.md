@@ -8,6 +8,8 @@ PixivBot中协议无关的通用部分。目前适配协议：
 
 没有找到需要的协议？欢迎适配。[适配指南](https://github.com/ssttkkl/nonebot-plugin-pixivbot/wiki/%E9%80%82%E9%85%8D%E6%8C%87%E5%8D%97)
 
+开箱即用的Docker镜像：[ssttkkl/PixivBot](https://github.com/ssttkkl/PixivBot)
+
 ## 环境配置
 
 事前准备：登录pixiv账号并获取refresh_token。（参考：[@ZipFile Pixiv OAuth Flow](https://gist.github.com/ZipFile/c9ebedb224406f4f11845ab700124362)）
