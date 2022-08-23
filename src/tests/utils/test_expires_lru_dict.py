@@ -68,22 +68,65 @@ class TestExpiresLruDict(MyTest):
         for i in range(8, 18):
             assert lru[i] == i
 
-    def test_key_error(self, lru):
+    @pytest.mark.asyncio
+    async def test_set(self, lru):
+        now = datetime.now(timezone.utc)
+
+        lru.add("hello", "world", now + timedelta(seconds=1))
+        assert lru["hello"] == "world"
+
+        lru["hello"] = "python"
+        assert lru["hello"] == "python"
+
+    def test_add_key_error(self, lru):
+        now = datetime.now(timezone.utc)
+        lru.add("test", "py", now + timedelta(seconds=1))
+        with pytest.raises(KeyError):
+            lru.add("test", "pyyy", now + timedelta(seconds=1))
+
+    def test_set_key_error(self, lru):
         with pytest.raises(KeyError):
             lru["test"] = "py"
 
     @pytest.mark.asyncio
+    async def test_del(self, lru):
+        now = datetime.now(timezone.utc)
+
+        lru.add("hello", "world", now + timedelta(seconds=1))
+        del lru["hello"]
+        assert "hello" not in lru
+
+        lru.add("hello", "python", now + timedelta(seconds=30))
+        await sleep(1.5)
+        assert lru["hello"] == "python"
+
+    @pytest.mark.asyncio
+    async def test_del2(self, lru):
+        now = datetime.now(timezone.utc)
+
+        lru.add("hello", "world", now + timedelta(seconds=1))
+        del lru["hello"]
+        assert "hello" not in lru
+
+        lru.add("hello", "python", now + timedelta(seconds=1))
+        assert lru["hello"] == "python"
+
+        await sleep(1.5)
+        assert "hello" not in lru
+
+    @pytest.mark.asyncio
     async def test_collate_expires_heap(self, lru):
         now = datetime.now(timezone.utc)
-        for i in range(20):
+        for i in range(1, 21):
             lru.add(i, i, now + timedelta(milliseconds=100 * i))
+            print(len(lru._expires_heap))
 
         await sleep(3)
 
         now = datetime.now(timezone.utc)
         lru.add("hello", "world", now + timedelta(seconds=20))
 
-        for i in range(20):
+        for i in range(1, 21):
             assert i not in lru
 
         assert lru["hello"] == "world"
