@@ -12,6 +12,7 @@ from lazy import lazy
 from nonebot import logger, Bot
 
 from nonebot_plugin_pixivbot.data.subscription_repo import SubscriptionRepo
+from nonebot_plugin_pixivbot.data.utils.process_subscriber import process_subscriber
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier
 from nonebot_plugin_pixivbot.model.subscription import ScheduleType
@@ -105,8 +106,8 @@ class Scheduler:
                                  kwargs={"sub": sub, "post_dest": post_dest, "silently": True})
         logger.success(f"[scheduler] added job \"{job_id}\" on {trigger}")
 
-    def _remove_job(self, type: ScheduleType, subscriber: PostIdentifier[UID, GID]):
-        job_id = self._make_job_id(type, subscriber)
+    def _remove_job(self, sub: Subscription[UID, GID]):
+        job_id = self._make_job_id(sub.type, sub.subscriber)
         self.apscheduler.remove_job(job_id)
         logger.success(f"[scheduler] removed job \"{job_id}\"")
 
@@ -119,7 +120,7 @@ class Scheduler:
     async def on_bot_disconnect(self, bot: Bot):
         async for subscription in self.repo.get_by_adapter(get_adapter_name(bot)):
             try:
-                self._remove_job(subscription.type, subscription.subscriber)
+                self._remove_job(subscription)
             except Exception as e:
                 logger.error(f"[scheduler] error occurred when remove job "
                              f"{self._make_job_id(subscription.type, subscription.subscriber)}")
@@ -139,25 +140,30 @@ class Scheduler:
         if isawaitable(kwargs):
             kwargs = await kwargs
 
-        sub = Subscription(type=type, kwargs=kwargs, subscriber=post_dest.identifier, schedule=schedule)
-        old_sub = await self.repo.update(sub)  # will also update sub
+        subscriber_identifier = process_subscriber(post_dest.identifier)
+        sub = Subscription(type=type, kwargs=kwargs, subscriber=subscriber_identifier, schedule=schedule)
+        old_sub = await self.repo.update(sub)
         if old_sub is not None:
-            self._remove_job(sub.type, sub.subscriber)
+            self._remove_job(sub)
         self._add_job(post_dest.normalized(), sub)
 
     async def unschedule(self, type: ScheduleType, subscriber: PostIdentifier[UID, GID]) -> bool:
-        if await self.repo.delete_one(subscriber, type):
-            self._remove_job(type, subscriber)
+        subscriber = process_subscriber(subscriber)
+        subscription = await self.repo.delete_one(subscriber, type)
+        if subscription:
+            self._remove_job(subscription)
             return True
         else:
             return False
 
     async def unschedule_all_by_subscriber(self, subscriber: PostIdentifier[UID, GID]):
+        subscriber = process_subscriber(subscriber)
         async for sub in self.repo.get_by_subscriber(subscriber):
-            self._remove_job(sub.type, subscriber)
+            self._remove_job(sub)
         await self.repo.delete_many_by_subscriber(subscriber)
 
     async def get_by_subscriber(self, subscriber: PostIdentifier[UID, GID]) -> List[Subscription]:
+        subscriber = process_subscriber(subscriber)
         return [x async for x in self.repo.get_by_subscriber(subscriber)]
 
 

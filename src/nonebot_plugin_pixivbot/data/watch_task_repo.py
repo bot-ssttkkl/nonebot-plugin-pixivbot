@@ -66,14 +66,17 @@ class WatchTaskRepo:
 
     async def delete_one(self, type: WatchType,
                          kwargs: Dict[str, Any],
-                         subscriber: PostIdentifier[UID, GID]) -> bool:
+                         subscriber: PostIdentifier[UID, GID]) -> Optional[WatchTask]:
         query = {
             "type": type.value,
             "kwargs": kwargs,
             "subscriber": process_subscriber(subscriber).dict(),
         }
-        cnt = await self.mongo.db.watch_task.delete_one(query)
-        return cnt != 0
+        result = await self.mongo.db.watch_task.find_one_and_delete(query)
+        if result:
+            return WatchTask.parse_obj(result)
+        else:
+            return None
 
     async def delete_many_by_subscriber(self, subscriber: ID):
         query = {
