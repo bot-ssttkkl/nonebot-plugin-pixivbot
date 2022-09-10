@@ -6,6 +6,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from nonebot import logger, Bot
 
 from nonebot_plugin_pixivbot.config import Config
+from nonebot_plugin_pixivbot.data.utils.process_subscriber import process_subscriber
 from nonebot_plugin_pixivbot.data.watch_task_repo import WatchTaskRepo
 from nonebot_plugin_pixivbot.model import Illust, PostIdentifier, WatchTask, WatchType
 from nonebot_plugin_pixivbot.model.message import IllustMessageModel
@@ -122,49 +123,55 @@ class Watchman:
                                  max_instances=1)
         logger.success(f"[watchman] add job \"{job_id}\" on {trigger}")
 
-    def _remove_job(self, type: WatchType,
-                    kwargs: Dict[str, Any],
-                    subscriber: PostIdentifier[UID, GID]):
-        job_id = self._make_job_id(type, kwargs, subscriber)
+    def _remove_job(self, task: WatchTask):
+        job_id = self._make_job_id(task.type, task.kwargs, task.subscriber)
         self.apscheduler.remove_job(job_id)
         logger.success(f"[watchman] remove job \"{job_id}\"")
 
     async def on_bot_connect(self, bot: Bot):
         adapter = get_adapter_name(bot)
         async for task in self.repo.get_by_adapter(adapter):
-            pd = self.pd_factory_mgr.build(bot, task.subscriber.user_id, task.subscriber.group_id)
-            self._add_job(task, pd)
+            try:
+                pd = self.pd_factory_mgr.build(bot, task.subscriber.user_id, task.subscriber.group_id)
+                self._add_job(task, pd)
+            except Exception as e:
+                logger.exception(e)
 
     async def on_bot_disconnect(self, bot: Bot):
         adapter = get_adapter_name(bot)
         async for task in self.repo.get_by_adapter(adapter):
             try:
-                self._remove_job(task.type, task.kwargs, task.subscriber)
+                self._remove_job(task)
             except Exception as e:
                 logger.exception(e)
 
     async def watch(self, type: WatchType,
                     kwargs: Dict[str, Any],
                     subscriber: PD):
-        task = WatchTask(type=type, kwargs=kwargs, subscriber=subscriber.identifier)
+        subscriber_identifier = process_subscriber(subscriber.identifier)
+        task = WatchTask(type=type, kwargs=kwargs, subscriber=subscriber_identifier)
         old_task = await self.repo.update(task)
         if old_task is not None:
-            self._remove_job(old_task.type, old_task.kwargs, old_task.subscriber)
+            self._remove_job(old_task)
         self._add_job(task, subscriber.normalized())
 
     async def unwatch(self, type: WatchType,
                       kwargs: Dict[str, Any],
                       subscriber: ID) -> bool:
-        if await self.repo.delete_one(type, kwargs, subscriber):
-            self._remove_job(type, kwargs, subscriber)
+        subscriber = process_subscriber(subscriber)
+        task = await self.repo.delete_one(type, kwargs, subscriber)
+        if task:
+            self._remove_job(task)
             return True
         else:
             return False
 
     async def unwatch_all_by_subscriber(self, subscriber: ID):
+        subscriber = process_subscriber(subscriber)
         async for task in self.repo.get_by_subscriber(subscriber):
-            self._remove_job(task.type, task.kwargs, subscriber)
+            self._remove_job(task)
         await self.repo.delete_many_by_subscriber(subscriber)
 
     async def get_by_subscriber(self, subscriber: ID):
+        subscriber = process_subscriber(subscriber)
         return [x async for x in self.repo.get_by_subscriber(subscriber)]
