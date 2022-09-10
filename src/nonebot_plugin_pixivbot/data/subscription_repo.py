@@ -51,13 +51,16 @@ class SubscriptionRepo:
         else:
             return None
 
-    async def delete_one(self, subscriber: ID, type: ScheduleType) -> bool:
+    async def delete_one(self, subscriber: ID, type: ScheduleType) -> Optional[Subscription]:
         query = {
             "type": type.value,
             "subscriber": process_subscriber(subscriber).dict()
         }
-        cnt = await self.mongo.db.subscription.delete_one(query)
-        return cnt == 1
+        result = await self.mongo.db.subscription.find_one_and_delete(query)
+        if result:
+            return Subscription.parse_obj(result)
+        else:
+            return None
 
     async def delete_many_by_subscriber(self, subscriber: ID):
         query = {

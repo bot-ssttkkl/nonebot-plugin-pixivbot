@@ -247,7 +247,9 @@ class RemotePixivRepo(AbstractPixivRepo):
                     yield LazyIllust(item.id, item)
             yield metadata
 
-    async def _get_user_previews(self, papi_search_func: Callable[[], Awaitable[dict]], **kwargs) \
+    async def _get_user_previews(self, papi_search_func: Callable[[], Awaitable[dict]],
+                                 *, block_tags: Optional[List[str]] = None,
+                                 **kwargs) \
             -> AsyncGenerator[Union[PixivRepoMetadata, UserPreview], None]:
         yield PixivRepoMetadata(pages=0, next_qs=kwargs)
         async with self._sema:
@@ -255,6 +257,16 @@ class RemotePixivRepo(AbstractPixivRepo):
                                                              mapper=lambda x: UserPreview.parse_obj(x),
                                                              **kwargs):
                 for item in page:
+                    item: UserPreview
+                    if block_tags is not None:
+                        illusts = []
+                        for x in item.illusts:
+                            for tag in block_tags:
+                                if x.has_tag(tag):
+                                    break
+                            else:
+                                illusts.append(x)
+                        item.illusts = illusts
                     yield item
                 yield metadata
 
@@ -314,6 +326,7 @@ class RemotePixivRepo(AbstractPixivRepo):
             -> AsyncGenerator[Union[UserPreview, PixivRepoMetadata], None]:
         logger.debug(f"[remote] search_user {word}")
         return self._get_user_previews(self._papi.search_user,
+                                       block_tags=self._conf.pixiv_block_tags,
                                        word=word, **kwargs)
 
     def user_following(self, user_id: int, **kwargs) \
@@ -326,6 +339,7 @@ class RemotePixivRepo(AbstractPixivRepo):
             -> AsyncGenerator[Union[UserPreview, PixivRepoMetadata], None]:
         logger.debug(f"[remote] following_users {user_id}")
         return self._get_user_previews(self._papi.user_following,
+                                       block_tags=self._conf.pixiv_block_tags,
                                        user_id=user_id, **kwargs)
 
     def user_illusts(self, user_id: int, **kwargs) \
