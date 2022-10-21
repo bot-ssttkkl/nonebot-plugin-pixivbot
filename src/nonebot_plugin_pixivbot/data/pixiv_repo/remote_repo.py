@@ -10,7 +10,6 @@ from pixivpy_async import *
 from pixivpy_async.error import TokenError
 
 from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.data.local_tag_repo import LocalTagRepo
 from nonebot_plugin_pixivbot.enums import DownloadQuantity, RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User, UserPreview
 from nonebot_plugin_pixivbot.utils.errors import QueryError, RateLimitError
@@ -48,7 +47,6 @@ def _auto_retry(func):
 @context.register_eager_singleton()
 class RemotePixivRepo(AbstractPixivRepo):
     _conf: Config
-    _local_tags: LocalTagRepo
     _compressor: Compressor
 
     # noinspection PyTypeChecker

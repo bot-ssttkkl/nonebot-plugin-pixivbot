@@ -1,5 +1,7 @@
-import typing
+from typing import Optional, Iterable
 
+from beanie import Document, BulkWriter
+from beanie.odm.operators.update.general import SetOnInsert
 from pymongo import *
 
 from nonebot_plugin_pixivbot.global_context import context
@@ -7,44 +9,46 @@ from nonebot_plugin_pixivbot.model import Tag
 from .source import MongoDataSource
 
 
-@context.inject
+class LocalTag(Tag, Document):
+    class Settings:
+        name = "local_tags"
+        indexes = [
+            IndexModel([("name", 1)], unique=True),
+            IndexModel([("translated_name", 1)])
+        ]
+
+
+context.require(MongoDataSource).document_models.append(LocalTag)
+
+
 @context.register_singleton()
 class LocalTagRepo:
-    mongo: MongoDataSource
+    @classmethod
+    async def find_by_name(cls, name: str) -> Optional[Tag]:
+        result = await LocalTag.find_one(LocalTag.name == name)
+        return result
 
-    async def insert(self, tag: Tag) -> typing.NoReturn:
-        await self.mongo.db.local_tags.updateOne(
-            {"name": tag.name},
-            {"$setOnInsert": {"translated_name": tag.translated_name}},
-            upsert=True
+    @classmethod
+    async def find_by_translated_name(cls, translated_name: str) -> Optional[Tag]:
+        result = await LocalTag.find_one(LocalTag.translated_name == translated_name)
+        return result
+
+    @classmethod
+    async def update_one(cls, tag: Tag):
+        await LocalTag.find_one(LocalTag.name == tag.name).upsert(
+            SetOnInsert({LocalTag.translated_name: tag.translated_name}),
+            on_insert=LocalTag(**tag.dict()),
         )
 
-    async def insert_many(self, tags: typing.Iterable[Tag]) -> typing.NoReturn:
-        opt = []
-
-        for tag in tags:
-            opt.append(UpdateOne(
-                {"name": tag.name},
-                {"$setOnInsert": {"translated_name": tag.translated_name}},
-                upsert=True
-            ))
-
-        if len(opt) != 0:
-            await self.mongo.db.local_tags.bulk_write(opt, ordered=False)
-
-    async def get_by_name(self, name: str) -> typing.Optional[Tag]:
-        result = await self.mongo.db.local_tags.find_one({"name": name})
-        if result:
-            return Tag.parse_obj(result)
-        else:
-            return None
-
-    async def get_by_translated_name(self, translated_name: str) -> typing.Optional[Tag]:
-        result = await self.mongo.db.local_tags.find_one({"translated_name": translated_name})
-        if result:
-            return Tag.parse_obj(result)
-        else:
-            return None
+    @classmethod
+    async def update_many(cls, tags: Iterable[Tag]):
+        async with BulkWriter() as bw:
+            for tag in tags:
+                await LocalTag.find_one(LocalTag.name == tag.name).upsert(
+                    SetOnInsert({LocalTag.translated_name: tag.translated_name}),
+                    on_insert=LocalTag(**tag.dict()),
+                    bulk_writer=bw
+                )
 
 
 __all__ = ("LocalTagRepo",)

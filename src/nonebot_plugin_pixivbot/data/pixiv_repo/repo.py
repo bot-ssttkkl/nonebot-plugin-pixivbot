@@ -9,12 +9,12 @@ from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User, UserPreview
 from nonebot_plugin_pixivbot.utils.shared_agen import SharedAsyncGeneratorManager
-from . import LazyIllust
 from .abstract_repo import AbstractPixivRepo
-from .abstract_repo import PixivRepoMetadata
 from .enums import PixivResType, CacheStrategy
+from .lazy_illust import LazyIllust
 from .local_repo import LocalPixivRepo
 from .mediator import mediate_single, mediate_many, mediate_append
+from .models import PixivRepoMetadata
 from .pkg_context import context
 from .remote_repo import RemotePixivRepo
 

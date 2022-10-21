@@ -148,22 +148,24 @@ class Scheduler:
         self._add_job(post_dest.normalized(), sub)
 
     async def unschedule(self, type: ScheduleType, subscriber: PostIdentifier[UID, GID]) -> bool:
-        subscriber = process_subscriber(subscriber)
-        subscription = await self.repo.delete_one(subscriber, type)
-        if subscription:
-            self._remove_job(subscription)
+        # subscriber = process_subscriber(subscriber)
+        sub = await self.repo.delete_one(subscriber, type)
+        if sub:
+            self._remove_job(sub)
+            logger.success(f"[scheduler] successfully removed subscription {sub}")
             return True
         else:
             return False
 
     async def unschedule_all_by_subscriber(self, subscriber: PostIdentifier[UID, GID]):
-        subscriber = process_subscriber(subscriber)
-        async for sub in self.repo.get_by_subscriber(subscriber):
+        # subscriber = process_subscriber(subscriber)
+        old = await self.repo.delete_many_by_subscriber(subscriber)
+        for sub in old:
             self._remove_job(sub)
-        await self.repo.delete_many_by_subscriber(subscriber)
+            logger.success(f"[scheduler] successfully removed subscription {sub}")
 
     async def get_by_subscriber(self, subscriber: PostIdentifier[UID, GID]) -> List[Subscription]:
-        subscriber = process_subscriber(subscriber)
+        # subscriber = process_subscriber(subscriber)
         return [x async for x in self.repo.get_by_subscriber(subscriber)]
 
 

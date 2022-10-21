@@ -1,6 +1,7 @@
-from typing import TypeVar, AsyncGenerator, Optional, Any, Dict
+from typing import TypeVar, AsyncGenerator, Optional, Any, Dict, List
 
-from pymongo import ReturnDocument
+from beanie import Document, BulkWriter
+from pymongo import ReturnDocument, IndexModel
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import WatchTask, WatchType, PostIdentifier
@@ -13,38 +14,36 @@ GID = TypeVar("GID")
 ID = PostIdentifier[UID, GID]
 
 
+class WatchTaskDocument(WatchTask[Any, Any], Document):
+    class Settings:
+        name = "watch_task"
+        indexes = [
+            IndexModel([("subscriber.adapter", 1)]),
+            IndexModel([("subscriber", 1), ("type", 1), ("kwargs", 1)], unique=True)
+        ]
+
+
+context.require(MongoDataSource).document_models.append(WatchTaskDocument)
+
+
 @context.inject
 @context.register_singleton()
 class WatchTaskRepo:
     mongo: MongoDataSource
 
-    # async def get(self, type: WatchType,
-    #               args: Dict[str, Any],
-    #               subscriber: ID):
-    #     query = {
-    #         "type": type.value,
-    #         "args": args,
-    #         "subscriber": subscriber.dict(),
-    #     }
-    #     return WatchTask.parse_obj(
-    #         await self.mongo.db.watch_task.find_one(query)
-    #     )
+    @classmethod
+    async def get_by_subscriber(cls, subscriber: ID) -> AsyncGenerator[WatchTask, None]:
+        subscriber = process_subscriber(subscriber)
+        async for doc in WatchTaskDocument.find(WatchTaskDocument.subscriber == subscriber):
+            yield doc
 
-    async def get_by_subscriber(self, subscriber: ID) -> AsyncGenerator[WatchTask, None]:
-        query = {
-            "subscriber": process_subscriber(subscriber).dict()
-        }
-        async for obj in self.mongo.db.watch_task.find(query):
-            yield WatchTask.parse_obj(obj)
-
-    async def get_by_adapter(self, adapter: str) -> AsyncGenerator[WatchTask, None]:
-        query = {
-            "subscriber.adapter": adapter
-        }
-        async for obj in self.mongo.db.watch_task.find(query):
-            yield WatchTask.parse_obj(obj)
+    @classmethod
+    async def get_by_adapter(cls, adapter: str) -> AsyncGenerator[WatchTask, None]:
+        async for doc in WatchTaskDocument.find(WatchTaskDocument.subscriber.adapter == adapter):
+            yield doc
 
     async def update(self, task: WatchTask) -> Optional[WatchTask]:
+        # beanie不支持原子性的find_one_and_replace操作
         task.subscriber = process_subscriber(task.subscriber)
 
         query = {
@@ -67,6 +66,7 @@ class WatchTaskRepo:
     async def delete_one(self, type: WatchType,
                          kwargs: Dict[str, Any],
                          subscriber: PostIdentifier[UID, GID]) -> Optional[WatchTask]:
+        # beanie不支持原子性的find_one_and_delete操作
         query = {
             "type": type.value,
             "kwargs": kwargs,
@@ -78,11 +78,19 @@ class WatchTaskRepo:
         else:
             return None
 
-    async def delete_many_by_subscriber(self, subscriber: ID):
-        query = {
-            "subscriber": process_subscriber(subscriber)
-        }
-        await self.mongo.db.watch_task.delete_many(query)
+    @classmethod
+    async def delete_many_by_subscriber(cls, subscriber: ID) -> List[WatchTask]:
+        subscriber = process_subscriber(subscriber)
+
+        old_doc = await WatchTaskDocument.find(
+            WatchTaskDocument.subscriber == subscriber
+        ).to_list()
+
+        async with BulkWriter() as bw:
+            for x in old_doc:
+                await x.delete(bulk_writer=bw)
+
+        return old_doc
 
 
 __all__ = ("WatchTaskRepo",)

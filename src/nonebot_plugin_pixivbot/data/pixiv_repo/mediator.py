@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import List, AsyncGenerator, TypeVar, Union, Callable, Awaitable, Optional, Any, Mapping
 
 from .abstract_repo import PixivRepoMetadata
-from .local_repo import NoSuchItemError, CacheExpiredError
+from .errors import NoSuchItemError, CacheExpiredError
 
 T = TypeVar("T")
 
