@@ -41,9 +41,7 @@ class WatchmanSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[WatchmanSh
     pixiv: PixivRepo
     remote_pixiv: RemotePixivRepo
 
-    async def agen_factory(self, identifier: WatchmanSharedAgenIdentifier,
-                           cache_strategy: CacheStrategy,  # 这里的cache_strategy和PixivRepo没关系
-                           *args, **kwargs) -> AsyncGenerator[Illust, None]:
+    async def agen(self, identifier: WatchmanSharedAgenIdentifier, cache_strategy: CacheStrategy, **kwargs) -> AsyncGenerator[Illust, None]:
         self.set_expires_time(identifier, datetime.now(timezone.utc) + timedelta(seconds=30))  # 保证每分钟的所有task都能共享
         if identifier.type == WatchType.user_illusts:
             async for x in self.pixiv.user_illusts(cache_strategy=CacheStrategy.FORCE_EXPIRATION, **identifier.kwargs):

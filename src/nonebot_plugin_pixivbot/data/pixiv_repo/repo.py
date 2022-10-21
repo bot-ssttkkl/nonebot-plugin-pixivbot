@@ -169,9 +169,7 @@ class PixivSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[SharedAgenIde
         PixivResType.IMAGE: image_factory,
     }
 
-    def agen_factory(self, identifier: SharedAgenIdentifier,
-                     cache_strategy: CacheStrategy = CacheStrategy.NORMAL,
-                     **kwargs) -> AsyncGenerator[Any, None]:
+    def agen(self, identifier: SharedAgenIdentifier, cache_strategy: CacheStrategy, **kwargs) -> AsyncGenerator[Any, None]:
         if identifier.type in self.factories:
             merged_kwargs = identifier.kwargs | kwargs
             # noinspection PyTypeChecker
