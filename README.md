@@ -41,6 +41,7 @@ pixiv_mongo_conn_url=  # MongoDB连接URL，格式：mongodb://<用户名>:<密�
 pixiv_mongo_database_name=  # 连接的MongoDB数据库
 pixiv_proxy=None  # 代理URL
 pixiv_query_timeout=60  # 查询超时（单位：秒）
+pixiv_loading_prompt_delayed_time=5  # 加载提示消息的延迟时间（“努力加载中”的消息会在请求发出多少秒后发出）（单位：秒）
 pixiv_simultaneous_query=8  # 向Pixiv查询的并发数
 
 # 缓存过期时间（单位：秒）
