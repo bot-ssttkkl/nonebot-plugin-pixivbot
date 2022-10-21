@@ -1,16 +1,21 @@
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.schedulers.base import BaseScheduler
-from nonebot import require
-
 from nonebot_plugin_pixivbot.context import Context
 
 
 def asyncio_scheduler_provider(context: Context):
     # 改成register_lazy以后Scheduler不工作，不懂为啥
-    context.register(AsyncIOScheduler, require("nonebot_plugin_apscheduler").scheduler)
+    from nonebot import require
+
+    require("nonebot_plugin_apscheduler")
+
+    from nonebot_plugin_apscheduler import scheduler
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+    context.register(AsyncIOScheduler, scheduler)
 
 
 def base_scheduler_provider(context: Context):
+    from apscheduler.schedulers.base import BaseScheduler
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
     context.bind_to(BaseScheduler, AsyncIOScheduler)
 
 

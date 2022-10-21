@@ -12,7 +12,7 @@ from nonebot_plugin_pixivbot.context import Context
 class Query(ABC):
     @property
     @abstractmethod
-    def matcher(self) -> Matcher:
+    def matcher(self) -> Type[Matcher]:
         raise NotImplementedError()
 
     @abstractmethod
