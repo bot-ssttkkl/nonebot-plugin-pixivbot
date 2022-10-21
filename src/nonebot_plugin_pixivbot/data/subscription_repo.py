@@ -1,6 +1,7 @@
-from typing import TypeVar, AsyncGenerator, Optional
+from typing import TypeVar, AsyncGenerator, Optional, List, Any
 
-from pymongo import ReturnDocument
+from beanie import Document, BulkWriter
+from pymongo import IndexModel, ReturnDocument
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier, ScheduleType
@@ -13,26 +14,36 @@ GID = TypeVar("GID")
 ID = PostIdentifier[UID, GID]
 
 
+class SubscriptionDocument(Subscription[Any, Any], Document):
+    class Settings:
+        name = "subscription"
+        indexes = [
+            IndexModel([("subscriber.adapter", 1)]),
+            IndexModel([("subscriber", 1), ("type", 1)], unique=True)
+        ]
+
+
+context.require(MongoDataSource).document_models.append(SubscriptionDocument)
+
+
 @context.inject
 @context.register_singleton()
 class SubscriptionRepo:
     mongo: MongoDataSource
 
-    async def get_by_subscriber(self, subscriber: ID) -> AsyncGenerator[Subscription, None]:
-        query = {
-            "subscriber": process_subscriber(subscriber).dict()
-        }
-        async for obj in self.mongo.db.subscription.find(query):
-            yield Subscription.parse_obj(obj)
+    @classmethod
+    async def get_by_subscriber(cls, subscriber: ID) -> AsyncGenerator[Subscription, None]:
+        subscriber = process_subscriber(subscriber)
+        async for doc in SubscriptionDocument.find(SubscriptionDocument.subscriber == subscriber):
+            yield doc
 
-    async def get_by_adapter(self, adapter: str) -> AsyncGenerator[Subscription, None]:
-        query = {
-            "subscriber.adapter": adapter
-        }
-        async for obj in self.mongo.db.subscription.find(query):
-            yield Subscription.parse_obj(obj)
+    @classmethod
+    async def get_by_adapter(cls, adapter: str) -> AsyncGenerator[Subscription, None]:
+        async for doc in SubscriptionDocument.find(SubscriptionDocument.subscriber.adapter == adapter):
+            yield doc
 
     async def update(self, subscription: Subscription) -> Optional[Subscription]:
+        # beanie不支持原子性的find_one_and_replace操作
         subscription.subscriber = process_subscriber(subscription.subscriber)
 
         query = {
@@ -52,6 +63,7 @@ class SubscriptionRepo:
             return None
 
     async def delete_one(self, subscriber: ID, type: ScheduleType) -> Optional[Subscription]:
+        # beanie不支持原子性的find_one_and_delete操作
         query = {
             "type": type.value,
             "subscriber": process_subscriber(subscriber).dict()
@@ -62,11 +74,19 @@ class SubscriptionRepo:
         else:
             return None
 
-    async def delete_many_by_subscriber(self, subscriber: ID):
-        query = {
-            "subscriber": process_subscriber(subscriber)
-        }
-        await self.mongo.db.subscription.delete_many(query)
+    @classmethod
+    async def delete_many_by_subscriber(cls, subscriber: ID) -> List[Subscription]:
+        subscriber = process_subscriber(subscriber)
+
+        old_doc = await SubscriptionDocument.find(
+            SubscriptionDocument.subscriber == subscriber
+        ).to_list()
+
+        async with BulkWriter() as bw:
+            for x in old_doc:
+                await x.delete(bulk_writer=bw)
+
+        return old_doc
 
 
 __all__ = ("SubscriptionRepo",)

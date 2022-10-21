@@ -9,6 +9,7 @@ from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .interceptor import Interceptor, UID, GID
 
 
+@context.inject
 @context.register_singleton()
 class LoadingPromptInterceptor(Interceptor):
     conf: Config

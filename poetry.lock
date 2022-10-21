@@ -219,6 +219,26 @@ url = "https://mirrors.aliyun.com/pypi/simple"
 reference = "aliyun"
 
 [[package]]
+name = "beanie"
+version = "1.12.0"
+description = "Asynchronous Python ODM for MongoDB"
+category = "main"
+optional = false
+python-versions = ">=3.7,<4.0"
+
+[package.dependencies]
+click = ">=7"
+motor = ">=2.5,<4.0"
+pydantic = ">=1.9.0"
+toml = "*"
+yarl = ">=1.6"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.aliyun.com/pypi/simple"
+reference = "aliyun"
+
+[[package]]
 name = "bleach"
 version = "5.0.1"
 description = "An easy safelist-based HTML-sanitizing tool."
@@ -1429,7 +1449,7 @@ reference = "aliyun"
 name = "toml"
 version = "0.10.2"
 description = "Python Library for Tom's Obvious, Minimal Language"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 
@@ -1697,7 +1717,7 @@ onebot = ["nonebot-plugin-pixivbot-onebot-v11"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "91efc09e48fa4e56d669714e365af82c49f509f235b7cc6aac96532999b04ef9"
+content-hash = "5dedfc810e2071e67e5365e1c85d03f66bde2e920bbe3582ea631a5cf7e9637d"
 
 [metadata.files]
 aiofiles = [
@@ -1829,6 +1849,10 @@ atomicwrites = [
 attrs = [
     {file = "attrs-22.1.0-py2.py3-none-any.whl", hash = "sha256:86efa402f67bf2df34f51a335487cf46b1ec130d02b8d39fd248abfd30da551c"},
     {file = "attrs-22.1.0.tar.gz", hash = "sha256:29adc2665447e5191d0e7c568fde78b21f9672d344281d0c6e1ab085429b22b6"},
+]
+beanie = [
+    {file = "beanie-1.12.0-py3-none-any.whl", hash = "sha256:0d27c089fc316fbbe1effe09104f0d1b62185fd8cae766b322a05254f9018eb2"},
+    {file = "beanie-1.12.0.tar.gz", hash = "sha256:740d8479b17bc78b16b9636b274a01878844fc87aef01f8bffa97c967bcecfd9"},
 ]
 bleach = [
     {file = "bleach-5.0.1-py3-none-any.whl", hash = "sha256:085f7f33c15bd408dd9b17a4ad77c577db66d76203e5984b1bd59baeee948b2a"},

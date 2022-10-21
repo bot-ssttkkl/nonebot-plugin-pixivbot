@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Dict, Any, TypeVar, Optional
+from typing import Dict, Any, TypeVar, Optional, List
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -158,20 +158,22 @@ class Watchman:
     async def unwatch(self, type: WatchType,
                       kwargs: Dict[str, Any],
                       subscriber: ID) -> bool:
-        subscriber = process_subscriber(subscriber)
+        # subscriber = process_subscriber(subscriber)
         task = await self.repo.delete_one(type, kwargs, subscriber)
         if task:
             self._remove_job(task)
+            logger.success(f"[scheduler] successfully removed subscription {task}")
             return True
         else:
             return False
 
     async def unwatch_all_by_subscriber(self, subscriber: ID):
-        subscriber = process_subscriber(subscriber)
-        async for task in self.repo.get_by_subscriber(subscriber):
+        # subscriber = process_subscriber(subscriber)
+        old = await self.repo.delete_many_by_subscriber(subscriber)
+        for task in old:
             self._remove_job(task)
-        await self.repo.delete_many_by_subscriber(subscriber)
+            logger.success(f"[scheduler] successfully removed subscription {task}")
 
-    async def get_by_subscriber(self, subscriber: ID):
-        subscriber = process_subscriber(subscriber)
+    async def get_by_subscriber(self, subscriber: ID) -> List[WatchTask]:
+        # subscriber = process_subscriber(subscriber)
         return [x async for x in self.repo.get_by_subscriber(subscriber)]

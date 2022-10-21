@@ -3,7 +3,7 @@ from typing import List, Union, Tuple
 from nonebot import logger
 
 from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.data.local_tag_repo import LocalTagRepo
+from nonebot_plugin_pixivbot.data.local_tag_repo import LocalTag, LocalTagRepo
 from nonebot_plugin_pixivbot.data.pixiv_repo import LazyIllust, PixivRepo
 from nonebot_plugin_pixivbot.enums import RandomIllustMethod, RankingMode
 from nonebot_plugin_pixivbot.global_context import context
@@ -17,7 +17,7 @@ from nonebot_plugin_pixivbot.utils.errors import BadRequestError, QueryError
 class PixivService:
     conf: Config
     repo: PixivRepo
-    local_tags: LocalTagRepo
+    local_tag_repo: LocalTagRepo
 
     async def _choice_and_load(self, illusts: List[LazyIllust], random_method: RandomIllustMethod, count: int) \
             -> List[Illust]:
@@ -51,9 +51,9 @@ class PixivService:
     async def random_illust(self, word: str, *, count: int = 1) -> List[Illust]:
         if self.conf.pixiv_tag_translation_enabled:
             # 只有原word不是标签时获取翻译（例子：唐可可）
-            tag = await self.local_tags.get_by_name(word)
+            tag = await self.local_tag_repo.find_by_name(word)
             if not tag:
-                tag = await self.local_tags.get_by_translated_name(word)
+                tag = await self.local_tag_repo.find_by_translated_name(word)
                 if tag:
                     logger.info(f"[pixiv_service] found translation {word} -> {tag.name}")
                     word = tag.name

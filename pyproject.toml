@@ -24,6 +24,7 @@ frozendict = "^2.3.4"
 tzlocal = "^4.2"
 nonebot-plugin-pixivbot-onebot-v11 = { version = "^1.3.0", optional = true }
 nonebot-plugin-pixivbot-kook = { version = "^1.3.0.post2", optional = true }
+beanie = "^1.12.0"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^5.0.4"

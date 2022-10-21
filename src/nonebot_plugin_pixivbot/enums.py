@@ -3,27 +3,27 @@ from enum import Enum
 __all__ = ("BlockAction", "DownloadQuantity", "RandomIllustMethod", "RankingMode",)
 
 
-class BlockAction(Enum):
+class BlockAction(str, Enum):
     no_image = 'no_image'
     completely_block = 'completely_block'
     no_reply = 'no_reply'
 
 
-class DownloadQuantity(Enum):
+class DownloadQuantity(str, Enum):
     original = 'original'
     square_medium = 'square_medium'
     medium = 'medium'
     large = 'large'
 
 
-class RandomIllustMethod(Enum):
+class RandomIllustMethod(str, Enum):
     uniform = 'uniform'
     bookmark_proportion = 'bookmark_proportion'
     view_proportion = 'view_proportion'
     timedelta_proportion = 'timedelta_proportion'
 
 
-class RankingMode(Enum):
+class RankingMode(str, Enum):
     day = 'day'
     week = 'week'
     month = 'month'
