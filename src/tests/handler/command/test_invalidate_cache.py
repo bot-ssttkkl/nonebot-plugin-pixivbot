@@ -39,4 +39,4 @@ class TestInvalidateCache(FakePostDestinationMixin,
 
         await context.require(InvalidateCacheHandler).handle(post_dest=post_dest)
         assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
-        context.require(fake_pixiv_repo).invalidate_cache.has_awaited()
+        context.require(fake_pixiv_repo).invalidate_all.has_awaited()

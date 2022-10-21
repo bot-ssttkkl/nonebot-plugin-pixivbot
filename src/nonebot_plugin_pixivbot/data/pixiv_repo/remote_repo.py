@@ -156,7 +156,7 @@ class RemotePixivRepo(AbstractPixivRepo):
 
     async def _load_raw_page(self, papi_search_func: Callable[..., Awaitable[dict]],
                              **kwargs):
-        async with self._query:
+        async with self._query():
             raw_result = await papi_search_func(**kwargs)
             self._check_error_in_raw_result(raw_result)
             return raw_result
@@ -304,7 +304,7 @@ class RemotePixivRepo(AbstractPixivRepo):
 
     @_auto_retry
     async def _raw_illust_detail(self, illust_id: int, **kwargs) -> dict:
-        async with self._query:
+        async with self._query():
             raw_result = await self._papi.illust_detail(illust_id, **kwargs)
             self._check_error_in_raw_result(raw_result)
             return raw_result
@@ -317,7 +317,7 @@ class RemotePixivRepo(AbstractPixivRepo):
 
     @_auto_retry
     async def _raw_user_detail(self, user_id: int, **kwargs) -> dict:
-        async with self._query:
+        async with self._query():
             raw_result = await self._papi.user_detail(user_id, **kwargs)
             self._check_error_in_raw_result(raw_result)
             return raw_result
@@ -416,7 +416,7 @@ class RemotePixivRepo(AbstractPixivRepo):
         if isinstance(mode, str):
             mode = RankingMode[mode]
 
-        logger.debug(f"[repo] illust_ranking {mode}")
+        logger.debug(f"[remote] illust_ranking {mode}")
         return self._get_illusts(self._papi.illust_ranking,
                                  block_tags=self._conf.pixiv_block_tags,
                                  mode=mode.name, **kwargs)
@@ -437,7 +437,7 @@ class RemotePixivRepo(AbstractPixivRepo):
         if custom_domain is not None:
             url = url.replace("i.pximg.net", custom_domain)
 
-        async with self._query:
+        async with self._query():
             with BytesIO() as bio:
                 await self._papi.download(url, fname=bio, **kwargs)
                 content = bio.getvalue()

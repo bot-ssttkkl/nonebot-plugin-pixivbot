@@ -355,7 +355,7 @@ class LocalPixivRepo(AbstractPixivRepo):
         else:
             raise NoSuchItemError()
 
-    async def update_illust_detail(self, illust: Illust, metadata: PixivRepoMetadata = PixivRepoMetadata()):
+    async def update_illust_detail(self, illust: Illust, metadata: PixivRepoMetadata):
         logger.debug(f"[local] update illust_detail {illust.id} {metadata_to_text(metadata)}")
 
         await self.mongo.db.illust_detail_cache.update_one(
@@ -383,7 +383,7 @@ class LocalPixivRepo(AbstractPixivRepo):
         else:
             raise NoSuchItemError()
 
-    async def update_user_detail(self, user: User, metadata: PixivRepoMetadata = PixivRepoMetadata()):
+    async def update_user_detail(self, user: User, metadata: PixivRepoMetadata):
         logger.debug(f"[local] update user_detail {user.id} {metadata_to_text(metadata)}")
 
         if not metadata:
@@ -406,15 +406,20 @@ class LocalPixivRepo(AbstractPixivRepo):
                                  expired_in=self.conf.pixiv_search_illust_cache_expires_in,
                                  offset=offset)
 
-    async def update_search_illust(self, word: str, content: List[Union[Illust, LazyIllust]],
-                                   metadata: PixivRepoMetadata):
-        logger.debug(f"[local] update search_illust {word} "
-                     f"({len(content)} items) "
-                     f"{metadata_to_text(metadata)}")
-        await self._update_illusts("search_illust_cache", {"word": word}, content, metadata)
+    # async def update_search_illust(self, word: str, content: List[Union[Illust, LazyIllust]],
+    #                                metadata: PixivRepoMetadata):
+    #     logger.debug(f"[local] update search_illust {word} "
+    #                  f"({len(content)} items) "
+    #                  f"{metadata_to_text(metadata)}")
+    #     await self._update_illusts("search_illust_cache", {"word": word}, content, metadata)
+
+    async def invalidate_search_illust(self, word: str):
+        logger.debug(f"[local] invalidate search_illust {word}")
+        await self.mongo.db.search_illust_cache.delete_one({"word": word})
 
     async def append_search_illust(self, word: str, content: List[Union[Illust, LazyIllust]],
                                    metadata: PixivRepoMetadata) -> bool:
+        # 返回值表示content中是否有已经存在于集合的文档，下同
         logger.debug(f"[local] append search_illust {word} "
                      f"({len(content)} items) "
                      f"{metadata_to_text(metadata)}")
@@ -428,12 +433,16 @@ class LocalPixivRepo(AbstractPixivRepo):
                                expired_in=self.conf.pixiv_search_user_cache_expires_in,
                                offset=offset)
 
-    async def update_search_user(self, word: str, content: List[User],
-                                 metadata: PixivRepoMetadata):
-        logger.debug(f"[local] update search_user {word} "
-                     f"({len(content)} items) "
-                     f"{metadata_to_text(metadata)}")
-        await self._update_users("search_user_cache", {"word": word}, content, metadata)
+    # async def update_search_user(self, word: str, content: List[User],
+    #                              metadata: PixivRepoMetadata):
+    #     logger.debug(f"[local] update search_user {word} "
+    #                  f"({len(content)} items) "
+    #                  f"{metadata_to_text(metadata)}")
+    #     await self._update_users("search_user_cache", {"word": word}, content, metadata)
+
+    async def invalidate_search_user(self, word: str):
+        logger.debug(f"[local] invalidate search_user {word}")
+        await self.mongo.db.search_user_cache.delete_one({"word": word})
 
     async def append_search_user(self, word: str, content: List[User],
                                  metadata: PixivRepoMetadata) -> bool:
@@ -450,13 +459,17 @@ class LocalPixivRepo(AbstractPixivRepo):
                                  expired_in=self.conf.pixiv_user_illusts_cache_expires_in,
                                  offset=offset)
 
-    async def update_user_illusts(self, user_id: int,
-                                  content: List[Union[Illust, LazyIllust]],
-                                  metadata: PixivRepoMetadata):
-        logger.debug(f"[local] update user_illusts {user_id} "
-                     f"({len(content)} items) "
-                     f"{metadata_to_text(metadata)}")
-        await self._update_illusts("user_illusts_cache", {"user_id": user_id}, content, metadata)
+    async def invalidate_user_illusts(self, user_id: int):
+        logger.debug(f"[local] invalidate user_illusts {user_id}")
+        await self.mongo.db.user_illusts_cache.delete_one({"user_id": user_id})
+
+    # async def update_user_illusts(self, user_id: int,
+    #                               content: List[Union[Illust, LazyIllust]],
+    #                               metadata: PixivRepoMetadata):
+    #     logger.debug(f"[local] update user_illusts {user_id} "
+    #                  f"({len(content)} items) "
+    #                  f"{metadata_to_text(metadata)}")
+    #     await self._update_illusts("user_illusts_cache", {"user_id": user_id}, content, metadata)
 
     async def append_user_illusts(self, user_id: int,
                                   content: List[Union[Illust, LazyIllust]],
@@ -474,13 +487,17 @@ class LocalPixivRepo(AbstractPixivRepo):
                                  expired_in=self.conf.pixiv_user_bookmarks_cache_expires_in,
                                  offset=offset)
 
-    async def update_user_bookmarks(self, user_id: int,
-                                    content: List[Union[Illust, LazyIllust]],
-                                    metadata: PixivRepoMetadata):
-        logger.debug(f"[local] update user_bookmarks {user_id} "
-                     f"({len(content)} items) "
-                     f"{metadata_to_text(metadata)}")
-        await self._update_illusts("user_bookmarks_cache", {"user_id": user_id}, content, metadata)
+    async def invalidate_user_bookmarks(self, user_id: int):
+        logger.debug(f"[local] invalidate user_bookmarks {user_id}")
+        await self.mongo.db.user_bookmarks_cache.delete_one({"user_id": user_id})
+
+    # async def update_user_bookmarks(self, user_id: int,
+    #                                 content: List[Union[Illust, LazyIllust]],
+    #                                 metadata: PixivRepoMetadata):
+    #     logger.debug(f"[local] update user_bookmarks {user_id} "
+    #                  f"({len(content)} items) "
+    #                  f"{metadata_to_text(metadata)}")
+    #     await self._update_illusts("user_bookmarks_cache", {"user_id": user_id}, content, metadata)
 
     async def append_user_bookmarks(self, user_id: int,
                                     content: List[Union[Illust, LazyIllust]],
@@ -498,12 +515,16 @@ class LocalPixivRepo(AbstractPixivRepo):
                                  expired_in=self.conf.pixiv_other_cache_expires_in,
                                  offset=offset)
 
-    async def update_recommended_illusts(self, content: List[Union[Illust, LazyIllust]],
-                                         metadata: PixivRepoMetadata):
-        logger.debug(f"[local] update recommended_illusts "
-                     f"({len(content)} items) "
-                     f"{metadata_to_text(metadata)}")
-        await self._update_illusts("other_cache", {"type": "recommended_illusts"}, content, metadata)
+    async def invalidate_recommended_illusts(self):
+        logger.debug(f"[local] invalidate recommended_illusts")
+        await self.mongo.db.other_cache.delete_one({"type": "recommended_illusts"})
+
+    # async def update_recommended_illusts(self, content: List[Union[Illust, LazyIllust]],
+    #                                      metadata: PixivRepoMetadata):
+    #     logger.debug(f"[local] update recommended_illusts "
+    #                  f"({len(content)} items) "
+    #                  f"{metadata_to_text(metadata)}")
+    #     await self._update_illusts("other_cache", {"type": "recommended_illusts"}, content, metadata)
 
     async def append_recommended_illusts(self, content: List[Union[Illust, LazyIllust]],
                                          metadata: PixivRepoMetadata) -> bool:
@@ -520,12 +541,16 @@ class LocalPixivRepo(AbstractPixivRepo):
                                  expired_in=self.conf.pixiv_related_illusts_cache_expires_in,
                                  offset=offset)
 
-    async def update_related_illusts(self, illust_id: int, content: List[Union[Illust, LazyIllust]],
-                                     metadata: PixivRepoMetadata):
-        logger.debug(f"[local] update related_illusts {illust_id} "
-                     f"({len(content)} items) "
-                     f"{metadata_to_text(metadata)}")
-        await self._update_illusts("related_illusts_cache", {"original_illust_id": illust_id}, content, metadata)
+    async def invalidate_related_illusts(self, illust_id: int):
+        logger.debug(f"[local] invalidate related_illusts")
+        await self.mongo.db.related_illusts_cache.delete_one({"original_illust_id": illust_id})
+
+    # async def update_related_illusts(self, illust_id: int, content: List[Union[Illust, LazyIllust]],
+    #                                  metadata: PixivRepoMetadata):
+    #     logger.debug(f"[local] update related_illusts {illust_id} "
+    #                  f"({len(content)} items) "
+    #                  f"{metadata_to_text(metadata)}")
+    #     await self._update_illusts("related_illusts_cache", {"original_illust_id": illust_id}, content, metadata)
 
     async def append_related_illusts(self, illust_id: int, content: List[Union[Illust, LazyIllust]],
                                      metadata: PixivRepoMetadata) -> bool:
@@ -547,12 +572,16 @@ class LocalPixivRepo(AbstractPixivRepo):
                                  expired_in=self.conf.pixiv_illust_ranking_cache_expires_in,
                                  offset=offset)
 
-    async def update_illust_ranking(self, mode: RankingMode, content: List[Union[Illust, LazyIllust]],
-                                    metadata: PixivRepoMetadata):
-        logger.debug(f"[local] update illust_ranking {mode} "
-                     f"({len(content)} items) "
-                     f"{metadata_to_text(metadata)}")
-        await self._update_illusts("other_cache", {"type": mode.name + "_ranking"}, content, metadata)
+    async def invalidate_illust_ranking(self, mode: RankingMode):
+        logger.debug(f"[local] invalidate illust_ranking")
+        await self.mongo.db.related_illusts_cache.delete_one({"type": mode.name + "_ranking"})
+
+    # async def update_illust_ranking(self, mode: RankingMode, content: List[Union[Illust, LazyIllust]],
+    #                                 metadata: PixivRepoMetadata):
+    #     logger.debug(f"[local] update illust_ranking {mode} "
+    #                  f"({len(content)} items) "
+    #                  f"{metadata_to_text(metadata)}")
+    #     await self._update_illusts("other_cache", {"type": mode.name + "_ranking"}, content, metadata)
 
     async def append_illust_ranking(self, mode: RankingMode, content: List[Union[Illust, LazyIllust]],
                                     metadata: PixivRepoMetadata) -> bool:
@@ -573,7 +602,7 @@ class LocalPixivRepo(AbstractPixivRepo):
             raise NoSuchItemError()
 
     async def update_image(self, illust_id: int, content: bytes,
-                           metadata: PixivRepoMetadata = PixivRepoMetadata()):
+                           metadata: PixivRepoMetadata):
         logger.debug(f"[local] update image {illust_id} "
                      f"{metadata_to_text(metadata)}")
 
@@ -586,8 +615,8 @@ class LocalPixivRepo(AbstractPixivRepo):
             upsert=True
         )
 
-    async def invalidate_cache(self):
-        logger.debug(f"[local] invalidate_cache")
+    async def invalidate_all(self):
+        logger.debug(f"[local] invalidate_all")
         await self.mongo.db.download_cache.delete_many({})
         await self.mongo.db.illust_detail_cache.delete_many({})
         await self.mongo.db.user_detail_cache.delete_many({})

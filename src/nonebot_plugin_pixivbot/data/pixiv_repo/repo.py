@@ -64,7 +64,7 @@ class PixivSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[SharedAgenIde
 
     def search_illust_factory(self, word: str,
                               cache_strategy: CacheStrategy) -> AsyncGenerator[LazyIllust, None]:
-        return mediate_many(
+        return mediate_append(
             cache_factory=self.local.search_illust,
             remote_factory=self.remote.search_illust,
             query_kwargs={"word": word},
@@ -76,7 +76,7 @@ class PixivSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[SharedAgenIde
 
     def search_user_factory(self, word: str,
                             cache_strategy: CacheStrategy) -> AsyncGenerator[User, None]:
-        return mediate_many(
+        return mediate_append(
             cache_factory=self.local.search_user,
             remote_factory=self.remote.search_user,
             query_kwargs={"word": word},
@@ -114,6 +114,7 @@ class PixivSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[SharedAgenIde
             cache_factory=self.local.recommended_illusts,
             remote_factory=self.remote.recommended_illusts,
             query_kwargs={},
+            cache_invalidator=self.local.invalidate_recommended_illusts,
             cache_appender=lambda data, metadata: self.local.append_recommended_illusts(data, metadata),
             max_item=self.conf.pixiv_random_recommended_illust_max_item,
             max_page=self.conf.pixiv_random_recommended_illust_max_page,
@@ -126,6 +127,7 @@ class PixivSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[SharedAgenIde
             cache_factory=self.local.related_illusts,
             remote_factory=self.remote.related_illusts,
             query_kwargs={"illust_id": illust_id},
+            cache_invalidator=lambda: self.local.invalidate_related_illusts(illust_id),
             cache_appender=lambda data, metadata: self.local.append_related_illusts(illust_id, data, metadata),
             max_item=self.conf.pixiv_random_related_illust_max_item,
             max_page=self.conf.pixiv_random_related_illust_max_page,
@@ -138,6 +140,7 @@ class PixivSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[SharedAgenIde
             cache_factory=self.local.illust_ranking,
             remote_factory=self.remote.illust_ranking,
             query_kwargs={"mode": mode},
+            cache_invalidator=lambda: self.local.invalidate_illust_ranking(mode),
             cache_appender=lambda data, metadata: self.local.append_illust_ranking(mode, data, metadata),
             max_item=self.conf.pixiv_ranking_fetch_item,
             force_expiration=cache_strategy == CacheStrategy.FORCE_EXPIRATION,
@@ -210,7 +213,7 @@ class PixivRepo(AbstractPixivRepo):
 
     async def invalidate_cache(self):
         self._shared_agen_mgr.invalidate_all()
-        await self._local.invalidate_cache()
+        await self._local.invalidate_all()
 
     async def illust_detail(self, illust_id: int,
                             cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[Illust, None]:
