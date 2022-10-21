@@ -1,4 +1,6 @@
 from asyncio import sleep, create_task, CancelledError, Semaphore, Task
+from contextlib import asynccontextmanager
+from datetime import datetime, timedelta
 from functools import wraps
 from io import BytesIO
 from typing import TypeVar, Optional, Awaitable, List, Callable, Tuple, AsyncGenerator, Union
@@ -11,7 +13,7 @@ from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.data.local_tag_repo import LocalTagRepo
 from nonebot_plugin_pixivbot.enums import DownloadQuantity, RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User, UserPreview
-from nonebot_plugin_pixivbot.utils.errors import QueryError
+from nonebot_plugin_pixivbot.utils.errors import QueryError, RateLimitError
 from nonebot_plugin_pixivbot.utils.lifecycler import on_startup, on_shutdown
 from .abstract_repo import AbstractPixivRepo, PixivRepoMetadata
 from .compressor import Compressor
@@ -21,7 +23,7 @@ from .pkg_context import context
 T = TypeVar("T")
 
 
-def auto_retry(func):
+def _auto_retry(func):
     @wraps(func)
     async def wrapped(*args, **kwargs):
         err = None
@@ -29,6 +31,8 @@ def auto_retry(func):
             try:
                 return await func(*args, **kwargs)
             except CancelledError as e:
+                raise e
+            except QueryError as e:
                 raise e
             except Exception as e:
                 logger.debug(f"Retrying... {t + 1}/10")
@@ -38,12 +42,6 @@ def auto_retry(func):
         raise err
 
     return wrapped
-
-
-def check_error_in_raw_result(raw_result: dict):
-    if "error" in raw_result:
-        raise QueryError(raw_result["error"]["user_message"]
-                         or raw_result["error"]["message"] or raw_result["error"]["reason"])
 
 
 @context.inject
@@ -59,6 +57,8 @@ class RemotePixivRepo(AbstractPixivRepo):
         self._pclient: PixivClient = None
         self._papi: AppPixivAPI = None
         self._refresh_daemon: Task = None
+
+        self._got_rate_limit: Optional[datetime] = None
 
         self.user_id = 0
 
@@ -129,11 +129,43 @@ class RemotePixivRepo(AbstractPixivRepo):
         await self._pclient.close()
         self._refresh_daemon.cancel()
 
-    async def load_page(self, papi_search_func: Callable[..., Awaitable[dict]],
-                        element_list_name: str,
-                        *, mapper: Optional[Callable[[dict], T]] = None,
-                        filter_item: Optional[Callable[[T], bool]] = None,
-                        **kwargs) -> Tuple[List[T], PixivRepoMetadata]:
+    def _check_error_in_raw_result(self, raw_result: dict):
+        if "error" in raw_result:
+            message = raw_result["error"]["user_message"] \
+                      or raw_result["error"]["message"] \
+                      or raw_result["error"]["reason"]
+            if message == "Rate Limit":
+                # 处理RateLimit
+                self._got_rate_limit = datetime.utcnow()
+                raise RateLimitError()
+            else:
+                raise QueryError(message)
+
+    @asynccontextmanager
+    async def _query(self):
+        # RateLimit期间不进行查询
+        if self._got_rate_limit is not None:
+            now = datetime.utcnow()
+            if now - self._got_rate_limit >= timedelta(minutes=2):
+                self._got_rate_limit = None
+            else:
+                raise RateLimitError()
+
+        async with self._sema:
+            yield
+
+    async def _load_raw_page(self, papi_search_func: Callable[..., Awaitable[dict]],
+                             **kwargs):
+        async with self._query:
+            raw_result = await papi_search_func(**kwargs)
+            self._check_error_in_raw_result(raw_result)
+            return raw_result
+
+    async def _load_page(self, papi_search_func: Callable[..., Awaitable[dict]],
+                         element_list_name: str,
+                         *, mapper: Optional[Callable[[dict], T]] = None,
+                         filter_item: Optional[Callable[[T], bool]] = None,
+                         **kwargs) -> Tuple[List[T], PixivRepoMetadata]:
         """
         加载一页
         :param papi_search_func: PixivPy-Async的加载方法
@@ -143,12 +175,7 @@ class RemotePixivRepo(AbstractPixivRepo):
         :param kwargs: 传给papi_search_func的参数
         :return: 加载结果
         """
-        papi_search_func = auto_retry(papi_search_func)
-
-        async with self._sema:
-            raw_result = await papi_search_func(**kwargs)
-
-        check_error_in_raw_result(raw_result)
+        raw_result = await self._load_raw_page(papi_search_func, **kwargs)
 
         pending = []
         for x in raw_result[element_list_name]:
@@ -162,11 +189,11 @@ class RemotePixivRepo(AbstractPixivRepo):
 
         return pending, metadata
 
-    async def load_many_pages(self, papi_search_func: Callable[..., Awaitable[dict]],
-                              element_list_name: str,
-                              *, mapper: Optional[Callable[[dict], T]] = None,
-                              filter_item: Optional[Callable[[T], bool]] = None,
-                              **kwargs) -> AsyncGenerator[Tuple[List[T], PixivRepoMetadata], None]:
+    async def _load_many_pages(self, papi_search_func: Callable[..., Awaitable[dict]],
+                               element_list_name: str,
+                               *, mapper: Optional[Callable[[dict], T]] = None,
+                               filter_item: Optional[Callable[[T], bool]] = None,
+                               **kwargs) -> AsyncGenerator[Tuple[List[T], PixivRepoMetadata], None]:
         """
         一次加载多页
         :param papi_search_func: PixivPy-Async的加载方法
@@ -181,9 +208,8 @@ class RemotePixivRepo(AbstractPixivRepo):
         next_qs = kwargs
 
         while True:
-            page, metadata = await self.load_page(papi_search_func, element_list_name,
-                                                  mapper=mapper, filter_item=filter_item,
-                                                  **next_qs)
+            page, metadata = await self._load_page(papi_search_func, element_list_name, mapper=mapper,
+                                                   filter_item=filter_item, **next_qs)
 
             loaded_pages = loaded_pages + 1
             loaded_items += len(page)
@@ -234,10 +260,9 @@ class RemotePixivRepo(AbstractPixivRepo):
         broken = 0
 
         yield PixivRepoMetadata(pages=0, next_qs=kwargs)
-        async for page, metadata in self.load_many_pages(papi_search_func, "illusts",
-                                                         mapper=lambda x: Illust.parse_obj(x),
-                                                         filter_item=illust_filter,
-                                                         **kwargs):
+        async for page, metadata in self._load_many_pages(papi_search_func, "illusts",
+                                                          mapper=lambda x: Illust.parse_obj(x),
+                                                          filter_item=illust_filter, **kwargs):
             for item in page:
                 total += 1
                 if "limit_unknown_360.png" in item.image_urls.large:
@@ -252,60 +277,56 @@ class RemotePixivRepo(AbstractPixivRepo):
                                  **kwargs) \
             -> AsyncGenerator[Union[PixivRepoMetadata, UserPreview], None]:
         yield PixivRepoMetadata(pages=0, next_qs=kwargs)
-        async with self._sema:
-            async for page, metadata in self.load_many_pages(papi_search_func, "user_previews",
-                                                             mapper=lambda x: UserPreview.parse_obj(x),
-                                                             **kwargs):
-                for item in page:
-                    item: UserPreview
-                    if block_tags is not None:
-                        illusts = []
-                        for x in item.illusts:
-                            for tag in block_tags:
-                                if x.has_tag(tag):
-                                    break
-                            else:
-                                illusts.append(x)
-                        item.illusts = illusts
-                    yield item
-                yield metadata
+        async for page, metadata in self._load_many_pages(papi_search_func, "user_previews",
+                                                          mapper=lambda x: UserPreview.parse_obj(x), **kwargs):
+            for item in page:
+                item: UserPreview
+                if block_tags is not None:
+                    illusts = []
+                    for x in item.illusts:
+                        for tag in block_tags:
+                            if x.has_tag(tag):
+                                break
+                        else:
+                            illusts.append(x)
+                    item.illusts = illusts
+                yield item
+            yield metadata
 
     async def _get_users(self, papi_search_func: Callable[[], Awaitable[dict]], **kwargs) \
             -> AsyncGenerator[Union[PixivRepoMetadata, User], None]:
         yield PixivRepoMetadata(pages=0, next_qs=kwargs)
-        async with self._sema:
-            async for page, metadata in self.load_many_pages(papi_search_func, "user_previews",
-                                                             mapper=lambda x: User.parse_obj(x["user"]),
-                                                             **kwargs):
-                for item in page:
-                    yield item
-                yield metadata
+        async for page, metadata in self._load_many_pages(papi_search_func, "user_previews",
+                                                          mapper=lambda x: User.parse_obj(x["user"]), **kwargs):
+            for item in page:
+                yield item
+            yield metadata
 
-    @auto_retry
-    async def _illust_detail(self, illust_id: int, **kwargs) -> Illust:
-        logger.debug(f"[remote] illust_detail {illust_id}")
-        async with self._sema:
+    @_auto_retry
+    async def _raw_illust_detail(self, illust_id: int, **kwargs) -> dict:
+        async with self._query:
             raw_result = await self._papi.illust_detail(illust_id, **kwargs)
-            check_error_in_raw_result(raw_result)
-            return Illust.parse_obj(raw_result["illust"])
+            self._check_error_in_raw_result(raw_result)
+            return raw_result
 
     async def illust_detail(self, illust_id: int, **kwargs) -> AsyncGenerator[Illust, None]:
-        data = await self._illust_detail(illust_id, **kwargs)
+        logger.debug(f"[remote] illust_detail {illust_id}")
+        raw_result = await self._raw_illust_detail(illust_id, **kwargs)
         yield PixivRepoMetadata()
-        yield data
+        yield Illust.parse_obj(raw_result["illust"])
 
-    @auto_retry
-    async def _user_detail(self, user_id: int, **kwargs) -> User:
-        logger.debug(f"[remote] user_detail {user_id}")
-        async with self._sema:
+    @_auto_retry
+    async def _raw_user_detail(self, user_id: int, **kwargs) -> dict:
+        async with self._query:
             raw_result = await self._papi.user_detail(user_id, **kwargs)
-            check_error_in_raw_result(raw_result)
-            return User.parse_obj(raw_result["user"])
+            self._check_error_in_raw_result(raw_result)
+            return raw_result
 
     async def user_detail(self, user_id: int, **kwargs) -> AsyncGenerator[User, None]:
-        data = await self._user_detail(user_id, **kwargs)
+        logger.debug(f"[remote] user_detail {user_id}")
+        raw_result = await self._raw_user_detail(user_id, **kwargs)
         yield PixivRepoMetadata()
-        yield data
+        yield User.parse_obj(raw_result["user"])
 
     def search_illust(self, word: str, **kwargs) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
@@ -400,35 +421,35 @@ class RemotePixivRepo(AbstractPixivRepo):
                                  block_tags=self._conf.pixiv_block_tags,
                                  mode=mode.name, **kwargs)
 
-    @auto_retry
-    async def _image(self, illust: Illust, **kwargs) -> bytes:
-        logger.debug(f"[remote] image {illust.id}")
-        async with self._sema:
-            download_quantity = self._conf.pixiv_download_quantity
-            custom_domain = self._conf.pixiv_download_custom_domain
+    @_auto_retry
+    async def _raw_image(self, illust: Illust, **kwargs) -> bytes:
+        download_quantity = self._conf.pixiv_download_quantity
+        custom_domain = self._conf.pixiv_download_custom_domain
 
-            if download_quantity == DownloadQuantity.original:
-                if len(illust.meta_pages) > 0:
-                    url = illust.meta_pages[0].image_urls.original
-                else:
-                    url = illust.meta_single_page.original_image_url
+        if download_quantity == DownloadQuantity.original:
+            if len(illust.meta_pages) > 0:
+                url = illust.meta_pages[0].image_urls.original
             else:
-                url = getattr(illust.image_urls, download_quantity.name)
+                url = illust.meta_single_page.original_image_url
+        else:
+            url = getattr(illust.image_urls, download_quantity.name)
 
-            if custom_domain is not None:
-                url = url.replace("i.pximg.net", custom_domain)
+        if custom_domain is not None:
+            url = url.replace("i.pximg.net", custom_domain)
 
+        async with self._query:
             with BytesIO() as bio:
                 await self._papi.download(url, fname=bio, **kwargs)
                 content = bio.getvalue()
-                content = await self._compressor.compress(content)
                 return content
 
     async def image(self, illust: Illust, **kwargs) \
             -> AsyncGenerator[Union[bytes, PixivRepoMetadata], None]:
-        data = await self._image(illust, **kwargs)
+        logger.debug(f"[remote] image {illust.id}")
+        content = await self._raw_image(illust, **kwargs)
+        content = await self._compressor.compress(content)
         yield PixivRepoMetadata()
-        yield data
+        yield content
 
 
 __all__ = ("RemotePixivRepo",)

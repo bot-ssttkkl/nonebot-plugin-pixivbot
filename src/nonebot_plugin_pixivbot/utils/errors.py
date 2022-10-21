@@ -6,6 +6,11 @@ class QueryError(Exception):
         return self.message
 
 
+class RateLimitError(QueryError):
+    def __init__(self):
+        super(RateLimitError).__init__("Rate Limit")
+
+
 class BadRequestError(Exception):
     def __init__(self, message=None):
         super().__init__()
@@ -15,4 +20,4 @@ class BadRequestError(Exception):
         return self.message
 
 
-__all__ = ("QueryError", "BadRequestError")
+__all__ = ("QueryError", "RateLimitError", "BadRequestError")
