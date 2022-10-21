@@ -3,9 +3,6 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from nonebot_plugin_pixivbot.data.pixiv_repo import LazyIllust
-from nonebot_plugin_pixivbot.enums import RankingMode
-from nonebot_plugin_pixivbot.model import Illust, User
 from tests import MyTest
 
 
@@ -13,8 +10,10 @@ class FakePixivRepoMixin(MyTest):
     @pytest.fixture
     def fake_pixiv_repo(self, load_pixivbot):
         from nonebot_plugin_pixivbot import context
-        from nonebot_plugin_pixivbot.data.pixiv_repo import PixivRepo
+        from nonebot_plugin_pixivbot.data.pixiv_repo import PixivRepo, LazyIllust
         from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import AbstractPixivRepo
+        from nonebot_plugin_pixivbot.enums import RankingMode
+        from nonebot_plugin_pixivbot.model import Illust, User
 
         @context.bind_singleton_to(PixivRepo)
         class FakePixivRepo(AbstractPixivRepo):

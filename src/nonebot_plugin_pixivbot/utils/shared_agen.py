@@ -61,6 +61,8 @@ class SharedAsyncGeneratorContextManager(AbstractContextManager, Generic[T_ITEM]
                                 ret = self._on_stop(self._got_items)
                                 if isawaitable(ret):
                                     await ret
+
+                            break
                         except Exception as e:
                             if self._on_error:
                                 ret = self._on_error(e)
@@ -75,6 +77,7 @@ class SharedAsyncGeneratorContextManager(AbstractContextManager, Generic[T_ITEM]
 
                         self._got_items.append(new_data)
                         self._got += 1
+
                     yield self._got_items[cur]
                     cur += 1
 
