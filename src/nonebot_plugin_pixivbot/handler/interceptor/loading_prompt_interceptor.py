@@ -4,14 +4,18 @@ from typing import Callable, Optional
 from nonebot import logger
 
 from nonebot_plugin_pixivbot import context
+from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .interceptor import Interceptor, UID, GID
 
 
 @context.register_singleton()
-class LoadingInterceptor(Interceptor):
-    async def send_delayed_loading(self, post_dest: PostDestination[UID, GID]):
-        await sleep(3.0)
+class LoadingPromptInterceptor(Interceptor):
+    conf: Config
+
+    async def send_delayed_loading_prompt(self, post_dest: PostDestination[UID, GID]):
+        await sleep(self.conf.pixiv_loading_prompt_delayed_time)
+
         logger.debug(f"send delayed loading to {post_dest.identifier}")
         await shield(self.post_plain_text("努力加载中", post_dest))
 
@@ -21,7 +25,7 @@ class LoadingInterceptor(Interceptor):
                         **kwargs):
         task: Optional[Task] = None
         if not silently:
-            task = create_task(self.send_delayed_loading(post_dest))
+            task = create_task(self.send_delayed_loading_prompt(post_dest))
 
         try:
             await wrapped_func(*args, post_dest=post_dest, silently=silently, **kwargs)

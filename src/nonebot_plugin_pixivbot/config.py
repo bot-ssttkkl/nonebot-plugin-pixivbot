@@ -16,7 +16,8 @@ class Config(BaseSettings):
     pixiv_mongo_conn_url: str
     pixiv_mongo_database_name: str
     pixiv_proxy: Optional[str]
-    pixiv_query_timeout: int = 60
+    pixiv_query_timeout: float = 60.0
+    pixiv_loading_prompt_delayed_time: float = 5.0
     pixiv_simultaneous_query: int = 8
 
     pixiv_download_cache_expires_in = 3600 * 24 * 7
