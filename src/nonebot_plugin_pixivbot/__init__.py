@@ -12,7 +12,7 @@ from importlib import import_module
 from nonebot import logger
 
 from .global_context import context
-from .providers import provide
+from .nb_providers import provide
 
 provide(context)
 
