@@ -83,8 +83,15 @@ class Watchman:
         WatchType.user_illusts: _get_user_illusts
     }
 
-    async def _handle(self, task: WatchTask, post_dest: PD):
-        # logger.info(f"[watchman] handle user_illust {pixiv_user_id}")
+    async def _on_trigger(self, task: WatchTask, post_dest: PD):
+        job_id = self._make_job_id(task.type, task.kwargs, task.subscriber)
+        logger.info(f"[watchman] triggered {job_id}")
+
+        # 先保存checkpoint，避免一次异常后下一次重复推送
+        # 但是会存在丢失推送的问题
+        task.checkpoint = datetime.now(timezone.utc)
+        await self.repo.update(task)
+
         ctx_mgr = await Watchman._ctx_mgr_factory[task.type](self, task, post_dest)
         if ctx_mgr:
             with ctx_mgr as iter:
@@ -95,9 +102,6 @@ class Watchman:
                                                 post_dest=post_dest)
                     else:
                         break
-
-        task.checkpoint = datetime.now(timezone.utc)
-        await self.repo.update(task)
 
     @staticmethod
     def _make_job_id(type: WatchType,
@@ -118,7 +122,7 @@ class Watchman:
     def _add_job(self, task: WatchTask, post_dest: PD):
         job_id = self._make_job_id(task.type, task.kwargs, task.subscriber)
         trigger = self._make_job_trigger(task)
-        self.apscheduler.add_job(self._handle, id=job_id, trigger=trigger,
+        self.apscheduler.add_job(self._on_trigger, id=job_id, trigger=trigger,
                                  args=[task, post_dest],
                                  max_instances=1)
         logger.success(f"[watchman] add job \"{job_id}\" on {trigger}")
