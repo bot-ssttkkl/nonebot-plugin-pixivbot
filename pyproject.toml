@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nonebot-plugin-pixivbot"
-version = "1.4.0"
+version = "1.4.0rc1"
 description = "Nonebot Plugin PixivBot"
 authors = ["ssttkkl <huang.wen.long@hotmail.com>"]
 readme = "README.md"
@@ -31,13 +31,11 @@ flake8 = "^5.0.4"
 twine = "^4.0.1"
 nonebug = "^0.2.1"
 pytest-mock = "^3.10.0"
+pytest-cov = "^4.0.0"
 
 [tool.poetry.extras]
 onebot = ["nonebot-plugin-pixivbot-onebot-v11"]
 kook = ["nonebot-plugin-pixivbot-kook"]
-
-[tool.poetry.group.dev.dependencies]
-pytest-cov = "^4.0.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

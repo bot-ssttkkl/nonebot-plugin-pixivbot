@@ -1,6 +1,7 @@
 from .command import CommandQuery
 from .delegateion_query import DelegationQuery
 from .illust import IllustQuery
+from .illust_link import IllustLinkQuery
 from .more import MoreQuery
 from .query import Query, register_query
 from .random_bookmark import RandomBookmarkQuery
@@ -11,6 +12,6 @@ from .random_user_illust import RandomUserIllustQuery
 from .ranking import RankingQuery
 
 __all__ = (
-    "CommandQuery", "DelegationQuery", "IllustQuery", "MoreQuery", "Query", "RandomBookmarkQuery", "RandomIllustQuery",
-    "RandomRecommendedIllustQuery", "RandomRelatedIllustQuery", "RandomUserIllustQuery", "RankingQuery",
-    "register_query")
+    "CommandQuery", "DelegationQuery", "IllustQuery", "IllustLinkQuery", "MoreQuery", "Query", "RandomBookmarkQuery",
+    "RandomIllustQuery", "RandomRecommendedIllustQuery", "RandomRelatedIllustQuery", "RandomUserIllustQuery",
+    "RankingQuery", "register_query")
