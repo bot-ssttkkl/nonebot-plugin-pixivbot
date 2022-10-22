@@ -1,18 +1,10 @@
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
-from typing import Union, Optional, AsyncGenerator
-
-from pydantic import BaseModel
+from typing import Union, AsyncGenerator
 
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User
 from .lazy_illust import LazyIllust
-
-
-class PixivRepoMetadata(BaseModel):
-    update_time: datetime = datetime.now(timezone.utc)
-    pages: Optional[int]
-    next_qs: Optional[dict]
+from .models import PixivRepoMetadata
 
 
 class AbstractPixivRepo(ABC):
@@ -58,4 +50,4 @@ class AbstractPixivRepo(ABC):
         raise NotImplementedError()
 
 
-__all__ = ("AbstractPixivRepo", "PixivRepoMetadata",)
+__all__ = ("AbstractPixivRepo",)

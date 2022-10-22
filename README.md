@@ -10,6 +10,53 @@ PixivBot中协议无关的通用部分。目前适配协议：
 
 开箱即用的Docker镜像：[ssttkkl/PixivBot](https://github.com/ssttkkl/PixivBot)
 
+## 触发语句
+
+### 普通语句
+
+所有数字参数均支持中文数字和罗马数字。
+
+- **看看<类型>榜<范围>**：查看pixiv榜单（<类型>可省略，<范围>应为a-b或a）
+  - 示例：看看榜、看看日榜、看看榜1-5、看看月榜一
+- **来<数量>张图**：从推荐插画随机抽选一张插画（<数量>可省略，下同）
+  - 示例：来张图、来五张图
+- **来<数量>张<关键字>图**：搜索关键字，从搜索结果随机抽选一张插画
+  - 示例：来张初音ミク图、来五张初音ミク图
+  - 注：默认开启关键字翻译功能。Bot会在平时的数据爬取时记录各个Tag的中文翻译。在搜索时，若关键字的日文翻译存在，则使用日文翻译代替关键字进行搜索。
+- **来<数量>张<用户>老师的图**：搜索用户，从插画列表中随机抽选一张插画
+  - 示例：来张Rella老师的图、来五张Rella老师的图
+- **看看图<插画ID>**：查看ID对应的插画
+  - 示例：看看图114514
+- **来<数量>张私家车**：从书签中随机抽选一张插画（发送者需绑定Pixiv账号，或者在配置中指定默认Pixiv账号）
+  - 示例：来张私家车、来五张私家车
+- **还要**：重复上一次请求
+- **不够色**：获取上一张插画的相关插画
+
+### 命令语句
+
+- **/pixivbot schedule \<type\> \<schedule\> [..args]**：为本群（本用户）订阅类型为<type>的定时推送功能，时间满足<schedule>时进行推送
+    - \<type\>：可选值有ranking, random_bookmark, random_recommended_illust, random_illust, random_user_illust
+    - \<schedule\>：有三种格式，*00:30\*x*为每隔30分钟进行一次推送，*12:00*为每天12:00进行一次推送，*00:10+00:30\*x*为从今天00:10开始每隔30分钟进行一次推送（开始时间若是一个过去的时间点，则从下一个开始推送的时间点进行推送）
+    - [..args]：
+      - \<type\>为ranking时，接受\<mode\> \<range\>
+      - \<type\>为random_bookmark时，接受\<pixiv_user_id\>（可空）
+      - \<type\>为random_illust时，接受\<word\>
+      - \<type\>为random_user_illust时，接受\<user\>
+- **/pixivbot schedule**：查看本群（本用户）的所有定时推送订阅
+- **/pixivbot unschedule <type>**：取消本群（本用户）的定时推送订阅
+- **/pixivbot watch \<type\> [..args]**：为本群（本用户）订阅类型为<type>的更新推送功能
+    - \<type\>：可选值有user_illusts, following_illusts
+    - [..args]：
+      - \<type\>为user_illusts时，接受\<pixiv_user_id\>/\<user\>
+      - \<type\>为following_illusts时，接受\<pixiv_user_id\>/\<user\>（可空）
+- **/pixivbot watch**：查看本群（本用户）的所有更新推送订阅
+- **/pixivbot unwatch \<type\> [..args]**：取消本群（本用户）的更新推送订阅
+- **/pixivbot bind \<pixiv_user_id\>**：绑定Pixiv账号（用于随机书签功能）
+- **/pixivbot unbind**：解绑Pixiv账号
+- **/pixivbot invalidate_cache**：清除缓存（只有超级用户能够发送此命令）
+- **/pixivbot**、**/pixivbot help**：查看帮助
+
+
 ## 环境配置
 
 事前准备：登录pixiv账号并获取refresh_token。（参考：[@ZipFile Pixiv OAuth Flow](https://gist.github.com/ZipFile/c9ebedb224406f4f11845ab700124362)）
@@ -41,6 +88,7 @@ pixiv_mongo_conn_url=  # MongoDB连接URL，格式：mongodb://<用户名>:<密�
 pixiv_mongo_database_name=  # 连接的MongoDB数据库
 pixiv_proxy=None  # 代理URL
 pixiv_query_timeout=60  # 查询超时（单位：秒）
+pixiv_loading_prompt_delayed_time=5  # 加载提示消息的延迟时间（“努力加载中”的消息会在请求发出多少秒后发出）（单位：秒）
 pixiv_simultaneous_query=8  # 向Pixiv查询的并发数
 
 # 缓存过期时间（单位：秒）

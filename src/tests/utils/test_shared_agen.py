@@ -23,53 +23,78 @@ class TestSharedAsyncGeneratorContextManager(MyTest):
         return agen()
 
     @pytest.fixture
-    def ctx_mgr(self, origin_agen):
+    def origin_agen_raises(self):
+        cnt = 0
+
+        async def agen():
+            nonlocal cnt
+            for i in range(10):
+                await sleep(0.1)
+                yield cnt
+                cnt += 1
+            raise RuntimeError()
+
+        return agen()
+
+    @pytest.fixture
+    def ctx_mgr_factory(self):
         from nonebot_plugin_pixivbot.utils.shared_agen import SharedAsyncGeneratorContextManager
 
-        on_each = AsyncMock()
-        on_stop = AsyncMock()
-        on_consumers_changed = MagicMock()
+        def factory(origin_agen):
+            on_each = AsyncMock()
+            on_stop = AsyncMock()
+            on_error = AsyncMock()
+            on_consumers_changed = MagicMock()
 
-        return SharedAsyncGeneratorContextManager(
-            origin_agen,
-            on_each,
-            on_stop,
-            on_consumers_changed
-        )
+            # noinspection PyTypeChecker
+            return SharedAsyncGeneratorContextManager(
+                origin_agen,
+                on_each=on_each,
+                on_stop=on_stop,
+                on_error=on_error,
+                on_consumers_changed=on_consumers_changed
+            )
+
+        return factory
 
     @pytest.mark.asyncio
-    async def test_on_each_and_on_stop(self, origin_agen):
-        from nonebot_plugin_pixivbot.utils.shared_agen import SharedAsyncGeneratorContextManager
-
-        on_each = AsyncMock()
-        on_stop = AsyncMock()
-        on_consumers_changed = MagicMock()
-
-        ctx_mgr = SharedAsyncGeneratorContextManager(
-            origin_agen,
-            on_each,
-            on_stop,
-            on_consumers_changed
-        )
-
+    async def test_on_each_and_on_stop(self, ctx_mgr_factory, origin_agen):
+        ctx_mgr = ctx_mgr_factory(origin_agen)
         with ctx_mgr as iter:
             items = [i async for i in iter]
 
-        on_each.assert_has_awaits([call(i) for i in range(10)])
-        on_stop.assert_awaited_once_with([i for i in range(10)])
+        # noinspection PyUnresolvedReferences
+        ctx_mgr._on_each.assert_has_awaits([call(i) for i in range(10)])
+        # noinspection PyUnresolvedReferences
+        ctx_mgr._on_stop.assert_awaited_once_with([i for i in range(10)])
 
     @pytest.mark.asyncio
-    async def test_single_consumer(self, ctx_mgr):
+    async def test_on_error(self, ctx_mgr_factory, origin_agen_raises):
+        ctx_mgr = ctx_mgr_factory(origin_agen_raises)
+        with pytest.raises(RuntimeError) as e:
+            with ctx_mgr as iter:
+                items = [i async for i in iter]
+
+            # noinspection PyUnresolvedReferences
+            ctx_mgr._on_error.assert_awaited_once_with(e)
+
+    @pytest.mark.asyncio
+    async def test_single_consumer(self, ctx_mgr_factory, origin_agen):
+        ctx_mgr = ctx_mgr_factory(origin_agen)
         with ctx_mgr as iter:
             items = [i async for i in iter]
 
         assert items == [i for i in range(10)]
 
-        # noinspection PyUnresolvedReferences
-        ctx_mgr._on_consumers_changed.assert_has_calls([call(ctx_mgr, 1), call(ctx_mgr, 0)])
+        # noinspection PyTypeChecker
+        on_consumers_changed: MagicMock = ctx_mgr._on_consumers_changed
+        assert on_consumers_changed.call_args_list[0].args == (ctx_mgr, 1)
+        assert on_consumers_changed.call_args_list[1].args == (ctx_mgr, 0)
 
     @pytest.mark.asyncio
-    async def test_multi_consumer(self, ctx_mgr):
+    async def test_multi_consumer(self, ctx_mgr_factory, origin_agen):
+        ctx_mgr = ctx_mgr_factory(origin_agen)
+
         async def consume():
             with ctx_mgr as iter:
                 items = [i async for i in iter]
@@ -89,13 +114,18 @@ class TestSharedAsyncGeneratorContextManager(MyTest):
 
         await gather(consumer1, consumer2, consumer3)
 
-        # noinspection PyUnresolvedReferences
-        ctx_mgr._on_consumers_changed.assert_has_calls(
-            [call(ctx_mgr, 1), call(ctx_mgr, 2), call(ctx_mgr, 1), call(ctx_mgr, 0), call(ctx_mgr, 1),
-             call(ctx_mgr, 0)])
+        # noinspection PyTypeChecker
+        on_consumers_changed: MagicMock = ctx_mgr._on_consumers_changed
+        assert on_consumers_changed.call_args_list[0].args == (ctx_mgr, 1)
+        assert on_consumers_changed.call_args_list[1].args == (ctx_mgr, 2)
+        assert on_consumers_changed.call_args_list[2].args == (ctx_mgr, 1)
+        assert on_consumers_changed.call_args_list[3].args == (ctx_mgr, 0)
+        assert on_consumers_changed.call_args_list[4].args == (ctx_mgr, 1)
+        assert on_consumers_changed.call_args_list[5].args == (ctx_mgr, 0)
 
     @pytest.mark.asyncio
-    async def test_close(self, ctx_mgr):
+    async def test_close(self, ctx_mgr_factory, origin_agen):
+        ctx_mgr = ctx_mgr_factory(origin_agen)
         with ctx_mgr as iter:
             await iter.__anext__()
             await iter.__anext__()
@@ -115,7 +145,7 @@ class TestSharedAsyncGeneratorManager(MyTest):
         from nonebot_plugin_pixivbot.utils.shared_agen import SharedAsyncGeneratorManager
 
         class SharedAsyncGeneratorManagerImpl(SharedAsyncGeneratorManager[int, int]):
-            def agen_factory(self, identifier: int, *args, **kwargs) -> AsyncGenerator[int, None]:
+            def agen(self, identifier: int, *args, **kwargs) -> AsyncGenerator[int, None]:
                 async def agen():
                     cnt = identifier
                     for i in range(10):

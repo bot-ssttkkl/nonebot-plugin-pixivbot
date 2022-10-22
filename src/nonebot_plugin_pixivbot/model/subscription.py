@@ -10,7 +10,7 @@ UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
-class ScheduleType(Enum):
+class ScheduleType(str, Enum):
     random_bookmark = "random_bookmark"
     random_recommended_illust = "random_recommended_illust"
     random_illust = "random_illust"

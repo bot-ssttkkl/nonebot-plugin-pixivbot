@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Dict, Any, TypeVar, Optional
+from typing import Dict, Any, TypeVar, Optional, List
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -83,8 +83,15 @@ class Watchman:
         WatchType.user_illusts: _get_user_illusts
     }
 
-    async def _handle(self, task: WatchTask, post_dest: PD):
-        # logger.info(f"[watchman] handle user_illust {pixiv_user_id}")
+    async def _on_trigger(self, task: WatchTask, post_dest: PD):
+        job_id = self._make_job_id(task.type, task.kwargs, task.subscriber)
+        logger.info(f"[watchman] triggered {job_id}")
+
+        # 先保存checkpoint，避免一次异常后下一次重复推送
+        # 但是会存在丢失推送的问题
+        task.checkpoint = datetime.now(timezone.utc)
+        await self.repo.update(task)
+
         ctx_mgr = await Watchman._ctx_mgr_factory[task.type](self, task, post_dest)
         if ctx_mgr:
             with ctx_mgr as iter:
@@ -95,9 +102,6 @@ class Watchman:
                                                 post_dest=post_dest)
                     else:
                         break
-
-        task.checkpoint = datetime.now(timezone.utc)
-        await self.repo.update(task)
 
     @staticmethod
     def _make_job_id(type: WatchType,
@@ -118,7 +122,7 @@ class Watchman:
     def _add_job(self, task: WatchTask, post_dest: PD):
         job_id = self._make_job_id(task.type, task.kwargs, task.subscriber)
         trigger = self._make_job_trigger(task)
-        self.apscheduler.add_job(self._handle, id=job_id, trigger=trigger,
+        self.apscheduler.add_job(self._on_trigger, id=job_id, trigger=trigger,
                                  args=[task, post_dest],
                                  max_instances=1)
         logger.success(f"[watchman] add job \"{job_id}\" on {trigger}")
@@ -158,20 +162,22 @@ class Watchman:
     async def unwatch(self, type: WatchType,
                       kwargs: Dict[str, Any],
                       subscriber: ID) -> bool:
-        subscriber = process_subscriber(subscriber)
+        # subscriber = process_subscriber(subscriber)
         task = await self.repo.delete_one(type, kwargs, subscriber)
         if task:
             self._remove_job(task)
+            logger.success(f"[scheduler] successfully removed subscription {task}")
             return True
         else:
             return False
 
     async def unwatch_all_by_subscriber(self, subscriber: ID):
-        subscriber = process_subscriber(subscriber)
-        async for task in self.repo.get_by_subscriber(subscriber):
+        # subscriber = process_subscriber(subscriber)
+        old = await self.repo.delete_many_by_subscriber(subscriber)
+        for task in old:
             self._remove_job(task)
-        await self.repo.delete_many_by_subscriber(subscriber)
+            logger.success(f"[scheduler] successfully removed subscription {task}")
 
-    async def get_by_subscriber(self, subscriber: ID):
-        subscriber = process_subscriber(subscriber)
+    async def get_by_subscriber(self, subscriber: ID) -> List[WatchTask]:
+        # subscriber = process_subscriber(subscriber)
         return [x async for x in self.repo.get_by_subscriber(subscriber)]

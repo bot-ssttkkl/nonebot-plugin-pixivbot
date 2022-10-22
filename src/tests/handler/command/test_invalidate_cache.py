@@ -1,25 +1,15 @@
-from unittest.mock import AsyncMock
-
 import pytest
 
 from tests import MyTest
+from tests.data.pixiv_repo.fake_pixiv_repo import FakePixivRepoMixin
 from tests.protocol_dep.fake_post_dest import FakePostDestinationMixin
 from tests.protocol_dep.fake_postman import FakePostmanManagerMixin
 
 
 class TestInvalidateCache(FakePostDestinationMixin,
                           FakePostmanManagerMixin,
+                          FakePixivRepoMixin,
                           MyTest):
-    @pytest.fixture
-    def fake_pixiv_repo(self, load_pixivbot):
-        from nonebot_plugin_pixivbot import context
-        from nonebot_plugin_pixivbot.data.pixiv_repo import PixivRepo
-
-        @context.bind_singleton_to(PixivRepo)
-        class PixivRepo:
-            invalidate_cache = AsyncMock()
-
-        return PixivRepo
 
     @pytest.fixture(autouse=True)
     def remove_interceptor(self, load_pixivbot):

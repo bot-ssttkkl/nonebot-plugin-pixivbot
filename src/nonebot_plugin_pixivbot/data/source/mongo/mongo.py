@@ -1,6 +1,11 @@
+from asyncio import create_task, gather
+from typing import List, Type
+
+from beanie import init_beanie, Document
 from bson import CodecOptions
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from nonebot import logger
+from pymongo import IndexModel
 from pymongo.errors import OperationFailure
 
 from nonebot_plugin_pixivbot.config import Config
@@ -21,6 +26,8 @@ class MongoDataSource:
         self._client = None
         self._db = None
 
+        self.document_models: List[Type[Document]] = []
+
         on_startup(self.initialize, replay=True)
         on_shutdown(self.finalize)
 
@@ -36,7 +43,7 @@ class MongoDataSource:
             raise DataSourceNotReadyError()
 
     @staticmethod
-    async def _get_db_version(db: AsyncIOMotorDatabase) -> int:
+    async def _raw_get_db_version(db: AsyncIOMotorDatabase) -> int:
         version = await db["meta_info"].find_one({"key": "db_version"})
         if version is None:
             await db["meta_info"].insert_one({"key": "db_version", "value": 1})
@@ -45,7 +52,7 @@ class MongoDataSource:
             return version["value"]
 
     @staticmethod
-    async def _set_db_version(db_version: int, db: AsyncIOMotorDatabase):
+    async def _raw_set_db_version(db: AsyncIOMotorDatabase, db_version: int):
         await db["meta_info"].update_one({"key": "db_version"},
                                          {"$set": {
                                              "value": db_version
@@ -53,27 +60,19 @@ class MongoDataSource:
                                          upsert=True)
 
     @staticmethod
-    async def _ensure_index(db: AsyncIOMotorDatabase, coll_name: str, indexes: list[tuple[str, int]], **kwargs):
+    async def _ensure_ttl_index(db: AsyncIOMotorDatabase, coll_name: str, index: IndexModel):
         try:
-            await db[coll_name].create_index(indexes, **kwargs)
-        except OperationFailure:
-            logger.info(f"Index in {coll_name}: recreated")
-            await db[coll_name].drop_index(indexes)
-            await db[coll_name].create_index(indexes, **kwargs)
-
-    @staticmethod
-    async def _ensure_ttl_index(db: AsyncIOMotorDatabase, coll_name: str, expires_in: int):
-        try:
-            await db[coll_name].create_index([("update_time", 1)], expireAfterSeconds=expires_in)
+            await db[coll_name].create_indexes([index])
         except OperationFailure:
             await db.command({
                 "collMod": coll_name,
                 "index": {
-                    "keyPattern": {"update_time": 1},
-                    "expireAfterSeconds": expires_in,
+                    "keyPattern": index.document["key"],
+                    "expireAfterSeconds": index.document["expireAfterSeconds"]
                 }
             })
-            logger.success(f"TTL Index in {coll_name}: expireAfterSeconds changed to {expires_in}")
+            logger.success(
+                f"Index in {coll_name}: expireAfterSeconds changed to {index.document['expireAfterSeconds']}")
 
     async def initialize(self):
         client = AsyncIOMotorClient(self.conf.pixiv_mongo_conn_url)
@@ -81,55 +80,29 @@ class MongoDataSource:
         db = client[self.conf.pixiv_mongo_database_name].with_options(options)
 
         # migrate
-        db_version = await self._get_db_version(db)
+        db_version = await self._raw_get_db_version(db)
         await self.mongo_migration_mgr.perform_migration(db, db_version, self.app_db_version)
-        await self._set_db_version(self.app_db_version, db)
+        await self._raw_set_db_version(db, self.app_db_version)
 
-        # ensure index
-        await self._ensure_index(db, 'meta_info', [("key", 1)], unique=True)
+        # ensure ttl indexes (before init beanie)
+        index_tasks = []
+        for model in self.document_models:
+            name = model.__name__
 
-        await self._ensure_index(db, 'pixiv_binding', [("adapter", 1), ("user_id", 1)], unique=True)
+            settings = getattr(model, "Settings", None)
+            if settings:
+                settings_name = getattr(settings, "name")
+                if settings_name:
+                    name = settings_name
 
-        await self._ensure_index(db, 'subscription', [("subscriber.adapter", 1)])
-        await self._ensure_index(db, 'subscription', [("subscriber", 1),
-                                                      ("type", 1)], unique=True)
+                settings_indexes = getattr(settings, "indexes")
+                if settings_indexes:
+                    for index in settings_indexes:
+                        if isinstance(index, IndexModel) and index.document.get("expireAfterSeconds", None):
+                            index_tasks.append(create_task(self._ensure_ttl_index(db, name, index)))
+        await gather(*index_tasks)
 
-        await self._ensure_index(db, 'watch_task', [("subscriber.adapter", 1)])
-        await self._ensure_index(db, 'watch_task', [("subscriber.adapter", 1),
-                                                    ("type", 1)])
-
-        await self._ensure_index(db, 'local_tags', [("name", 1)], unique=True)
-        await self._ensure_index(db, 'local_tags', [("translated_name", 1)])
-
-        await self._ensure_index(db, 'download_cache', [("illust_id", 1)], unique=True)
-        await self._ensure_ttl_index(db, 'download_cache', self.conf.pixiv_download_cache_expires_in)
-
-        await self._ensure_index(db, 'illust_detail_cache', [("illust.id", 1)], unique=True)
-        await self._ensure_ttl_index(db, 'illust_detail_cache', self.conf.pixiv_illust_detail_cache_expires_in)
-
-        await self._ensure_index(db, 'user_detail_cache', [("user.id", 1)], unique=True)
-        await self._ensure_ttl_index(db, 'user_detail_cache', self.conf.pixiv_user_detail_cache_expires_in)
-
-        await self._ensure_index(db, 'illust_ranking_cache', [("mode", 1)], unique=True)
-        await self._ensure_ttl_index(db, 'illust_ranking_cache', self.conf.pixiv_illust_ranking_cache_expires_in)
-
-        await self._ensure_index(db, 'search_illust_cache', [("word", 1)], unique=True)
-        await self._ensure_ttl_index(db, 'search_illust_cache', self.conf.pixiv_search_illust_cache_expires_in)
-
-        await self._ensure_index(db, 'search_user_cache', [("word", 1)], unique=True)
-        await self._ensure_ttl_index(db, 'search_user_cache', self.conf.pixiv_search_user_cache_expires_in)
-
-        await self._ensure_index(db, 'user_illusts_cache', [("user_id", 1)], unique=True)
-        await self._ensure_ttl_index(db, 'user_illusts_cache', self.conf.pixiv_user_illusts_cache_delete_in)
-
-        await self._ensure_index(db, 'user_bookmarks_cache', [("user_id", 1)], unique=True)
-        await self._ensure_ttl_index(db, 'user_bookmarks_cache', self.conf.pixiv_user_bookmarks_cache_delete_in)
-
-        await self._ensure_index(db, 'related_illusts_cache', [("original_illust_id", 1)], unique=True)
-        await self._ensure_ttl_index(db, 'related_illusts_cache', self.conf.pixiv_related_illusts_cache_expires_in)
-
-        await self._ensure_index(db, 'other_cache', [("type", 1)], unique=True)
-        await self._ensure_ttl_index(db, 'other_cache', self.conf.pixiv_other_cache_expires_in)
+        await init_beanie(database=db, document_models=self.document_models, allow_index_dropping=True)
 
         self._client = client
         self._db = db

@@ -17,10 +17,10 @@ T_ITEM = TypeVar("T_ITEM")
 
 class SharedAsyncGeneratorContextManager(AbstractContextManager, Generic[T_ITEM]):
     def __init__(self, origin: AsyncGenerator[T_ITEM, None],
-                 on_each: Callable[[T_ITEM], Union[None, Awaitable[None]]],
-                 on_stop: Callable[[List[T_ITEM]],
-                                   Union[None, Awaitable[None]]],
-                 on_consumers_changed: Callable[["SharedAsyncGeneratorContextManager", int], None]):
+                 *, on_each: Optional[Callable[[T_ITEM], Union[None, Awaitable[None]]]] = None,
+                 on_error: Optional[Callable[[Exception], Union[None, Awaitable[None]]]] = None,
+                 on_stop: Optional[Callable[[List[T_ITEM]], Union[None, Awaitable[None]]]] = None,
+                 on_consumers_changed: Optional[Callable[["SharedAsyncGeneratorContextManager", int], None]] = None):
         super().__init__()
         self._origin = origin
         self._stopped = False  # whether origin has raised a StopIteration
@@ -29,6 +29,7 @@ class SharedAsyncGeneratorContextManager(AbstractContextManager, Generic[T_ITEM]
         self._mutex = Lock()  # to solve race
         self._consumers = 0  # count of consumer
         self._on_each = on_each  # callback on origin yields
+        self._on_error = on_error  # callback on origin throws
         self._on_stop = on_stop  # callback on origin stops
         self._on_consumers_changed = on_consumers_changed  # callback on a consumer enters or exits
 
@@ -36,7 +37,7 @@ class SharedAsyncGeneratorContextManager(AbstractContextManager, Generic[T_ITEM]
     def consumers(self) -> int:
         return self._consumers
 
-    async def _generator_factory(self) -> AsyncGenerator[T_ITEM, None]:
+    async def _generator(self) -> AsyncGenerator[T_ITEM, None]:
         cur = 0
         while True:
             if cur < self._got:
@@ -50,30 +51,51 @@ class SharedAsyncGeneratorContextManager(AbstractContextManager, Generic[T_ITEM]
                     if self._stopped:
                         break
 
-                    try:
-                        if cur == self._got:
+                    if cur == self._got:
+                        try:
                             new_data = await self._origin.__anext__()
-                            await self._on_each(new_data)
-                            self._got_items.append(new_data)
-                            self._got += 1
-                        yield self._got_items[cur]
-                        cur += 1
-                    except StopAsyncIteration:
-                        self._stopped = True
-                        x = self._on_stop(self._got_items)
-                        if isawaitable(x):
-                            await x
+                        except StopAsyncIteration:
+                            self._stopped = True
+
+                            if self._on_stop:
+                                ret = self._on_stop(self._got_items)
+                                if isawaitable(ret):
+                                    await ret
+
+                            break
+                        except Exception as e:
+                            if self._on_error:
+                                ret = self._on_error(e)
+                                if isawaitable(ret):
+                                    await ret
+                            raise e
+
+                        if self._on_each:
+                            ret = self._on_each(new_data)
+                            if isawaitable(ret):
+                                await ret
+
+                        self._got_items.append(new_data)
+                        self._got += 1
+
+                    yield self._got_items[cur]
+                    cur += 1
 
     def __enter__(self) -> AsyncGenerator[T_ITEM, None]:
         self._consumers += 1
-        self._on_consumers_changed(self, self._consumers)
-        return self._generator_factory()
+
+        if self._on_consumers_changed:
+            self._on_consumers_changed(self, self._consumers)
+
+        return self._generator()
 
     def __exit__(self, exc_type: Optional[Type[BaseException]],
                  exc_value: Optional[BaseException],
                  traceback: Optional[TracebackType]) -> None:
         self._consumers -= 1
-        self._on_consumers_changed(self, self._consumers)
+
+        if self._on_consumers_changed:
+            self._on_consumers_changed(self, self._consumers)
 
     async def aclose(self):
         return await self._origin.aclose()
@@ -91,9 +113,9 @@ class SharedAsyncGeneratorManager(ABC, Generic[T_ID, T_ITEM]):
         self._expires_time: Dict[T_ID, datetime] = {}
 
     @abstractmethod
-    def agen_factory(self, identifier: T_ID,
-                     cache_strategy: CacheStrategy,
-                     **kwargs) -> AsyncGenerator[T_ITEM, None]:
+    def agen(self, identifier: T_ID,
+             cache_strategy: CacheStrategy,
+             **kwargs) -> AsyncGenerator[T_ITEM, None]:
         raise NotImplementedError()
 
     async def on_agen_next(self, identifier: T_ID, item: T_ITEM):
@@ -101,6 +123,9 @@ class SharedAsyncGeneratorManager(ABC, Generic[T_ID, T_ITEM]):
 
     async def on_agen_stop(self, identifier: T_ID, items: List[T_ITEM]):
         pass
+
+    async def on_agen_error(self, identifier: T_ID, e: Exception):
+        self.invalidate(identifier)
 
     def _cleanup(self, identifier: T_ID, ctx_mgr: SharedAsyncGeneratorContextManager[T_ITEM]):
         logger.debug(f"[{self.log_tag}] {identifier} was popped")
@@ -173,11 +198,12 @@ class SharedAsyncGeneratorManager(ABC, Generic[T_ID, T_ITEM]):
         elif identifier in self._ctx_mgr:
             return self._ctx_mgr[identifier]
         else:
-            origin = self.agen_factory(identifier, cache_strategy, **kwargs)
+            origin = self.agen(identifier, cache_strategy, **kwargs)
             self._ctx_mgr[identifier] = SharedAsyncGeneratorContextManager(
                 origin=origin,
                 on_each=lambda item: self.on_agen_next(identifier, item),
                 on_stop=lambda items: self.on_agen_stop(identifier, items),
+                on_error=lambda e: self.on_agen_error(identifier, e),
                 on_consumers_changed=lambda ctx_mgr, consumers: self.on_consumers_changed(
                     identifier, ctx_mgr, consumers)
             )

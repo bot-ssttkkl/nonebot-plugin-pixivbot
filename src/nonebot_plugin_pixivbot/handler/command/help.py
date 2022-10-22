@@ -24,7 +24,7 @@ class HelpHandler(SubCommandHandler):
 - /pixivbot help：查看本帮助
 - /pixivbot bind：绑定Pixiv账号
 
-更多功能：参见https://github.com/ssttkkl/PixivBot
+更多功能：参见https://github.com/ssttkkl/nonebot-plugin-pixivbot
 """
 
     @classmethod
