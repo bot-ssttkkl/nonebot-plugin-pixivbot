@@ -22,7 +22,7 @@ lazy = "^1.4"
 aiohttp-socks = "^0.7.1"
 frozendict = "^2.3.4"
 tzlocal = "^4.2"
-nonebot-plugin-pixivbot-onebot-v11 = { version = "^1.3.0", optional = true }
+nonebot-plugin-pixivbot-onebot-v11 = { version = "^1.3.1", optional = true }
 nonebot-plugin-pixivbot-kook = { version = "^1.3.0.post2", optional = true }
 beanie = "^1.12.0"
 
@@ -36,11 +36,8 @@ pytest-mock = "^3.10.0"
 onebot = ["nonebot-plugin-pixivbot-onebot-v11"]
 kook = ["nonebot-plugin-pixivbot-kook"]
 
-[[tool.poetry.source]]
-name = "aliyun"
-url = "https://mirrors.aliyun.com/pypi/simple/"
-default = true
-secondary = false
+[tool.poetry.group.dev.dependencies]
+pytest-cov = "^4.0.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
