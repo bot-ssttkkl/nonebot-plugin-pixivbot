@@ -93,4 +93,4 @@ class ExpiresLruDict(MutableMapping[_KT, _VT], Generic[_KT, _VT]):
     def __iter__(self) -> Iterator[_KT]:
         self._collate(False)
         for node in self._data.__iter__():
-            yield node.value
+            yield node

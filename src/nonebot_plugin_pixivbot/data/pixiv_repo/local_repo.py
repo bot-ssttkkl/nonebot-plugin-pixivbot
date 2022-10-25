@@ -8,6 +8,7 @@ from beanie.odm.operators.find.logical import And
 from beanie.odm.operators.update.array import AddToSet
 from beanie.odm.operators.update.general import Set
 from nonebot import logger
+from pymongo import UpdateOne
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.enums import RankingMode
@@ -28,27 +29,27 @@ def _handle_expires_in(metadata: PixivRepoMetadata, expires_in: int):
         raise CacheExpiredError(metadata)
 
 
-async def _add_to_local_tags(illusts: List[Union[LazyIllust, Illust]]):
-    tags = {}
-    for x in illusts:
-        if isinstance(x, LazyIllust):
-            if not x.loaded:
-                continue
-            x = x.content
-        for t in x.tags:
-            if t.translated_name:
-                tags[t.name] = t
-
-    await LocalTagRepo.update_many(tags.values())
-
-    logger.debug(f"[local] add {len(tags)} local tags")
-
-
 @context.inject
 @context.register_singleton()
 class LocalPixivRepo(AbstractPixivRepo):
     conf: Config
     mongo: MongoDataSource
+    local_tag_repo: LocalTagRepo
+
+    async def _add_to_local_tags(self, illusts: List[Union[LazyIllust, Illust]]):
+        tags = {}
+        for x in illusts:
+            if isinstance(x, LazyIllust):
+                if not x.loaded:
+                    continue
+                x = x.content
+            for t in x.tags:
+                if t.translated_name:
+                    tags[t.name] = t
+
+        await self.local_tag_repo.update_many(tags.values())
+
+        logger.debug(f"[local] add {len(tags)} local tags")
 
     async def _illusts_agen(self, doc_type: Type[PixivRepoCache],
                             *criteria: Union[Mapping[str, Any], bool],
@@ -240,27 +241,47 @@ class LocalPixivRepo(AbstractPixivRepo):
                 upsert=True
             )
 
-        async with BulkWriter() as bw:
-            illust_metadata = PixivRepoMetadata(update_time=metadata.update_time)
+        # BulkWriter存在bug，upsert不生效
+        # https://github.com/roman-right/beanie/issues/224
+        #
+        # async with BulkWriter() as bw:
+        #     illust_metadata = PixivRepoMetadata(update_time=metadata.update_time)
+        #
+        #     for illust in content:
+        #         if isinstance(illust, LazyIllust) and illust.content is not None:
+        #             illust = illust.content
+        #
+        #         if isinstance(illust, Illust):
+        #             await IllustDetailCache.find_one(
+        #                 IllustDetailCache.illust.id == illust.id
+        #             ).upsert(
+        #                 Set({
+        #                     IllustDetailCache.illust: illust,
+        #                     IllustDetailCache.metadata: illust_metadata
+        #                 }),
+        #                 on_insert=IllustDetailCache(illust=illust, metadata=illust_metadata),
+        #                 bulk_writer=bw
+        #             )
 
-            for illust in content:
-                if isinstance(illust, LazyIllust) and illust.content is not None:
-                    illust = illust.content
+        opt = []
+        for illust in content:
+            if isinstance(illust, LazyIllust) and illust.content is not None:
+                illust = illust.content
 
-                if isinstance(illust, Illust):
-                    IllustDetailCache.find_one(
-                        IllustDetailCache.illust.id == illust.id
-                    ).update(
-                        Set({
-                            IllustDetailCache.illust: illust,
-                            IllustDetailCache.metadata: illust_metadata
-                        }),
-                        upsert=True,
-                        bulk_writer=bw
-                    )
+            if isinstance(illust, Illust):
+                opt.append(UpdateOne(
+                    {"illust.id": illust.id},
+                    {"$set": {
+                        "illust": illust.dict(exclude_none=True),
+                        "metadata": {"update_time": metadata.update_time}
+                    }},
+                    upsert=True
+                ))
+        if len(opt) != 0:
+            await self.mongo.db.illust_detail_cache.bulk_write(opt, ordered=False)
 
         if self.conf.pixiv_tag_translation_enabled:
-            await _add_to_local_tags(content)
+            await self._add_to_local_tags(content)
 
     async def _update_users(self, doc_type: Type[UserSetCache],
                             *criteria: Union[Mapping[str, Any], bool],
@@ -287,21 +308,36 @@ class LocalPixivRepo(AbstractPixivRepo):
                 }),
                 upsert=True
             )
+        # BulkWriter存在bug，upsert不生效
+        # https://github.com/roman-right/beanie/issues/224
+        #
+        # async with BulkWriter() as bw:
+        #     user_metadata = PixivRepoMetadata(update_time=metadata.update_time)
+        #
+        #     for user in content:
+        #         await UserDetailCache.find_one(
+        #             UserDetailCache.user.id == user.id
+        #         ).upsert(
+        #             Set({
+        #                 UserDetailCache.user: user,
+        #                 UserDetailCache.metadata: user_metadata
+        #             }),
+        #             on_insert=UserDetailCache(user=user, metadata=user_metadata),
+        #             bulk_writer=bw
+        #         )
 
-        async with BulkWriter() as bw:
-            user_metadata = PixivRepoMetadata(update_time=metadata.update_time)
-
-            for user in content:
-                UserDetailCache.find_one(
-                    UserDetailCache.user.id == user.id
-                ).update(
-                    Set({
-                        UserDetailCache.user: user,
-                        UserDetailCache.metadata: user_metadata
-                    }),
-                    upsert=True,
-                    bulk_writer=bw
-                )
+        opt = []
+        for user in content:
+            opt.append(UpdateOne(
+                {"user.id": user.id},
+                {"$set": {
+                    "user": user.dict(exclude_none=True),
+                    "metadata": {"update_time": metadata.update_time}
+                }},
+                upsert=True
+            ))
+        if len(opt) != 0:
+            await self.mongo.db.user_detail_cache.bulk_write(opt, ordered=False)
 
     async def _append_and_check_illusts(self, doc_type: Type[IllustSetCache],
                                         *criteria: Union[Mapping[str, Any], bool],
@@ -346,7 +382,7 @@ class LocalPixivRepo(AbstractPixivRepo):
         )
 
         if self.conf.pixiv_tag_translation_enabled:
-            await _add_to_local_tags([illust])
+            await self._add_to_local_tags([illust])
 
     # ================ user_detail ================
 
@@ -370,7 +406,7 @@ class LocalPixivRepo(AbstractPixivRepo):
 
         await UserDetailCache.find_one(
             UserDetailCache.user.id == user.id
-        ).update_one(
+        ).update(
             Set({
                 UserDetailCache.user: user,
                 UserDetailCache.metadata: metadata
