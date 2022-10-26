@@ -552,16 +552,16 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "nonebot-adapter-kaiheila"
-version = "0.0.6"
+version = "0.1.0"
 description = "kaiheila adapter for nonebot2"
 category = "main"
 optional = true
-python-versions = ">=3.7.3,<4.0.0"
+python-versions = ">=3.9,<4.0"
 
 [package.dependencies]
 aiohttp = ">=3.8.1,<4.0.0"
 deprecated = ">=1.2.13,<2.0.0"
-nonebot2 = ">=2.0.0-beta.1,<3.0.0"
+nonebot2 = ">=2.0.0rc1,<3.0.0"
 
 [[package]]
 name = "nonebot-adapter-onebot"
@@ -589,7 +589,7 @@ nonebot2 = ">=2.0.0-rc.1,<3.0.0"
 
 [[package]]
 name = "nonebot-plugin-pixivbot-kook"
-version = "1.3.0.post2"
+version = "1.4.0"
 description = "Nonebot Plugin Pixivbot (KOOK)"
 category = "main"
 optional = true
@@ -598,12 +598,12 @@ python-versions = ">=3.9,<4.0"
 [package.dependencies]
 asyncache = ">=0.1.1,<0.2.0"
 cachetools = ">=5.2.0,<6.0.0"
-nonebot-adapter-kaiheila = ">=0.0.5"
-nonebot2 = ">=2.0.0-beta.4,<3.0.0"
+nonebot-adapter-kaiheila = ">=0.1.0,<0.2.0"
+nonebot2 = ">=2.0.0rc1,<3.0.0"
 
 [[package]]
 name = "nonebot-plugin-pixivbot-onebot-v11"
-version = "1.3.1"
+version = "1.4.0"
 description = "Nonebot Plugin PixivBot (Onebot V11)"
 category = "main"
 optional = true
@@ -611,7 +611,7 @@ python-versions = ">=3.9,<4.0"
 
 [package.dependencies]
 nonebot-adapter-onebot = ">=2.1.1,<3.0.0"
-nonebot2 = ">=2.0.0-beta.4,<3.0.0"
+nonebot2 = ">=2.0.0rc1,<3.0.0"
 
 [[package]]
 name = "nonebot2"
@@ -1272,7 +1272,7 @@ onebot = ["nonebot-plugin-pixivbot-onebot-v11"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "4f62fa26d61bd80be54533722f06312834760fa52dde22dbc2a52dbaf4a9552a"
+content-hash = "886c26a481009b489b61644879b6eabc076d01b2a41be3eb9e5ff97eeb53471a"
 
 [metadata.files]
 aiofiles = [
@@ -1890,8 +1890,8 @@ multidict = [
     {file = "multidict-6.0.2.tar.gz", hash = "sha256:5ff3bd75f38e4c43f1f470f2df7a4d430b821c4ce22be384e1459cb57d6bb013"},
 ]
 nonebot-adapter-kaiheila = [
-    {file = "nonebot-adapter-kaiheila-0.0.6.tar.gz", hash = "sha256:5f742a5bddf72442127d7096dc8ac79e70ea5feed470df6c6d4c5ca0c6e01cd7"},
-    {file = "nonebot_adapter_kaiheila-0.0.6-py3-none-any.whl", hash = "sha256:16fb79f17ded20be3c02c93782b03181a96b9bd79cec374d06866bbb9c360655"},
+    {file = "nonebot_adapter_kaiheila-0.1.0-py3-none-any.whl", hash = "sha256:ec1938e21bbc0c0ceccc257061df15e1cd273c38f40224cdbe5a0af514037e53"},
+    {file = "nonebot_adapter_kaiheila-0.1.0.tar.gz", hash = "sha256:c9d4167d051c68e4584aae5879e82580de175db012c5307e3da2914ed1d3d4cc"},
 ]
 nonebot-adapter-onebot = [
     {file = "nonebot_adapter_onebot-2.1.5-py3-none-any.whl", hash = "sha256:d2a46694c402d5f3c5f6951955a78bbf779e17039d282c612cc1fcff77bc6044"},
@@ -1902,12 +1902,12 @@ nonebot-plugin-apscheduler = [
     {file = "nonebot_plugin_apscheduler-0.2.0-py3-none-any.whl", hash = "sha256:9285ee84ca1cfa4db73c86cedb5911bbbd25a21ec0cd5f22447cd12f89e48fb4"},
 ]
 nonebot-plugin-pixivbot-kook = [
-    {file = "nonebot-plugin-pixivbot-kook-1.3.0.post2.tar.gz", hash = "sha256:20b5270cfaed42238eff9d75cb9ab77e64a2d1b16f40d91b995be13628545ef4"},
-    {file = "nonebot_plugin_pixivbot_kook-1.3.0.post2-py3-none-any.whl", hash = "sha256:1e1e32398144e3ea03a24959f205435143585fac5910ed620a3fa83e3bda9705"},
+    {file = "nonebot_plugin_pixivbot_kook-1.4.0-py3-none-any.whl", hash = "sha256:fdaf16179c17167605a2adcdeb8c1bb7221fa25b432f1b7fb059b2d7a341e68a"},
+    {file = "nonebot_plugin_pixivbot_kook-1.4.0.tar.gz", hash = "sha256:c89384ad786c992af6b68efb29442a4aad59a595e5af9a02a2a6e5ea0fc51b23"},
 ]
 nonebot-plugin-pixivbot-onebot-v11 = [
-    {file = "nonebot_plugin_pixivbot_onebot_v11-1.3.1-py3-none-any.whl", hash = "sha256:ddd30a53fcea907c6a8968be0fd3e187e0a831e9f23ecfec89339d38c4bb2dc6"},
-    {file = "nonebot_plugin_pixivbot_onebot_v11-1.3.1.tar.gz", hash = "sha256:c1a2ecfe8b773ea2e67422f9300388aed8fe97d958d39bae93a061e2f01cdc22"},
+    {file = "nonebot_plugin_pixivbot_onebot_v11-1.4.0-py3-none-any.whl", hash = "sha256:d6278c9c10f9525469c8beb795c867893db4b57e4b97f21459dc74ce9ba86828"},
+    {file = "nonebot_plugin_pixivbot_onebot_v11-1.4.0.tar.gz", hash = "sha256:2e45feb75cd763bc7aa4b0de05ca6f588f96a113b1ea768f6bdc2290586be029"},
 ]
 nonebot2 = [
     {file = "nonebot2-2.0.0rc1-py3-none-any.whl", hash = "sha256:99c70300b9d0755bba6ed50b7399f44f6213e119157bc026b960b3e157a38416"},

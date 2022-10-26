@@ -14,11 +14,18 @@ class Authenticator(ProtocolDep, ABC, Generic[UID, GID]):
     def group_admin(self, post_dest: PostDestination[UID, GID]) -> Union[bool, Awaitable[bool]]:
         raise NotImplementedError()
 
+    @abstractmethod
+    def available(self, post_dest: PostDestination[UID, GID]) -> Union[bool, Awaitable[bool]]:
+        raise NotImplementedError()
+
 
 @context.register_singleton()
 class AuthenticatorManager(ProtocolDepManager[Authenticator]):
     def group_admin(self, post_dest: PostDestination[UID, GID]) -> Union[bool, Awaitable[bool]]:
         return self[post_dest.adapter].group_admin(post_dest)
+
+    def available(self, post_dest: PostDestination[UID, GID]) -> Union[bool, Awaitable[bool]]:
+        return self[post_dest.adapter].available(post_dest)
 
 
 __all__ = ("Authenticator", "AuthenticatorManager")
