@@ -10,12 +10,14 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from lazy import lazy
 from nonebot import logger, Bot
+from nonebot.exception import ActionFailed
 
 from nonebot_plugin_pixivbot.data.subscription_repo import SubscriptionRepo
 from nonebot_plugin_pixivbot.data.utils.process_subscriber import process_subscriber
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier
 from nonebot_plugin_pixivbot.model.subscription import ScheduleType
+from nonebot_plugin_pixivbot.protocol_dep.authenticator import AuthenticatorManager
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination, PostDestinationFactoryManager
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from nonebot_plugin_pixivbot.utils.lifecycler import on_bot_connect, on_bot_disconnect
@@ -65,6 +67,7 @@ class Scheduler:
     apscheduler: AsyncIOScheduler
     repo: SubscriptionRepo
     pd_factory_mgr: PostDestinationFactoryManager
+    auth_mgr: AuthenticatorManager
 
     def __init__(self):
         on_bot_connect(self.on_bot_connect, replay=True)
@@ -90,7 +93,20 @@ class Scheduler:
     async def _on_trigger(self, sub: Subscription[UID, GID], post_dest: PostDestination[UID, GID], silently: bool):
         job_id = self._make_job_id(sub.type, sub.subscriber)
         logger.info(f"[scheduler] triggered {job_id}")
-        await self._handlers[sub.type].handle(post_dest=post_dest, silently=silently, **sub.kwargs)
+
+        try:
+            await self._handlers[sub.type].handle(post_dest=post_dest, silently=silently, **sub.kwargs)
+        except ActionFailed as e:
+            logger.error("[scheduler] ActionFailed")
+            logger.error(str(e))
+
+            available = self.auth_mgr.available(post_dest)
+            if isawaitable(available):
+                available = await available
+
+            if not available:
+                logger.info(f"[scheduler] {post_dest} is no longer available, removing all his subscriptions...")
+                await self.unschedule_all_by_subscriber(post_dest.identifier)
 
     def _add_job(self, post_dest: PostDestination[UID, GID], sub: Subscription[UID, GID]):
         offset_hour, offset_minute, hours, minutes = sub.schedule
@@ -148,7 +164,6 @@ class Scheduler:
         self._add_job(post_dest.normalized(), sub)
 
     async def unschedule(self, type: ScheduleType, subscriber: PostIdentifier[UID, GID]) -> bool:
-        # subscriber = process_subscriber(subscriber)
         sub = await self.repo.delete_one(subscriber, type)
         if sub:
             self._remove_job(sub)
@@ -158,14 +173,12 @@ class Scheduler:
             return False
 
     async def unschedule_all_by_subscriber(self, subscriber: PostIdentifier[UID, GID]):
-        # subscriber = process_subscriber(subscriber)
         old = await self.repo.delete_many_by_subscriber(subscriber)
         for sub in old:
             self._remove_job(sub)
             logger.success(f"[scheduler] successfully removed subscription {sub}")
 
     async def get_by_subscriber(self, subscriber: PostIdentifier[UID, GID]) -> List[Subscription]:
-        # subscriber = process_subscriber(subscriber)
         return [x async for x in self.repo.get_by_subscriber(subscriber)]
 
 

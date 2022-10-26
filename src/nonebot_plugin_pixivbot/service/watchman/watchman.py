@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta, timezone
+from inspect import isawaitable
 from typing import Dict, Any, TypeVar, Optional, List
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from nonebot import logger, Bot
+from nonebot.exception import ActionFailed
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.data.utils.process_subscriber import process_subscriber
@@ -17,6 +19,7 @@ from nonebot_plugin_pixivbot.utils.lifecycler import on_bot_connect, on_bot_disc
 from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
 from .pkg_context import context
 from .shared_agen import WatchmanSharedAsyncGeneratorManager, WatchmanSharedAgenIdentifier
+from ...protocol_dep.authenticator import AuthenticatorManager
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -45,6 +48,7 @@ class Watchman:
     postman_mgr: PostmanManager
     pd_factory_mgr: PostDestinationFactoryManager
     shared_agen: WatchmanSharedAsyncGeneratorManager
+    auth_mgr: AuthenticatorManager
 
     def __init__(self):
         on_bot_connect(self.on_bot_connect, replay=True)
@@ -87,21 +91,33 @@ class Watchman:
         job_id = self._make_job_id(task.type, task.kwargs, task.subscriber)
         logger.info(f"[watchman] triggered {job_id}")
 
-        # 先保存checkpoint，避免一次异常后下一次重复推送
-        # 但是会存在丢失推送的问题
-        task.checkpoint = datetime.now(timezone.utc)
-        await self.repo.update(task)
+        try:
+            # 先保存checkpoint，避免一次异常后下一次重复推送
+            # 但是会存在丢失推送的问题
+            task.checkpoint = datetime.now(timezone.utc)
+            await self.repo.update(task)
 
-        ctx_mgr = await Watchman._ctx_mgr_factory[task.type](self, task, post_dest)
-        if ctx_mgr:
-            with ctx_mgr as iter:
-                async for illust in iter:
-                    if illust.create_date > task.checkpoint:
-                        logger.info(f"[watchman] send illust {illust.id} to {task.subscriber}")
-                        await self._post_illust(illust, header=headers.get(task.type, ""),
-                                                post_dest=post_dest)
-                    else:
-                        break
+            ctx_mgr = await Watchman._ctx_mgr_factory[task.type](self, task, post_dest)
+            if ctx_mgr:
+                with ctx_mgr as iter:
+                    async for illust in iter:
+                        if illust.create_date > task.checkpoint:
+                            logger.info(f"[watchman] send illust {illust.id} to {task.subscriber}")
+                            await self._post_illust(illust, header=headers.get(task.type, ""),
+                                                    post_dest=post_dest)
+                        else:
+                            break
+        except ActionFailed as e:
+            logger.error("[watchman] ActionFailed")
+            logger.error(e)
+
+            available = self.auth_mgr.available(post_dest)
+            if isawaitable(available):
+                available = await available
+
+            if not available:
+                logger.info(f"[watchman] {post_dest} is no longer available, removing all his tasks...")
+                await self.unwatch_all_by_subscriber(post_dest.identifier)
 
     @staticmethod
     def _make_job_id(type: WatchType,

@@ -33,6 +33,6 @@ class DefaultErrorInterceptor(Interceptor):
             if not silently:
                 await self.post_plain_text(str(e), post_dest=post_dest)
         except Exception as e:
-            logger.exception(e)
             if not silently:
                 await self.post_plain_text(f"内部错误：{type(e)}{e}", post_dest=post_dest)
+            raise e  # 重新抛出，让上层可以处理（如scheduler中需要处理Handler的异常）
