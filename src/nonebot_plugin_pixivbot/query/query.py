@@ -29,7 +29,7 @@ def register_query(context: Context):
             context.register(cls, q)
 
         q.matcher.append_handler(q.on_match)
-        logger.debug(f"registered query {cls}")
+        logger.trace(f"registered query {cls}")
         return cls
 
     return decorator

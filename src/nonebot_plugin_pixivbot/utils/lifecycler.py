@@ -40,8 +40,8 @@ def on_startup(func, replay: bool = False):
 
 def on_bot_connect(func, replay: bool = False):
     if replay:
-        logger.debug("[lifecycler] replaying on_bot_connect")
         for bot in _connected_bot:
+            logger.debug(f"[lifecycler] replaying on_bot_connect with {bot}")
             x = func(bot)
             if isawaitable(x):
                 asyncio.create_task(x)

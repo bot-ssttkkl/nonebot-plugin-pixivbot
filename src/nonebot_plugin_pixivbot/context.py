@@ -109,7 +109,7 @@ class Context:
         register a bean
         """
         self._container[key] = bean
-        logger.debug(f"registered bean {key}")
+        logger.trace(f"registered bean {key}")
 
     def register_lazy(self, key: Type[T], bean_initializer: Callable[[], T]):
         """
@@ -118,7 +118,7 @@ class Context:
         if key in self._container:
             del self._container[key]
         self._lazy_container[key] = bean_initializer
-        logger.debug(f"lazily registered bean {key}")
+        logger.trace(f"lazily registered bean {key}")
 
     def register_singleton(self, *args, **kwargs):
         """
@@ -157,7 +157,7 @@ class Context:
         bind key (usually the implementation class) to src_key (usually the base class)
         """
         self._binding[key] = src_key
-        logger.debug(f"bind bean {key} to {src_key}")
+        logger.trace(f"bind bean {key} to {src_key}")
 
     def bind_singleton_to(self, key, *args, **kwargs):
         """
