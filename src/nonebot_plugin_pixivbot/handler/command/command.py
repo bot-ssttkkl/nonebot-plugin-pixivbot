@@ -2,13 +2,21 @@ from abc import ABC
 from abc import abstractmethod
 from typing import Type, Callable, Union, Awaitable, TypeVar, Sequence
 
-from nonebot import logger
+from lazy import lazy
+from nonebot import Bot, on_command
+from nonebot import logger, on_regex
+from nonebot.internal.adapter import Event
+from nonebot.internal.matcher import Matcher
+from nonebot.internal.params import Depends
+from nonebot.typing import T_State
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from ..entry_handler import EntryHandler
+from ..entry_handler import post_destination
 from ..handler import Handler
+from ..utils import get_common_query_rule, get_command_rule
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -59,6 +67,15 @@ class CommandHandler(EntryHandler):
     def enabled(self) -> bool:
         return True
 
+    @lazy
+    def matcher(self):
+        return on_command("pixivbot", rule=get_command_rule(), priority=5)
+
+    async def on_match(self, bot: Bot, event: Event, state: T_State, matcher: Matcher,
+                       post_dest: PostDestination[UID, GID] = Depends(post_destination)):
+        args = str(event.get_message()).strip().split()[1:]
+        await self.handle(*args, post_dest=post_dest)
+
     def sub_command(self, type: str) \
             -> Callable[[Type[SubCommandHandler]], Type[SubCommandHandler]]:
         def decorator(cls: Type[SubCommandHandler]):
@@ -71,7 +88,7 @@ class CommandHandler(EntryHandler):
         return decorator
 
     def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
-        return {"args": args[0]}
+        return {"args": args}
 
     # noinspection PyMethodOverriding
     async def actual_handle(self, *, args: Sequence[str],

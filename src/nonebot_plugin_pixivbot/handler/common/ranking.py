@@ -1,4 +1,13 @@
-from typing import Sequence, Union, TypeVar, Tuple
+from typing import Tuple
+from typing import TypeVar, Sequence
+from typing import Union
+
+from lazy import lazy
+from nonebot import on_regex, Bot
+from nonebot.internal.adapter import Event
+from nonebot.internal.matcher import Matcher
+from nonebot.internal.params import Depends
+from nonebot.typing import T_State
 
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.global_context import context
@@ -6,12 +15,14 @@ from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.decode_integer import decode_integer
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .common import CommonHandler
+from ..entry_handler import post_destination
+from ..utils import get_common_query_rule
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
-@context.root.register_singleton()
+@context.root.register_eager_singleton()
 class RankingHandler(CommonHandler):
     @classmethod
     def type(cls) -> str:
@@ -27,6 +38,20 @@ class RankingHandler(CommonHandler):
 
     def enabled(self) -> bool:
         return self.conf.pixiv_ranking_query_enabled
+
+    @lazy
+    def matcher(self):
+        return on_regex(r"^看看(.*)?榜\s*(.*)?$", rule=get_common_query_rule(), priority=4, block=True)
+
+    async def on_match(self, bot: Bot, event: Event, state: T_State, matcher: Matcher,
+                       post_dest: PostDestination[UID, GID] = Depends(post_destination)):
+        if "_matched_groups" in state:
+            mode = state["_matched_groups"][0]
+            num = state["_matched_groups"][1]
+        else:
+            mode = None
+            num = None
+        await self.handle(mode, num, post_dest=post_dest)
 
     def validate_range(self, range: Tuple[int, int] = None):
         if range:

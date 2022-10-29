@@ -43,8 +43,8 @@ from .nb_providers import provide
 
 provide(context)
 
-# =========== register query & service ============
-from . import query
+# =========== register handler & service ============
+from . import handler
 from . import service
 
 # ============== load custom protocol =============
