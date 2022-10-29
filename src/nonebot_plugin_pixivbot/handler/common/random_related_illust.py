@@ -1,18 +1,27 @@
 from typing import TypeVar, Sequence
 
+from lazy import lazy
+from nonebot import on_regex, Bot
+from nonebot.internal.adapter import Event
+from nonebot.internal.matcher import Matcher
+from nonebot.internal.params import Depends
+from nonebot.typing import T_State
+
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .common import CommonHandler
 from .recorder import Recorder
+from ..entry_handler import post_destination
 from ..interceptor.record_req_interceptor import RecordReqInterceptor
+from ..utils import get_common_query_rule
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
 @context.inject
-@context.root.register_singleton()
+@context.root.register_eager_singleton()
 class RandomRelatedIllustHandler(CommonHandler):
     recorder: Recorder
 
@@ -26,6 +35,14 @@ class RandomRelatedIllustHandler(CommonHandler):
 
     def enabled(self) -> bool:
         return self.conf.pixiv_random_related_illust_query_enabled
+
+    @lazy
+    def matcher(self):
+        return on_regex("^不够色$", rule=get_common_query_rule(), priority=1, block=True)
+
+    async def on_match(self, bot: Bot, event: Event, state: T_State, matcher: Matcher,
+                       post_dest: PostDestination[UID, GID] = Depends(post_destination)):
+        await self.handle(post_dest=post_dest)
 
     def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
         illust_id = self.recorder.get_resp(post_dest.identifier)
