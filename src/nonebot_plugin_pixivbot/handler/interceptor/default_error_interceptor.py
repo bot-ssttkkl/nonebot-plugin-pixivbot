@@ -2,6 +2,7 @@ import asyncio
 from typing import Callable, TypeVar
 
 from nonebot import logger
+from nonebot.exception import ActionFailed
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
@@ -32,6 +33,9 @@ class DefaultErrorInterceptor(Interceptor):
         except QueryError as e:
             if not silently:
                 await self.post_plain_text(str(e), post_dest=post_dest)
+        except ActionFailed as e:
+            # 避免当发送消息错误时再尝试发送
+            raise e
         except Exception as e:
             if not silently:
                 await self.post_plain_text(f"内部错误：{type(e)}{e}", post_dest=post_dest)
