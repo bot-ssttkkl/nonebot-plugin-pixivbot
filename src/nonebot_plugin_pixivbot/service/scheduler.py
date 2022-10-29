@@ -90,15 +90,14 @@ class Scheduler:
             ScheduleType.random_user_illust: context.require(RandomUserIllustHandler),
         }
 
-    async def _on_trigger(self, sub: Subscription[UID, GID], post_dest: PostDestination[UID, GID], silently: bool):
+    async def _on_trigger(self, sub: Subscription[UID, GID], post_dest: PostDestination[UID, GID]):
         job_id = self._make_job_id(sub.type, sub.subscriber)
         logger.info(f"[scheduler] triggered {job_id}")
 
         try:
-            await self._handlers[sub.type].handle(post_dest=post_dest, silently=silently, **sub.kwargs)
+            await self._handlers[sub.type].handle_with_parsed_args(post_dest=post_dest, silently=True, **sub.kwargs)
         except ActionFailed as e:
-            logger.error("[scheduler] ActionFailed")
-            logger.error(str(e))
+            logger.warning("[scheduler] ActionFailed: " + str(e))
 
             available = self.auth_mgr.available(post_dest)
             if isawaitable(available):
@@ -119,7 +118,7 @@ class Scheduler:
 
         job_id = self._make_job_id(sub.type, sub.subscriber)
         self.apscheduler.add_job(self._on_trigger, id=job_id, trigger=trigger,
-                                 kwargs={"sub": sub, "post_dest": post_dest, "silently": True})
+                                 kwargs={"sub": sub, "post_dest": post_dest})
         logger.success(f"[scheduler] added job \"{job_id}\" on {trigger}")
 
     def _remove_job(self, sub: Subscription[UID, GID]):
