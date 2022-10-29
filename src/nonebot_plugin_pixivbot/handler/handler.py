@@ -54,17 +54,32 @@ class Handler(ABC):
             return
 
         if self.interceptor is not None and not disabled_interceptors:
-            await self.interceptor.intercept(self.handle_with_args, *args,
+            await self.interceptor.intercept(self._parse_args_and_actual_handle, *args,
                                              post_dest=post_dest,
                                              silently=silently,
                                              **kwargs)
         else:
-            await self.handle_with_args(*args, post_dest=post_dest, silently=silently, **kwargs)
+            await self._parse_args_and_actual_handle(*args, post_dest=post_dest, silently=silently, **kwargs)
 
-    async def handle_with_args(self, *args,
-                               post_dest: PD,
-                               silently: bool = False,
-                               **kwargs):
+    async def handle_with_parsed_args(self, *, post_dest: PD,
+                                      silently: bool = False,
+                                      disabled_interceptors: bool = False,
+                                      **kwargs):
+        if not self.enabled():
+            return
+
+        if self.interceptor is not None and not disabled_interceptors:
+            await self.interceptor.intercept(self.actual_handle,
+                                             post_dest=post_dest,
+                                             silently=silently,
+                                             **kwargs)
+        else:
+            await self.actual_handle(post_dest=post_dest, silently=silently, **kwargs)
+
+    async def _parse_args_and_actual_handle(self, *args,
+                                            post_dest: PD,
+                                            silently: bool = False,
+                                            **kwargs):
         parsed_kwargs = self.parse_args(args, post_dest)
         if isawaitable(parsed_kwargs):
             parsed_kwargs = await parsed_kwargs
