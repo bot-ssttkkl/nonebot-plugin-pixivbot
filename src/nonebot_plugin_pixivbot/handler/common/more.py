@@ -14,6 +14,7 @@ from .common import CommonHandler
 from .recorder import Recorder
 from ..entry_handler import post_destination
 from ..utils import get_common_query_rule
+from ...context import Inject
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -22,7 +23,7 @@ GID = TypeVar("GID")
 @context.inject
 @context.root.register_eager_singleton()
 class MoreHandler(CommonHandler):
-    recorder: Recorder
+    recorder = Inject(Recorder)
 
     @classmethod
     def type(cls) -> str:
@@ -42,7 +43,8 @@ class MoreHandler(CommonHandler):
 
     async def actual_handle(self, *, count: int = 1,
                             post_dest: PostDestination[UID, GID],
-                            silently: bool = False):
+                            silently: bool = False,
+                            **kwargs):
         req = self.recorder.get_req(post_dest.identifier)
         if not req:
             raise BadRequestError("你还没有发送过请求")

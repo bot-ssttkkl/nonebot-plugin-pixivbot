@@ -19,6 +19,7 @@ from nonebot_plugin_pixivbot.utils.lifecycler import on_bot_connect, on_bot_disc
 from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
 from .pkg_context import context
 from .shared_agen import WatchmanSharedAsyncGeneratorManager, WatchmanSharedAgenIdentifier
+from ...context import Inject
 from ...protocol_dep.authenticator import AuthenticatorManager
 
 UID = TypeVar("UID")
@@ -41,14 +42,14 @@ trigger_hasher_mapper = {
 @context.inject
 @context.root.register_eager_singleton()
 class Watchman:
-    conf: Config
-    apscheduler: AsyncIOScheduler
-    repo: WatchTaskRepo
-    binder: PixivAccountBinder
-    postman_mgr: PostmanManager
-    pd_factory_mgr: PostDestinationFactoryManager
-    shared_agen: WatchmanSharedAsyncGeneratorManager
-    auth_mgr: AuthenticatorManager
+    conf = Inject(Config)
+    apscheduler = Inject(AsyncIOScheduler)
+    repo = Inject(WatchTaskRepo)
+    binder = Inject(PixivAccountBinder)
+    postman_mgr = Inject(PostmanManager)
+    pd_factory_mgr = Inject(PostDestinationFactoryManager)
+    shared_agen = Inject(WatchmanSharedAsyncGeneratorManager)
+    auth_mgr = Inject(AuthenticatorManager)
 
     def __init__(self):
         on_bot_connect(self.on_bot_connect, replay=True)

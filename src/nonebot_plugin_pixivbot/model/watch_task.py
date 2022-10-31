@@ -2,7 +2,6 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, TypeVar, Generic, Dict
 
-from pydantic import BaseModel
 from pydantic.generics import GenericModel
 
 from nonebot_plugin_pixivbot.model import PostIdentifier

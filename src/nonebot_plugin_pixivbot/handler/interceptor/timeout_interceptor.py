@@ -2,6 +2,7 @@ from asyncio import wait_for
 from typing import TypeVar, Callable
 
 from nonebot_plugin_pixivbot.config import Config
+from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.interceptor.interceptor import Interceptor
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
@@ -13,7 +14,7 @@ GID = TypeVar("GID")
 @context.inject
 @context.register_singleton()
 class TimeoutInterceptor(Interceptor):
-    conf: Config
+    conf = Inject(Config)
 
     async def intercept(self, wrapped_func: Callable, *args,
                         post_dest: PostDestination[UID, GID],

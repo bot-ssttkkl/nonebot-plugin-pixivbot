@@ -8,6 +8,7 @@ from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.service.scheduler import Scheduler
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .command import CommandHandler, SubCommandHandler
+from ...context import Inject
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -30,7 +31,7 @@ async def build_subscriptions_msg(subscriber: PostIdentifier[UID, GID]):
 @context.inject
 @context.require(CommandHandler).sub_command("schedule")
 class ScheduleHandler(SubCommandHandler):
-    scheduler: Scheduler
+    scheduler = Inject(Scheduler)
 
     def __init__(self):
         super().__init__()
@@ -61,7 +62,7 @@ class ScheduleHandler(SubCommandHandler):
                             schedule: str,
                             args: List,
                             post_dest: PostDestination[UID, GID],
-                            silently: bool = False):
+                            silently: bool = False, **kwargs):
         await self.scheduler.schedule(type, schedule, args, post_dest=post_dest)
         await self.post_plain_text(message="订阅成功", post_dest=post_dest)
 
@@ -88,7 +89,7 @@ class ScheduleHandler(SubCommandHandler):
 @context.inject
 @context.require(CommandHandler).sub_command("unschedule")
 class UnscheduleHandler(SubCommandHandler):
-    scheduler: Scheduler
+    scheduler = Inject(Scheduler)
 
     def __init__(self):
         super().__init__()

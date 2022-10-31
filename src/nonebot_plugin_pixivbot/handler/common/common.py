@@ -8,6 +8,7 @@ from ..entry_handler import EntryHandler
 from ..interceptor.cooldown_interceptor import CooldownInterceptor
 from ..interceptor.loading_prompt_interceptor import LoadingPromptInterceptor
 from ..interceptor.timeout_interceptor import TimeoutInterceptor
+from ...context import Inject
 from ...model import Illust
 from ...model.message import IllustMessageModel, IllustMessagesModel
 from ...protocol_dep.postman import PostmanManager
@@ -21,7 +22,7 @@ PD = PostDestination[UID, GID]
 
 @context.inject
 class RecordPostmanManager:
-    recorder: Recorder
+    recorder = Inject(Recorder)
 
     def __init__(self, delegation: PostmanManager):
         self.delegation = delegation
@@ -43,7 +44,7 @@ class RecordPostmanManager:
 
 @context.inject
 class CommonHandler(EntryHandler, ABC):
-    service: PixivService
+    service = Inject(PixivService)
 
     def __init__(self):
         super().__init__()

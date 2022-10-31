@@ -9,6 +9,7 @@ from pymongo import IndexModel
 from pymongo.errors import OperationFailure
 
 from nonebot_plugin_pixivbot.config import Config
+from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.errors import DataSourceNotReadyError
 from nonebot_plugin_pixivbot.data.source.mongo.migration import MongoMigrationManager
 from nonebot_plugin_pixivbot.global_context import context
@@ -18,8 +19,8 @@ from nonebot_plugin_pixivbot.utils.lifecycler import on_shutdown, on_startup
 @context.inject
 @context.register_eager_singleton()
 class MongoDataSource:
-    conf: Config
-    mongo_migration_mgr: MongoMigrationManager
+    conf = Inject(Config)
+    mongo_migration_mgr = Inject(MongoMigrationManager)
     app_db_version = 4
 
     def __init__(self):

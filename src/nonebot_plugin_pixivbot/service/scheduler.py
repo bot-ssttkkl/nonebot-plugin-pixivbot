@@ -12,6 +12,7 @@ from lazy import lazy
 from nonebot import logger, Bot
 from nonebot.exception import ActionFailed
 
+from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.subscription_repo import SubscriptionRepo
 from nonebot_plugin_pixivbot.data.utils.process_subscriber import process_subscriber
 from nonebot_plugin_pixivbot.global_context import context
@@ -64,10 +65,10 @@ def parse_schedule(raw_schedule: str) -> Sequence[int]:
 @context.inject
 @context.register_eager_singleton()
 class Scheduler:
-    apscheduler: AsyncIOScheduler
-    repo: SubscriptionRepo
-    pd_factory_mgr: PostDestinationFactoryManager
-    auth_mgr: AuthenticatorManager
+    apscheduler = Inject(AsyncIOScheduler)
+    repo = Inject(SubscriptionRepo)
+    pd_factory_mgr = Inject(PostDestinationFactoryManager)
+    auth_mgr = Inject(AuthenticatorManager)
 
     def __init__(self):
         on_bot_connect(self.on_bot_connect, replay=True)

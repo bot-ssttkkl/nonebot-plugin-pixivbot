@@ -3,6 +3,7 @@ from functools import wraps
 from typing import Callable, TypeVar
 
 from nonebot_plugin_pixivbot import context
+from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.protocol_dep.postman import PostmanManager
 
@@ -12,7 +13,7 @@ GID = TypeVar("GID")
 
 @context.inject
 class Interceptor(ABC):
-    postman_manager: PostmanManager
+    postman_manager = Inject(PostmanManager)
 
     async def post_plain_text(self, message: str,
                               post_dest: PostDestination):

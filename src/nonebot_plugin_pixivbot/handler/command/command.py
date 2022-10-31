@@ -4,7 +4,7 @@ from typing import Type, Callable, Union, Awaitable, TypeVar, Sequence
 
 from lazy import lazy
 from nonebot import Bot, on_command
-from nonebot import logger, on_regex
+from nonebot import logger
 from nonebot.internal.adapter import Event
 from nonebot.internal.matcher import Matcher
 from nonebot.internal.params import Depends
@@ -16,7 +16,7 @@ from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from ..entry_handler import EntryHandler
 from ..entry_handler import post_destination
 from ..handler import Handler
-from ..utils import get_common_query_rule, get_command_rule
+from ..utils import get_command_rule
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -54,7 +54,7 @@ class SubCommandHandler(Handler, ABC):
             await self.post_plain_text(err.message, post_dest=post_dest)
 
 
-@context.register_singleton()
+@context.register_eager_singleton()
 class CommandHandler(EntryHandler):
     def __init__(self):
         super().__init__()

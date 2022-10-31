@@ -5,6 +5,7 @@ from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import SuperuserInterceptor
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .command import SubCommandHandler, CommandHandler
+from ...context import Inject
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -13,7 +14,7 @@ GID = TypeVar("GID")
 @context.inject
 @context.require(CommandHandler).sub_command("invalidate_cache")
 class InvalidateCacheHandler(SubCommandHandler):
-    repo: PixivRepo
+    repo = Inject(PixivRepo)
 
     def __init__(self):
         super().__init__()
@@ -29,8 +30,7 @@ class InvalidateCacheHandler(SubCommandHandler):
     def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
         return {}
 
-    # noinspection PyMethodOverriding
     async def actual_handle(self, *, post_dest: PostDestination[UID, GID],
-                            silently: bool = False):
+                            silently: bool = False, **kwargs):
         await self.repo.invalidate_cache()
         await self.post_plain_text(message="ok", post_dest=post_dest)
