@@ -1,10 +1,16 @@
+from unittest.mock import MagicMock
+
 import pytest
 
 from tests import MyTest
 
+cnt = 0
+
 
 class A:
     def __init__(self, data):
+        global cnt
+        cnt += 1
         self.data = data
 
     def hello(self):
@@ -33,25 +39,29 @@ class TestContext(MyTest):
         assert A in context
 
     def test_register_lazy(self, context):
-        context.register_lazy(A, lambda: A(2))
-        assert A not in context._container
+        initializer = MagicMock(side_effect=lambda: A(2))
+        context.register_lazy(A, initializer)
+        initializer.assert_not_called()
         assert context.require(A).hello() == 2
-        assert A in context._container
+        initializer.assert_called_once()
 
     def test_register_singleton(self, context):
+        old_cnt = cnt
         context.register_singleton(3)(A)
-        assert A not in context._container
+        assert cnt == old_cnt
         assert context.require(A).hello() == 3
-        assert A in context._container
+        assert cnt == old_cnt + 1
 
     def test_register_eager_singleton(self, context):
+        old_cnt = cnt
         context.register_eager_singleton(4)(A)
-        assert A in context._container
+        assert cnt == old_cnt + 1
         assert context.require(A).hello() == 4
+        assert cnt == old_cnt + 1
 
     def test_bind_to(self, context):
         context.register(B, B("world"))
-        context.bind_to(A, B)
+        context.bind(A, B)
 
         assert context.require(A).hello() == "Hello world"
 
@@ -73,26 +83,30 @@ class TestContext(MyTest):
         assert A in third
 
     def test_inject(self, context):
+        from nonebot_plugin_pixivbot.context import Inject
+
         context.register(A, A(5))
 
         @context.inject
         class X:
-            a: A
+            a = Inject(A)
 
         x = X()
         assert x.a.hello() == 5
 
     def test_inherited_inject(self, context):
+        from nonebot_plugin_pixivbot.context import Inject
+
         context.register(A, A(6))
         context.register(B, A(7))
 
         @context.inject
         class X:
-            a: A
+            a = Inject(A)
 
         @context.inject
         class Y(X):
-            b: B
+            b = Inject(B)
 
         y = Y()
 

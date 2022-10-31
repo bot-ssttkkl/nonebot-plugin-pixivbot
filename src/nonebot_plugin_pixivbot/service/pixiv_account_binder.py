@@ -1,5 +1,6 @@
 from typing import TypeVar, Optional
 
+from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.pixiv_binding_repo import PixivBindingRepo
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model.pixiv_binding import PixivBinding
@@ -10,7 +11,7 @@ UID = TypeVar("UID")
 @context.inject
 @context.register_singleton()
 class PixivAccountBinder:
-    repo: PixivBindingRepo
+    repo = Inject(PixivBindingRepo)
 
     async def bind(self, adapter: str, user_id: UID, pixiv_user_id: int):
         binding = PixivBinding(adapter=adapter, user_id=user_id, pixiv_user_id=pixiv_user_id)

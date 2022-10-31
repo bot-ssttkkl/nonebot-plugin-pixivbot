@@ -13,10 +13,8 @@ UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
-@context.inject
 @context.register_singleton()
 class DefaultErrorInterceptor(Interceptor):
-
     async def intercept(self, wrapped_func: Callable, *args,
                         post_dest: PostDestination[UID, GID],
                         silently: bool,

@@ -34,10 +34,6 @@ __plugin_meta__ = PluginMetadata(
 )
 
 # ================= provide beans =================
-from importlib import import_module
-
-from nonebot import logger
-
 from .global_context import context
 from .nb_providers import provide
 
@@ -48,6 +44,9 @@ from . import handler
 from . import service
 
 # ============== load custom protocol =============
+from importlib import import_module
+from nonebot import logger
+
 supported_modules = ["nonebot_plugin_pixivbot_onebot_v11", "nonebot_plugin_pixivbot_kook"]
 
 for p in supported_modules:

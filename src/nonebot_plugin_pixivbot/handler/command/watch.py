@@ -9,6 +9,7 @@ from nonebot_plugin_pixivbot.service.pixiv_service import PixivService
 from nonebot_plugin_pixivbot.service.watchman import Watchman
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .command import CommandHandler, SubCommandHandler
+from ...context import Inject
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -67,7 +68,7 @@ async def parse_following_illusts_args(args: Sequence[str], post_dest: PostDesti
 @context.inject
 @context.require(CommandHandler).sub_command("watch")
 class WatchHandler(SubCommandHandler):
-    watchman: Watchman
+    watchman = Inject(Watchman)
 
     def __init__(self):
         super().__init__()
@@ -105,7 +106,7 @@ class WatchHandler(SubCommandHandler):
                             watch_kwargs: Dict[str, Any],
                             success_message: str,
                             post_dest: PostDestination[UID, GID],
-                            silently: bool = False):
+                            silently: bool = False, **kwargs):
         await self.watchman.watch(type, watch_kwargs, post_dest)
         await self.post_plain_text(success_message, post_dest)
 
@@ -130,7 +131,7 @@ class WatchHandler(SubCommandHandler):
 @context.inject
 @context.require(CommandHandler).sub_command("unwatch")
 class UnwatchHandler(SubCommandHandler):
-    watchman: Watchman
+    watchman = Inject(Watchman)
 
     def __init__(self):
         super().__init__()
@@ -167,7 +168,7 @@ class UnwatchHandler(SubCommandHandler):
     async def actual_handle(self, *, type: WatchType,
                             watch_kwargs: Dict[str, Any],
                             post_dest: PostDestination[UID, GID],
-                            silently: bool = False):
+                            silently: bool = False, **kwargs):
         if await self.watchman.unwatch(type, watch_kwargs, post_dest.identifier):
             await self.post_plain_text(message="成功取消订阅", post_dest=post_dest)
         else:

@@ -17,6 +17,7 @@ from .mediator import mediate_single, mediate_many, mediate_append
 from .models import PixivRepoMetadata
 from .pkg_context import context
 from .remote_repo import RemotePixivRepo
+from ...context import Inject
 
 
 class SharedAgenIdentifier(BaseModel):
@@ -38,9 +39,9 @@ class SharedAgenIdentifier(BaseModel):
 class PixivSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[SharedAgenIdentifier, Any]):
     log_tag = "pixiv_shared_agen"
 
-    conf: Config
-    local: LocalPixivRepo
-    remote: RemotePixivRepo
+    conf = Inject(Config)
+    local = Inject(LocalPixivRepo)
+    remote = Inject(RemotePixivRepo)
 
     def illust_detail_factory(self, illust_id: int,
                               cache_strategy: CacheStrategy) -> AsyncGenerator[Illust, None]:
@@ -169,7 +170,8 @@ class PixivSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[SharedAgenIde
         PixivResType.IMAGE: image_factory,
     }
 
-    def agen(self, identifier: SharedAgenIdentifier, cache_strategy: CacheStrategy, **kwargs) -> AsyncGenerator[Any, None]:
+    def agen(self, identifier: SharedAgenIdentifier, cache_strategy: CacheStrategy, **kwargs) -> AsyncGenerator[
+        Any, None]:
         if identifier.type in self.factories:
             merged_kwargs = identifier.kwargs | kwargs
             # noinspection PyTypeChecker
@@ -205,9 +207,9 @@ class PixivSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[SharedAgenIde
 @context.inject
 @context.root.register_singleton()
 class PixivRepo(AbstractPixivRepo):
-    _shared_agen_mgr: PixivSharedAsyncGeneratorManager
-    _local: LocalPixivRepo
-    _remote: RemotePixivRepo
+    _shared_agen_mgr = Inject(PixivSharedAsyncGeneratorManager)
+    _local = Inject(LocalPixivRepo)
+    _remote = Inject(RemotePixivRepo)
 
     async def invalidate_cache(self):
         self._shared_agen_mgr.invalidate_all()

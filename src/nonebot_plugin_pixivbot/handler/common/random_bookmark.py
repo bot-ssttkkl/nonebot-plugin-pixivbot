@@ -15,6 +15,7 @@ from .common import CommonHandler
 from ..entry_handler import post_destination
 from ..interceptor.record_req_interceptor import RecordReqInterceptor
 from ..utils import get_common_query_rule, get_count, get_post_dest
+from ...context import Inject
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -23,7 +24,7 @@ GID = TypeVar("GID")
 @context.inject
 @context.root.register_eager_singleton()
 class RandomBookmarkHandler(CommonHandler):
-    binder: PixivAccountBinder
+    binder = Inject(PixivAccountBinder)
 
     def __init__(self):
         super().__init__()

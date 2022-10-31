@@ -9,12 +9,12 @@ from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.authenticator import AuthenticatorManager
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .interceptor import Interceptor
+from ...context import Inject
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
-@context.inject
 class PermissionInterceptor(Interceptor, ABC):
     @abstractmethod
     def has_permission(self, post_dest: PostDestination[UID, GID]) -> Union[bool, Awaitable[bool]]:
@@ -78,7 +78,7 @@ class SuperuserInterceptor(PermissionInterceptor):
 @context.inject
 @context.register_singleton()
 class GroupAdminInterceptor(PermissionInterceptor):
-    auth: AuthenticatorManager
+    auth = Inject(AuthenticatorManager)
 
     def has_permission(self, post_dest: PostDestination[UID, GID]) -> Union[bool, Awaitable[bool]]:
         if not post_dest.group_id:
@@ -89,7 +89,7 @@ class GroupAdminInterceptor(PermissionInterceptor):
 @context.inject
 @context.register_singleton()
 class BlacklistInterceptor(PermissionInterceptor):
-    conf: Config
+    conf = Inject(Config)
 
     def __init__(self):
         super().__init__()

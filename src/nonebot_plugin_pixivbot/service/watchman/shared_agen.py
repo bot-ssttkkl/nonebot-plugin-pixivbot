@@ -12,6 +12,7 @@ from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.shared_agen import SharedAsyncGeneratorManager
 from .pkg_context import context
 from .user_following_illusts import user_following_illusts
+from ...context import Inject
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -38,8 +39,8 @@ class WatchmanSharedAgenIdentifier(BaseModel):
 class WatchmanSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[WatchmanSharedAgenIdentifier, Illust]):
     log_tag = "watchman_shared_agen"
 
-    pixiv: PixivRepo
-    remote_pixiv: RemotePixivRepo
+    pixiv = Inject(PixivRepo)
+    remote_pixiv = Inject(RemotePixivRepo)
 
     async def agen(self, identifier: WatchmanSharedAgenIdentifier, cache_strategy: CacheStrategy, **kwargs) -> AsyncGenerator[Illust, None]:
         self.set_expires_time(identifier, datetime.now(timezone.utc) + timedelta(seconds=30))  # 保证每分钟的所有task都能共享

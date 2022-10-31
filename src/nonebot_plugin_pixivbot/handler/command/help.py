@@ -23,5 +23,5 @@ class HelpHandler(SubCommandHandler):
         return {}
 
     async def actual_handle(self, *, post_dest: PostDestination[UID, GID],
-                            silently: bool = False):
+                            silently: bool = False, **kwargs):
         await self.post_plain_text(help_text, post_dest=post_dest)

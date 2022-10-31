@@ -9,6 +9,7 @@ from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import UserIdentifier
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .permission_interceptor import PermissionInterceptor
+from ...context import Inject
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -17,7 +18,7 @@ GID = TypeVar("GID")
 @context.inject
 @context.register_singleton()
 class CooldownInterceptor(PermissionInterceptor):
-    conf: Config
+    conf = Inject(Config)
 
     def __init__(self):
         super().__init__()

@@ -1,5 +1,6 @@
 from typing import TypeVar, Callable
 
+from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.common.recorder import Recorder, Req
 from nonebot_plugin_pixivbot.handler.interceptor.interceptor import Interceptor
@@ -12,7 +13,7 @@ GID = TypeVar("GID")
 @context.inject
 @context.register_singleton()
 class RecordReqInterceptor(Interceptor):
-    recorder: Recorder
+    recorder = Inject(Recorder)
 
     async def intercept(self, wrapped_func: Callable, *args,
                         post_dest: PostDestination[UID, GID],

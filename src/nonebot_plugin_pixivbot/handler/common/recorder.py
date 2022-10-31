@@ -7,6 +7,7 @@ from typing import Optional, TypeVar, TYPE_CHECKING
 from nonebot import logger
 
 from nonebot_plugin_pixivbot.config import Config
+from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import PostIdentifier
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
@@ -54,7 +55,7 @@ class Resp:
 @context.inject
 @context.register_singleton()
 class Recorder:
-    conf: Config
+    conf = Inject(Config)
 
     def __init__(self, max_req_size: int = 65535,
                  max_resp_size: int = 65535):

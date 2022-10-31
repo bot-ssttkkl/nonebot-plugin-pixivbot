@@ -2,7 +2,6 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Union, Sequence, Any, AsyncGenerator, Optional, Type, Mapping
 
 import bson
-from beanie import BulkWriter
 from beanie.odm.operators.find.comparison import In
 from beanie.odm.operators.find.logical import And
 from beanie.odm.operators.update.array import AddToSet
@@ -22,6 +21,7 @@ from .models import PixivRepoMetadata, UserDetailCache, PixivRepoCache, IllustDe
 from .pkg_context import context
 from ..local_tag_repo import LocalTagRepo
 from ..source import MongoDataSource
+from ...context import Inject
 
 
 def _handle_expires_in(metadata: PixivRepoMetadata, expires_in: int):
@@ -32,9 +32,9 @@ def _handle_expires_in(metadata: PixivRepoMetadata, expires_in: int):
 @context.inject
 @context.register_singleton()
 class LocalPixivRepo(AbstractPixivRepo):
-    conf: Config
-    mongo: MongoDataSource
-    local_tag_repo: LocalTagRepo
+    conf = Inject(Config)
+    mongo = Inject(MongoDataSource)
+    local_tag_repo = Inject(LocalTagRepo)
 
     async def _add_to_local_tags(self, illusts: List[Union[LazyIllust, Illust]]):
         tags = {}
