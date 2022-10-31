@@ -92,6 +92,8 @@ class Watchman:
         logger.info(f"[watchman] triggered {job_id}")
 
         try:
+            checkpoint = task.checkpoint
+
             # 先保存checkpoint，避免一次异常后下一次重复推送
             # 但是会存在丢失推送的问题
             task.checkpoint = datetime.now(timezone.utc)
@@ -101,15 +103,14 @@ class Watchman:
             if ctx_mgr:
                 with ctx_mgr as iter:
                     async for illust in iter:
-                        if illust.create_date > task.checkpoint:
+                        if illust.create_date > checkpoint:
                             logger.info(f"[watchman] send illust {illust.id} to {task.subscriber}")
                             await self._post_illust(illust, header=headers.get(task.type, ""),
                                                     post_dest=post_dest)
                         else:
                             break
         except ActionFailed as e:
-            logger.error("[watchman] ActionFailed")
-            logger.error(e)
+            logger.error("[watchman] ActionFailed" + str(e))
 
             available = self.auth_mgr.available(post_dest)
             if isawaitable(available):
