@@ -7,6 +7,7 @@ from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import WatchTask, WatchType, PostIdentifier
 from .source import MongoDataSource
 from .utils.process_subscriber import process_subscriber
+from ..context import Inject
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -29,7 +30,7 @@ context.require(MongoDataSource).document_models.append(WatchTaskDocument)
 @context.inject
 @context.register_singleton()
 class WatchTaskRepo:
-    mongo: MongoDataSource
+    mongo = Inject(MongoDataSource)
 
     @classmethod
     async def get_by_subscriber(cls, subscriber: ID) -> AsyncGenerator[WatchTask, None]:

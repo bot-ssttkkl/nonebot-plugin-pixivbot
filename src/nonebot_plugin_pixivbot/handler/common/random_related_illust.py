@@ -15,6 +15,7 @@ from .recorder import Recorder
 from ..entry_handler import post_destination
 from ..interceptor.record_req_interceptor import RecordReqInterceptor
 from ..utils import get_common_query_rule
+from ...context import Inject
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -23,7 +24,7 @@ GID = TypeVar("GID")
 @context.inject
 @context.root.register_eager_singleton()
 class RandomRelatedIllustHandler(CommonHandler):
-    recorder: Recorder
+    recorder = Inject(Recorder)
 
     def __init__(self):
         super().__init__()

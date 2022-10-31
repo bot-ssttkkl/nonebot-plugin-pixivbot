@@ -8,12 +8,13 @@ from PIL import Image, ImageFile
 
 from nonebot_plugin_pixivbot.config import Config
 from .pkg_context import context
+from ...context import Inject
 
 
 @context.inject
 @context.register_singleton()
 class Compressor:
-    _conf: Config
+    _conf = Inject(Config)
 
     def __init__(self) -> None:
         self.enabled = self._conf.pixiv_compression_enabled

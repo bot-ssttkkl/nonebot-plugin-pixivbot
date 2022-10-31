@@ -7,12 +7,13 @@ from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .interceptor import Interceptor, UID, GID
+from ...context import Inject
 
 
 @context.inject
 @context.register_singleton()
 class LoadingPromptInterceptor(Interceptor):
-    conf: Config
+    conf = Inject(Config)
 
     async def send_delayed_loading_prompt(self, post_dest: PostDestination[UID, GID]):
         await sleep(self.conf.pixiv_loading_prompt_delayed_time)

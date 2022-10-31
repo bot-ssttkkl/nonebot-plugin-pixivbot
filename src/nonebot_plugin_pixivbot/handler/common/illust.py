@@ -45,6 +45,6 @@ class IllustHandler(CommonHandler, Generic[UID, GID]):
     # noinspection PyMethodOverriding
     async def actual_handle(self, *, illust_id: int,
                             post_dest: PostDestination[UID, GID],
-                            silently: bool = False):
+                            silently: bool = False, **kwargs):
         illust = await self.service.illust_detail(illust_id)
         await self.post_illust(illust, post_dest=post_dest)

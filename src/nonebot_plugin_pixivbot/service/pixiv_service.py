@@ -3,7 +3,8 @@ from typing import List, Union, Tuple
 from nonebot import logger
 
 from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.data.local_tag_repo import LocalTag, LocalTagRepo
+from nonebot_plugin_pixivbot.context import Inject
+from nonebot_plugin_pixivbot.data.local_tag_repo import LocalTagRepo
 from nonebot_plugin_pixivbot.data.pixiv_repo import LazyIllust, PixivRepo
 from nonebot_plugin_pixivbot.enums import RandomIllustMethod, RankingMode
 from nonebot_plugin_pixivbot.global_context import context
@@ -15,9 +16,9 @@ from nonebot_plugin_pixivbot.utils.errors import BadRequestError, QueryError
 @context.inject
 @context.register_singleton()
 class PixivService:
-    conf: Config
-    repo: PixivRepo
-    local_tag_repo: LocalTagRepo
+    conf = Inject(Config)
+    repo = Inject(PixivRepo)
+    local_tag_repo = Inject(LocalTagRepo)
 
     async def _choice_and_load(self, illusts: List[LazyIllust], random_method: RandomIllustMethod, count: int) \
             -> List[Illust]:

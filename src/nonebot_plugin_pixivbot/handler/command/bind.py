@@ -1,5 +1,6 @@
 from typing import TypeVar, Sequence
 
+from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.service.pixiv_account_binder import PixivAccountBinder
@@ -13,7 +14,7 @@ GID = TypeVar("GID")
 @context.inject
 @context.require(CommandHandler).sub_command("bind")
 class BindHandler(SubCommandHandler):
-    binder: PixivAccountBinder
+    binder = Inject(PixivAccountBinder)
 
     @classmethod
     def type(cls) -> str:
@@ -59,7 +60,7 @@ class BindHandler(SubCommandHandler):
 @context.inject
 @context.require(CommandHandler).sub_command("unbind")
 class UnbindHandler(SubCommandHandler):
-    binder: PixivAccountBinder
+    binder = Inject(PixivAccountBinder)
 
     @classmethod
     def type(cls) -> str:

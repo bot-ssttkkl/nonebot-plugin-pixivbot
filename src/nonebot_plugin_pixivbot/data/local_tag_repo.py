@@ -7,6 +7,7 @@ from pymongo import *
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Tag
 from .source import MongoDataSource
+from ..context import Inject
 
 
 class LocalTag(Tag, Document):
@@ -24,7 +25,7 @@ context.require(MongoDataSource).document_models.append(LocalTag)
 @context.inject
 @context.register_singleton()
 class LocalTagRepo:
-    mongo: MongoDataSource
+    mongo = Inject(MongoDataSource)
 
     @classmethod
     async def find_by_name(cls, name: str) -> Optional[Tag]:

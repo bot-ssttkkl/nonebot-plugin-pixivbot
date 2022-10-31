@@ -14,6 +14,7 @@ from nonebot_plugin_pixivbot.handler.utils import get_common_query_rule
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 
 
+@context.register_eager_singleton()
 class IllustLinkHandler(DelegationEntryHandler):
     @classmethod
     def type(cls) -> str:

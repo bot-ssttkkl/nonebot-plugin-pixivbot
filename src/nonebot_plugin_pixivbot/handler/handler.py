@@ -7,6 +7,7 @@ from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .interceptor.combined_interceptor import CombinedInterceptor
 from .interceptor.interceptor import Interceptor
+from ..context import Inject
 from ..protocol_dep.postman import PostmanManager
 
 UID = TypeVar("UID")
@@ -17,8 +18,8 @@ PD = PostDestination[UID, GID]
 
 @context.inject
 class Handler(ABC):
-    conf: Config
-    postman_manager: PostmanManager
+    conf = Inject(Config)
+    postman_manager = Inject(PostmanManager)
 
     def __init__(self):
         self.interceptor = None

@@ -18,6 +18,7 @@ from .abstract_repo import AbstractPixivRepo, PixivRepoMetadata
 from .compressor import Compressor
 from .lazy_illust import LazyIllust
 from .pkg_context import context
+from ...context import Inject
 
 T = TypeVar("T")
 
@@ -46,8 +47,8 @@ def _auto_retry(func):
 @context.inject
 @context.register_eager_singleton()
 class RemotePixivRepo(AbstractPixivRepo):
-    _conf: Config
-    _compressor: Compressor
+    _conf = Inject(Config)
+    _compressor = Inject(Compressor)
 
     # noinspection PyTypeChecker
     def __init__(self):
