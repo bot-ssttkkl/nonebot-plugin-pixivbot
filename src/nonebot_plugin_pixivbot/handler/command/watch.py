@@ -27,12 +27,13 @@ async def parse_and_get_user(raw_user: str):
 
 async def build_tasks_msg(identifier: PostIdentifier):
     watchman = context.require(Watchman)
-    tasks = await watchman.get_by_subscriber(identifier)
+    tasks = [x async for x in watchman.get_by_subscriber(identifier)]
     msg = "当前订阅：\n"
     if len(tasks) > 0:
-        for t in tasks:
-            args_text = " ".join(map(lambda k: f'{k}={t.kwargs[k]}', t.kwargs))
-            msg += f'{t.type.name} {args_text}\n'
+        for x in tasks:
+            args = filter(lambda kv: kv[1], x.kwargs.items())
+            args_text = " ".join(map(lambda kv: f'{kv[0]}={kv[1]}', args))
+            msg += f'[{x.code}] {x.type.name} ({args_text})\n'
     else:
         msg += '无\n'
     return msg
@@ -147,29 +148,19 @@ class UnwatchHandler(SubCommandHandler):
     def enabled(self) -> bool:
         return True
 
-    async def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
+    def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
         if len(args) == 0:
             raise BadRequestError()
-
         try:
-            type = WatchType[args[0]]
-            if type == WatchType.user_illusts:
-                watch_kwargs, message = await parse_user_illusts_args(args)
-            elif type == WatchType.following_illusts:
-                watch_kwargs, message = await parse_following_illusts_args(args, post_dest)
-            else:
-                raise KeyError()
-        except KeyError as e:
-            raise BadRequestError(f"未知订阅类型：{args[0]}") from e
-
-        return {"type": type, "watch_kwargs": watch_kwargs}
+            return {"code": int(args[0])}
+        except ValueError as e:
+            raise BadRequestError(f"不合法的订阅编号：{args[0]}") from e
 
     # noinspection PyMethodOverriding
-    async def actual_handle(self, *, type: WatchType,
-                            watch_kwargs: Dict[str, Any],
+    async def actual_handle(self, *, code: int,
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False, **kwargs):
-        if await self.watchman.unwatch(type, watch_kwargs, post_dest.identifier):
+        if await self.watchman.unwatch(post_dest.identifier, code):
             await self.post_plain_text(message="成功取消订阅", post_dest=post_dest)
         else:
             raise BadRequestError("取消订阅失败，不存在该订阅")
@@ -183,10 +174,6 @@ class UnwatchHandler(SubCommandHandler):
             msg += '\n\n'
 
         msg += await build_tasks_msg(post_dest.identifier)
-        msg += "\n" \
-               "命令格式：/pixivbot unwatch <type> [..args]\n" \
-               "参数：\n" \
-               "  <type>：可选值有user_illusts, following_illusts" \
-               "  [...args]：根据<type>不同需要提供不同的参数\n" \
-               "示例：/pixivbot unwatch user_illusts <用户名>\n"
+        msg += "\n"
+        msg += "命令格式：/pixivbot unwatch <id>"
         await self.post_plain_text(message=msg, post_dest=post_dest)

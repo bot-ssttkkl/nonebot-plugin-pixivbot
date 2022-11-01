@@ -16,6 +16,7 @@ class WatchType(str, Enum):
 
 
 class WatchTask(GenericModel, Generic[UID, GID]):
+    code: int = 0
     type: WatchType
     kwargs: Dict[str, Any]
     subscriber: PostIdentifier[UID, GID]
