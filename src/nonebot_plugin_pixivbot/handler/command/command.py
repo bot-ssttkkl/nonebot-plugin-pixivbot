@@ -23,10 +23,6 @@ GID = TypeVar("GID")
 
 
 class SubCommandHandler(Handler, ABC):
-    @abstractmethod
-    def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> Union[dict, Awaitable[dict]]:
-        raise NotImplementedError()
-
     async def handle(self, *args,
                      post_dest: PostDestination[UID, GID],
                      silently: bool = False,
@@ -80,7 +76,7 @@ class CommandHandler(EntryHandler):
             -> Callable[[Type[SubCommandHandler]], Type[SubCommandHandler]]:
         def decorator(cls: Type[SubCommandHandler]):
             if cls not in context:
-                context.register_singleton()(cls)
+                context.root.register_singleton()(cls)
             self.handlers[type] = cls
             logger.trace(f"registered subcommand {type}")
             return cls

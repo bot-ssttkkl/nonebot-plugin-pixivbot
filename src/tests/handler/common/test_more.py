@@ -2,59 +2,46 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from tests import MyTest
+from tests.handler.common import HandlerTester
 from tests.handler.common.fake_recorder import FakeRecorderMixin
-from tests.model.mock_message import MockMessageModelMixin
-from tests.protocol_dep.fake_post_dest import FakePostDestinationMixin
-from tests.protocol_dep.fake_postman import FakePostmanManagerMixin
-from tests.service.fake_pixiv_service import FakePixivServiceMixin
 
 
-class TestMoreHandler(FakePixivServiceMixin,
-                      FakeRecorderMixin,
-                      MockMessageModelMixin,
-                      FakePostDestinationMixin,
-                      FakePostmanManagerMixin,
-                      MyTest):
-    @pytest.fixture(autouse=True)
-    def remove_interceptor(self, load_pixivbot):
-        from nonebot_plugin_pixivbot import context
+class MoreHandlerTester(HandlerTester,
+                        FakeRecorderMixin):
+    @pytest.fixture
+    def Handler(self, load_pixivbot):
         from nonebot_plugin_pixivbot.handler.common import MoreHandler
+        return MoreHandler
 
-        context.require(MoreHandler).interceptor = None
+
+class TestMoreHandle(MoreHandlerTester):
+    kwargs = {"count": 3}
 
     @pytest.mark.asyncio
-    async def test_handle(self, fake_post_destination,
-                          fake_pixiv_service,
-                          fake_recorder,
-                          fake_postman_manager,
-                          mock_illust_message_model):
+    async def test(self, tester,
+                   FakeRecorder,
+                   FakePostDestination):
         from nonebot_plugin_pixivbot import context
-        from nonebot_plugin_pixivbot.handler.common import MoreHandler
-        from nonebot_plugin_pixivbot.handler.common.recorder import Req
+        from nonebot_plugin_pixivbot.handler.recorder import Req
 
-        post_dest = fake_post_destination(123456, 56789)
+        post_dest = FakePostDestination(123456, 56789)
         stub = AsyncMock()
+        context.require(FakeRecorder).record_req(Req(stub, 114, 514), post_dest.identifier)
 
-        context.require(fake_recorder).record_req(Req(stub, 114, 514), post_dest.identifier)
-
-        await context.require(MoreHandler).handle(count=3, post_dest=post_dest)
-
+        await tester(post_dest=post_dest)
         stub.assert_awaited_once_with(114, 514, count=3, post_dest=post_dest, silently=False)
 
+
+class TestMoreHandleNoRecord(MoreHandlerTester):
+    kwargs = {"count": 3}
+
     @pytest.mark.asyncio
-    async def test_no_record_handle(self, fake_post_destination,
-                                    fake_pixiv_service,
-                                    fake_recorder,
-                                    fake_postman_manager,
-                                    mock_illust_message_model):
-        from nonebot_plugin_pixivbot import context
-        from nonebot_plugin_pixivbot.handler.common import MoreHandler
+    async def test(self, tester,
+                   FakePostDestination):
         from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 
-        post_dest = fake_post_destination(123456, 56789)
-        except_msg = "你还没有发送过请求"
+        post_dest = FakePostDestination(123456, 56789)
 
         with pytest.raises(BadRequestError) as e:
-            await context.require(MoreHandler).handle(count=3, post_dest=post_dest)
-        assert e.value.message == except_msg
+            await tester(post_dest=post_dest)
+        assert e.value.message == "你还没有发送过请求"

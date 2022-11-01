@@ -1,32 +1,22 @@
 import pytest
 
-from tests import MyTest
 from tests.data.pixiv_repo.fake_pixiv_repo import FakePixivRepoMixin
-from tests.protocol_dep.fake_post_dest import FakePostDestinationMixin
-from tests.protocol_dep.fake_postman import FakePostmanManagerMixin
+from tests.handler.common import HandlerTester
 
 
-class TestInvalidateCache(FakePostDestinationMixin,
-                          FakePostmanManagerMixin,
-                          FakePixivRepoMixin,
-                          MyTest):
+class TestInvalidateCache(HandlerTester,
+                          FakePixivRepoMixin):
+    except_msg = "ok"
 
-    @pytest.fixture(autouse=True)
-    def remove_interceptor(self, load_pixivbot):
-        from nonebot_plugin_pixivbot import context
+    @pytest.fixture
+    def Handler(self, load_pixivbot):
         from nonebot_plugin_pixivbot.handler.command import InvalidateCacheHandler
-
-        context.require(InvalidateCacheHandler).interceptor = None
+        return InvalidateCacheHandler
 
     @pytest.mark.asyncio
-    async def test_handle(self, fake_post_destination,
-                          fake_pixiv_repo, fake_postman_manager):
+    async def test(self, tester, FakePixivRepo):
         from nonebot_plugin_pixivbot import context
-        from nonebot_plugin_pixivbot.handler.command import InvalidateCacheHandler
 
-        post_dest = fake_post_destination(123456, 56789)
-        except_msg = "ok"
+        await tester()
 
-        await context.require(InvalidateCacheHandler).handle(post_dest=post_dest)
-        assert context.require(fake_postman_manager).calls[0] == (post_dest, except_msg)
-        context.require(fake_pixiv_repo).invalidate_cache.has_awaited()
+        context.require(FakePixivRepo).invalidate_cache.has_awaited()

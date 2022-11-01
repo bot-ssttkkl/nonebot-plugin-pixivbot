@@ -7,7 +7,7 @@ from tests import MyTest
 
 class FakePostmanManagerMixin(MyTest):
     @pytest.fixture(autouse=True)
-    def fake_postman_manager(self, load_pixivbot):
+    def FakePostmanManager(self, load_pixivbot):
         from nonebot_plugin_pixivbot import context
         from nonebot_plugin_pixivbot.model.message import IllustMessageModel, IllustMessagesModel
         from nonebot_plugin_pixivbot.protocol_dep.postman import PostmanManager
@@ -18,7 +18,11 @@ class FakePostmanManagerMixin(MyTest):
             def __init__(self):
                 self.calls = []
 
-            def assert_call(self, post_dest: PostDestination[int, int],
+            def assert_not_called(self, post_dest: PostDestination[int, int]):
+                for pd, _ in self.calls:
+                    assert pd != post_dest
+
+            def assert_called(self, post_dest: PostDestination[int, int],
                             message: Union[str, IllustMessageModel, IllustMessagesModel]):
                 assert (post_dest, message) in self.calls
 
@@ -36,5 +40,8 @@ class FakePostmanManagerMixin(MyTest):
                                    *, post_dest: PostDestination[int, int]):
                 self.calls.append((post_dest, model))
                 print(f"send illusts: {model} to {post_dest}")
+
+        from nonebot_plugin_pixivbot.handler.handler import Handler
+        Handler.__context__.bind(PostmanManager, FakePostmanManager)
 
         return FakePostmanManager

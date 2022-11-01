@@ -7,7 +7,7 @@ from tests import MyTest
 
 class FakePostDestinationMixin(MyTest):
     @pytest.fixture
-    def fake_post_destination(self, load_pixivbot):
+    def FakePostDestination(self, load_pixivbot):
         from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
         from nonebot_plugin_pixivbot.model import PostIdentifier
 
@@ -27,7 +27,7 @@ class FakePostDestinationMixin(MyTest):
 
 class FakePostDestinationFactoryManagerMixin(FakePostDestinationMixin, MyTest):
     @pytest.fixture(autouse=True)
-    def fake_post_destination_factory_manager(self, load_pixivbot, fake_post_destination):
+    def FakePostDestinationFactoryManager(self, load_pixivbot, FakePostDestination):
         from nonebot_plugin_pixivbot import context
         from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination, PostDestinationFactoryManager
 
@@ -37,9 +37,9 @@ class FakePostDestinationFactoryManagerMixin(FakePostDestinationMixin, MyTest):
         @context.bind_singleton_to(PostDestinationFactoryManager)
         class FakePostDestinationFactoryManager:
             def build(self, bot: Bot, user_id: Optional[int], group_id: Optional[int]) -> PostDestination[int, int]:
-                return fake_post_destination(user_id, group_id)
+                return FakePostDestination(user_id, group_id)
 
             def from_event(self, bot: Bot, event: Event) -> PostDestination[int, int]:
-                return fake_post_destination(int(event.get_user_id()), None)
+                return FakePostDestination(int(event.get_user_id()), None)
 
         return FakePostDestinationFactoryManager

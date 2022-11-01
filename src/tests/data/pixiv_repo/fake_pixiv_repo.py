@@ -8,7 +8,7 @@ from tests import MyTest
 
 class FakePixivRepoMixin(MyTest):
     @pytest.fixture
-    def fake_pixiv_repo(self, load_pixivbot):
+    def FakePixivRepo(self, load_pixivbot):
         from nonebot_plugin_pixivbot import context
         from nonebot_plugin_pixivbot.data.pixiv_repo import PixivRepo, LazyIllust
         from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import AbstractPixivRepo
