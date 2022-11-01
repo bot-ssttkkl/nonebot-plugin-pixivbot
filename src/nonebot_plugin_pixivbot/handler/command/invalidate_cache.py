@@ -1,11 +1,11 @@
 from typing import TypeVar, Sequence
 
+from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.pixiv_repo import PixivRepo
-from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import SuperuserInterceptor
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .command import SubCommandHandler, CommandHandler
-from ...context import Inject
+from ..pkg_context import context
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")

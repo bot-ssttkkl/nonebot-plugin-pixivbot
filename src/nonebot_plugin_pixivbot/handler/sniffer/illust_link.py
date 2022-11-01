@@ -6,15 +6,15 @@ from nonebot.internal.matcher import Matcher
 from nonebot.internal.params import Depends
 from nonebot.typing import T_State
 
-from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.handler.common import IllustHandler
 from nonebot_plugin_pixivbot.handler.entry_handler import DelegationEntryHandler, UID, GID, EntryHandler, \
     post_destination
 from nonebot_plugin_pixivbot.handler.utils import get_common_query_rule
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
+from ..pkg_context import context
 
 
-@context.register_eager_singleton()
+@context.root.register_eager_singleton()
 class IllustLinkHandler(DelegationEntryHandler):
     @classmethod
     def type(cls) -> str:

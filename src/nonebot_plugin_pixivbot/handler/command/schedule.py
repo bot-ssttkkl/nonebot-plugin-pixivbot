@@ -1,6 +1,6 @@
 from typing import TypeVar, Sequence
 
-from nonebot_plugin_pixivbot.global_context import context
+from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import GroupAdminInterceptor, \
     AnyPermissionInterceptor, SuperuserInterceptor
 from nonebot_plugin_pixivbot.model import PostIdentifier, ScheduleType
@@ -8,13 +8,14 @@ from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.service.scheduler import Scheduler
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .command import CommandHandler, SubCommandHandler
-from ...context import Inject
+from ..pkg_context import context
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
-async def build_subscriptions_msg(scheduler: Scheduler, subscriber: PostIdentifier[UID, GID]):
+async def build_subscriptions_msg(subscriber: PostIdentifier[UID, GID]):
+    scheduler = context.require(Scheduler)
     subscription = [x async for x in scheduler.get_by_subscriber(subscriber)]
     msg = "当前订阅：\n"
     if len(subscription) > 0:
@@ -74,7 +75,7 @@ class ScheduleHandler(SubCommandHandler):
             msg += err.message
             msg += '\n'
 
-        msg += await build_subscriptions_msg(self.scheduler, post_dest.identifier)
+        msg += await build_subscriptions_msg(post_dest.identifier)
         msg += "\n" \
                "命令格式：/pixivbot schedule <type> <schedule> [..args]\n" \
                "参数：\n" \
@@ -130,7 +131,7 @@ class UnscheduleHandler(SubCommandHandler):
             msg += err.message
             msg += '\n'
 
-        msg += await build_subscriptions_msg(self.scheduler, post_dest.identifier)
+        msg += await build_subscriptions_msg(post_dest.identifier)
         msg += "\n"
         msg += "命令格式：/pixivbot unschedule <id>"
         await self.post_plain_text(message=msg, post_dest=post_dest)

@@ -2,18 +2,17 @@ from __future__ import annotations
 
 import time
 from collections import OrderedDict
-from typing import Optional, TypeVar, TYPE_CHECKING
+from typing import Optional, TypeVar
 
 from nonebot import logger
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import PostIdentifier
+from nonebot_plugin_pixivbot.model.message import IllustMessageModel, IllustMessagesModel
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
-
-if TYPE_CHECKING:
-    pass
+from nonebot_plugin_pixivbot.protocol_dep.postman import PostmanManager
+from .pkg_context import context
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -137,3 +136,26 @@ class Recorder:
                 return self.get_resp(key)
             else:
                 return None
+
+
+@context.inject
+@context.bind_singleton_to(PostmanManager, context.require(PostmanManager))
+class RecordPostmanManager:
+    recorder = Inject(Recorder)
+
+    def __init__(self, delegation: PostmanManager):
+        self.delegation = delegation
+
+    async def send_illust(self, model: IllustMessageModel,
+                          *, post_dest: PD):
+        await self.delegation.send_illust(model, post_dest=post_dest)
+        self.recorder.record_resp(model.id, post_dest.identifier)
+
+    async def send_illusts(self, model: IllustMessagesModel,
+                           *, post_dest: PD):
+        await self.delegation.send_illusts(model, post_dest=post_dest)
+        if len(model.messages) == 1:
+            self.recorder.record_resp(model.messages[0].id, post_dest.identifier)
+
+    def __getattr__(self, name: str):
+        return getattr(self.delegation, name)

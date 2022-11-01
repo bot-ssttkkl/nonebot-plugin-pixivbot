@@ -1,12 +1,14 @@
 from abc import ABC, abstractmethod
 from inspect import isawaitable
-from typing import Awaitable, Union, TypeVar, Sequence
+from typing import Awaitable, Union, TypeVar, Sequence, Optional
 
 from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.global_context import context
+from nonebot_plugin_pixivbot.model import Illust
+from nonebot_plugin_pixivbot.model.message import IllustMessageModel, IllustMessagesModel
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .interceptor.combined_interceptor import CombinedInterceptor
-from .interceptor.interceptor import Interceptor
+from .interceptor.base import Interceptor
+from .pkg_context import context
 from ..context import Inject
 from ..protocol_dep.postman import PostmanManager
 
@@ -27,6 +29,22 @@ class Handler(ABC):
     async def post_plain_text(self, message: str,
                               post_dest: PostDestination):
         await self.postman_manager.send_plain_text(message, post_dest=post_dest)
+
+    async def post_illust(self, illust: Illust, *,
+                          header: Optional[str] = None,
+                          number: Optional[int] = None,
+                          post_dest: PD):
+        model = await IllustMessageModel.from_illust(illust, header=header, number=number)
+        if model is not None:
+            await self.postman_manager.send_illust(model, post_dest=post_dest)
+
+    async def post_illusts(self, illusts: Sequence[Illust], *,
+                           header: Optional[str] = None,
+                           number: Optional[int] = None,
+                           post_dest: PD):
+        model = await IllustMessagesModel.from_illusts(illusts, header=header, number=number)
+        if model:
+            await self.postman_manager.send_illusts(model, post_dest=post_dest)
 
     @classmethod
     @abstractmethod

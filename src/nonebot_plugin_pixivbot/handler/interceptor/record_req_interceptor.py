@@ -1,10 +1,10 @@
 from typing import TypeVar, Callable
 
 from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.handler.common.recorder import Recorder, Req
-from nonebot_plugin_pixivbot.handler.interceptor.interceptor import Interceptor
+from nonebot_plugin_pixivbot.handler.interceptor.base import Interceptor
+from nonebot_plugin_pixivbot.handler.recorder import Recorder, Req
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
+from ..pkg_context import context
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")

@@ -1,9 +1,9 @@
 from typing import Union, Awaitable, TypeVar, Sequence
 
 from nonebot_plugin_pixivbot import help_text
-from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .command import SubCommandHandler, CommandHandler
+from ..pkg_context import context
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
