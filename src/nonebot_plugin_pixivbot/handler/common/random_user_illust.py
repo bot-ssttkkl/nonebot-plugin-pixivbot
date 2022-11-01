@@ -8,11 +8,10 @@ from nonebot.internal.matcher import Matcher
 from nonebot.internal.params import Depends
 from nonebot.typing import T_State
 
-from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
-from .common import CommonHandler
+from .base import RecordCommonHandler
 from ..entry_handler import post_destination
-from ..interceptor.record_req_interceptor import RecordReqInterceptor
+from ..pkg_context import context
 from ..utils import get_common_query_rule, get_count
 
 UID = TypeVar("UID")
@@ -20,11 +19,7 @@ GID = TypeVar("GID")
 
 
 @context.root.register_eager_singleton()
-class RandomUserIllustHandler(CommonHandler):
-    def __init__(self):
-        super().__init__()
-        self.add_interceptor(context.require(RecordReqInterceptor))
-
+class RandomUserIllustHandler(RecordCommonHandler):
     @classmethod
     def type(cls) -> str:
         return "random_user_illust"

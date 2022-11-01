@@ -5,11 +5,11 @@ from typing import TypeVar, Callable, Union, Awaitable, Optional
 from nonebot import get_driver, logger
 
 from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.global_context import context
+from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.protocol_dep.authenticator import AuthenticatorManager
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
-from .interceptor import Interceptor
-from ...context import Inject
+from .base import Interceptor
+from ..pkg_context import context
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")

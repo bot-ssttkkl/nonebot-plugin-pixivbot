@@ -6,10 +6,10 @@ from nonebot.internal.params import Depends
 from nonebot.matcher import Matcher
 from nonebot.typing import T_State
 
-from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.handler import Handler
 from .interceptor.default_error_interceptor import DefaultErrorInterceptor
 from .interceptor.permission_interceptor import BlacklistInterceptor
+from .pkg_context import context
 from ..protocol_dep.post_dest import PostDestinationFactoryManager, PostDestination
 
 UID = TypeVar("UID")

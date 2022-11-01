@@ -1,6 +1,6 @@
 from typing import TypeVar, Sequence, Dict, Any
 
-from nonebot_plugin_pixivbot.global_context import context
+from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import GroupAdminInterceptor, \
     AnyPermissionInterceptor, SuperuserInterceptor
 from nonebot_plugin_pixivbot.model import PostIdentifier, WatchType
@@ -9,7 +9,7 @@ from nonebot_plugin_pixivbot.service.pixiv_service import PixivService
 from nonebot_plugin_pixivbot.service.watchman import Watchman
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .command import CommandHandler, SubCommandHandler
-from ...context import Inject
+from ..pkg_context import context
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
