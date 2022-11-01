@@ -54,7 +54,7 @@ class SubCommandHandler(Handler, ABC):
             await self.post_plain_text(err.message, post_dest=post_dest)
 
 
-@context.register_eager_singleton()
+@context.root.register_eager_singleton()
 class CommandHandler(EntryHandler):
     def __init__(self):
         super().__init__()

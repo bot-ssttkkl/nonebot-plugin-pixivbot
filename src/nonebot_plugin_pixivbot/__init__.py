@@ -56,4 +56,4 @@ for p in supported_modules:
     except ModuleNotFoundError:
         pass
 
-__all__ = ("context",)
+__all__ = ("context", "__plugin_meta__")

@@ -4,10 +4,10 @@ from typing import Callable, TypeVar
 from nonebot import logger
 from nonebot.exception import ActionFailed
 
-from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError, QueryError
-from .interceptor import Interceptor
+from .base import Interceptor
+from ..pkg_context import context
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")

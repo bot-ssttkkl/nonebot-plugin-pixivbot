@@ -2,7 +2,7 @@ from functools import partial
 from typing import Callable, TypeVar, Type, Optional, Iterable
 
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
-from .interceptor import Interceptor
+from .base import Interceptor
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")

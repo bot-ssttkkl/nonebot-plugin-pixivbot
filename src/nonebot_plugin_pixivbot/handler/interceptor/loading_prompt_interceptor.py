@@ -3,11 +3,11 @@ from typing import Callable, Optional
 
 from nonebot import logger
 
-from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
+from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
-from .interceptor import Interceptor, UID, GID
-from ...context import Inject
+from .base import Interceptor, UID, GID
+from ..pkg_context import context
 
 
 @context.inject
