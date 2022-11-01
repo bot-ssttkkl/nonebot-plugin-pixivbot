@@ -1,11 +1,12 @@
 from typing import TypeVar, AsyncGenerator, Optional, List, Any
 
 from beanie import Document, BulkWriter
-from pymongo import IndexModel, ReturnDocument
+from pymongo import IndexModel
 
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier, ScheduleType
+from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier
 from .source import MongoDataSource
+from .source.mongo.seq import SeqRepo
 from .utils.process_subscriber import process_subscriber
 from ..context import Inject
 
@@ -20,7 +21,7 @@ class SubscriptionDocument(Subscription[Any, Any], Document):
         name = "subscription"
         indexes = [
             IndexModel([("subscriber.adapter", 1)]),
-            IndexModel([("subscriber", 1), ("type", 1)], unique=True)
+            IndexModel([("subscriber", 1), ("code", 1)], unique=True)
         ]
 
 
@@ -30,43 +31,33 @@ context.require(MongoDataSource).document_models.append(SubscriptionDocument)
 @context.inject
 @context.register_singleton()
 class SubscriptionRepo:
-    mongo = Inject(MongoDataSource)
+    mongo: MongoDataSource = Inject(MongoDataSource)
+    seq_repo: SeqRepo = Inject(SeqRepo)
 
-    @classmethod
-    async def get_by_subscriber(cls, subscriber: ID) -> AsyncGenerator[Subscription, None]:
+    async def get_by_subscriber(self, subscriber: ID) -> AsyncGenerator[Subscription, None]:
         subscriber = process_subscriber(subscriber)
         async for doc in SubscriptionDocument.find(SubscriptionDocument.subscriber == subscriber):
             yield doc
 
-    @classmethod
-    async def get_by_adapter(cls, adapter: str) -> AsyncGenerator[Subscription, None]:
+    async def get_by_adapter(self, adapter: str) -> AsyncGenerator[Subscription, None]:
         async for doc in SubscriptionDocument.find(SubscriptionDocument.subscriber.adapter == adapter):
             yield doc
 
-    async def update(self, subscription: Subscription) -> Optional[Subscription]:
-        # beanie不支持原子性的find_one_and_replace操作
+    async def get_by_code(self, subscriber: ID, code: int) -> Optional[Subscription]:
+        subscriber = process_subscriber(subscriber)
+        return await SubscriptionDocument.find_one(SubscriptionDocument.subscriber == subscriber,
+                                                   SubscriptionDocument.code == code)
+
+    async def insert(self, subscription: Subscription):
         subscription.subscriber = process_subscriber(subscription.subscriber)
+        subscription.code = await self.seq_repo.inc_and_get(subscription.subscriber.dict())
+        await SubscriptionDocument.insert_one(SubscriptionDocument(**subscription.dict()))
 
-        query = {
-            "type": subscription.type.value,
-            "subscriber": subscription.subscriber.dict()
-        }
-
-        sub_dict = subscription.dict()
-        sub_dict["type"] = subscription.type.value
-
-        old_doc = await self.mongo.db.subscription.find_one_and_replace(query, sub_dict,
-                                                                        return_document=ReturnDocument.BEFORE,
-                                                                        upsert=True)
-        if old_doc:
-            return Subscription.parse_obj(old_doc)
-        else:
-            return None
-
-    async def delete_one(self, subscriber: ID, type: ScheduleType) -> Optional[Subscription]:
+    async def delete_one(self, subscriber: ID, code: int) -> Optional[Subscription]:
+        subscriber = process_subscriber(subscriber)
         # beanie不支持原子性的find_one_and_delete操作
         query = {
-            "type": type.value,
+            "code": code,
             "subscriber": process_subscriber(subscriber).dict()
         }
         result = await self.mongo.db.subscription.find_one_and_delete(query)

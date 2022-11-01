@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timedelta
 from inspect import isawaitable
-from typing import TypeVar, Dict, List, Sequence, Union, Optional, TYPE_CHECKING
+from typing import TypeVar, Dict, Sequence, Union, TYPE_CHECKING, AsyncIterable
 
 import pytz
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -14,7 +14,6 @@ from nonebot.exception import ActionFailed
 
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.subscription_repo import SubscriptionRepo
-from nonebot_plugin_pixivbot.data.utils.process_subscriber import process_subscriber
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier
 from nonebot_plugin_pixivbot.model.subscription import ScheduleType
@@ -29,6 +28,7 @@ if TYPE_CHECKING:
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
+ID = PostIdentifier[UID, GID]
 
 
 def parse_schedule(raw_schedule: str) -> Sequence[int]:
@@ -65,18 +65,18 @@ def parse_schedule(raw_schedule: str) -> Sequence[int]:
 @context.inject
 @context.register_eager_singleton()
 class Scheduler:
-    apscheduler = Inject(AsyncIOScheduler)
-    repo = Inject(SubscriptionRepo)
-    pd_factory_mgr = Inject(PostDestinationFactoryManager)
-    auth_mgr = Inject(AuthenticatorManager)
+    apscheduler: AsyncIOScheduler = Inject(AsyncIOScheduler)
+    repo: SubscriptionRepo = Inject(SubscriptionRepo)
+    pd_factory_mgr: PostDestinationFactoryManager = Inject(PostDestinationFactoryManager)
+    auth_mgr: AuthenticatorManager = Inject(AuthenticatorManager)
 
     def __init__(self):
         on_bot_connect(self.on_bot_connect, replay=True)
         on_bot_disconnect(self.on_bot_disconnect)
 
     @staticmethod
-    def _make_job_id(type: ScheduleType, identifier: PostIdentifier[UID, GID]):
-        return f'scheduler {type.name} {identifier}'
+    def _make_job_id(sub: Subscription):
+        return f'scheduler {sub.subscriber} {sub.code}'
 
     @lazy
     def _handlers(self) -> Dict[ScheduleType, Handler]:
@@ -92,8 +92,7 @@ class Scheduler:
         }
 
     async def _on_trigger(self, sub: Subscription[UID, GID], post_dest: PostDestination[UID, GID]):
-        job_id = self._make_job_id(sub.type, sub.subscriber)
-        logger.info(f"[scheduler] triggered {job_id}")
+        logger.info(f"[scheduler] triggered {sub}")
 
         try:
             await self._handlers[sub.type].handle_with_parsed_args(post_dest=post_dest, silently=True, **sub.kwargs)
@@ -117,13 +116,13 @@ class Scheduler:
                                                                       second=0,
                                                                       microsecond=0) + timedelta(days=-1))
 
-        job_id = self._make_job_id(sub.type, sub.subscriber)
+        job_id = self._make_job_id(sub)
         self.apscheduler.add_job(self._on_trigger, id=job_id, trigger=trigger,
                                  kwargs={"sub": sub, "post_dest": post_dest})
         logger.success(f"[scheduler] added job \"{job_id}\" on {trigger}")
 
     def _remove_job(self, sub: Subscription[UID, GID]):
-        job_id = self._make_job_id(sub.type, sub.subscriber)
+        job_id = self._make_job_id(sub)
         self.apscheduler.remove_job(job_id)
         logger.success(f"[scheduler] removed job \"{job_id}\"")
 
@@ -134,40 +133,38 @@ class Scheduler:
             self._add_job(post_dest, sub)
 
     async def on_bot_disconnect(self, bot: Bot):
-        async for subscription in self.repo.get_by_adapter(get_adapter_name(bot)):
+        async for sub in self.repo.get_by_adapter(get_adapter_name(bot)):
             try:
-                self._remove_job(subscription)
+                self._remove_job(sub)
             except Exception as e:
                 logger.error(f"[scheduler] error occurred when remove job "
-                             f"{self._make_job_id(subscription.type, subscription.subscriber)}")
+                             f"\"{self._make_job_id(sub)}\"")
                 logger.exception(e)
 
-    async def schedule(self, type: ScheduleType,
+    async def schedule(self, type_: ScheduleType,
                        schedule: Union[str, Sequence[int]],
-                       args: Optional[list] = None,
-                       *, post_dest: PostDestination[UID, GID]):
+                       args: Sequence[str],
+                       post_dest: PostDestination[UID, GID]):
         if args is None:
             args = []
 
         if isinstance(schedule, str):
             schedule = parse_schedule(schedule)
 
-        kwargs = self._handlers[type].parse_args(args, post_dest)
+        kwargs = self._handlers[type_].parse_args(args, post_dest)
         if isawaitable(kwargs):
             kwargs = await kwargs
 
-        subscriber_identifier = process_subscriber(post_dest.identifier)
-        sub = Subscription(type=type, kwargs=kwargs, subscriber=subscriber_identifier, schedule=schedule)
-        old_sub = await self.repo.update(sub)
-        if old_sub is not None:
-            self._remove_job(sub)
+        sub = Subscription(type=type_, kwargs=kwargs, subscriber=post_dest.identifier, schedule=schedule)
+        await self.repo.insert(sub)
+        logger.success(f"[scheduler] successfully inserted subscription {sub}")
         self._add_job(post_dest.normalized(), sub)
 
-    async def unschedule(self, type: ScheduleType, subscriber: PostIdentifier[UID, GID]) -> bool:
-        sub = await self.repo.delete_one(subscriber, type)
+    async def unschedule(self, subscriber: PostIdentifier[UID, GID], code: int) -> bool:
+        sub = await self.repo.delete_one(subscriber, code)
         if sub:
-            self._remove_job(sub)
             logger.success(f"[scheduler] successfully removed subscription {sub}")
+            self._remove_job(sub)
             return True
         else:
             return False
@@ -175,11 +172,11 @@ class Scheduler:
     async def unschedule_all_by_subscriber(self, subscriber: PostIdentifier[UID, GID]):
         old = await self.repo.delete_many_by_subscriber(subscriber)
         for sub in old:
-            self._remove_job(sub)
             logger.success(f"[scheduler] successfully removed subscription {sub}")
+            self._remove_job(sub)
 
-    async def get_by_subscriber(self, subscriber: PostIdentifier[UID, GID]) -> List[Subscription]:
-        return [x async for x in self.repo.get_by_subscriber(subscriber)]
+    def get_by_subscriber(self, subscriber: PostIdentifier[UID, GID]) -> AsyncIterable[Subscription]:
+        return self.repo.get_by_subscriber(subscriber)
 
 
 __all__ = ("Scheduler",)
