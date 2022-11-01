@@ -31,9 +31,13 @@ async def build_tasks_msg(identifier: PostIdentifier):
     msg = "当前订阅：\n"
     if len(tasks) > 0:
         for x in tasks:
-            args = filter(lambda kv: kv[1], x.kwargs.items())
-            args_text = " ".join(map(lambda kv: f'{kv[0]}={kv[1]}', args))
-            msg += f'[{x.code}] {x.type.name} ({args_text})\n'
+            args = list(filter(lambda kv: kv[1], x.kwargs.items()))
+            if len(args) != 0:
+                args_text = " ".join(map(lambda kv: f'{kv[0]}={kv[1]}', args))
+                args_text = f"({args_text})"
+            else:
+                args_text = ""
+            msg += f'[{x.code}] {x.type.name} {args_text}\n'
     else:
         msg += '无\n'
     return msg
@@ -160,8 +164,8 @@ class UnwatchHandler(SubCommandHandler):
     async def actual_handle(self, *, code: int,
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False, **kwargs):
-        if await self.watchman.unwatch(post_dest.identifier, code):
-            await self.post_plain_text(message="成功取消订阅", post_dest=post_dest)
+        if await self.watchman.unwatch(post_dest.identifier, code, ):
+            await self.post_plain_text(message="取消订阅成功", post_dest=post_dest)
         else:
             raise BadRequestError("取消订阅失败，不存在该订阅")
 
@@ -171,7 +175,7 @@ class UnwatchHandler(SubCommandHandler):
         msg = ""
         if err.message:
             msg += err.message
-            msg += '\n\n'
+            msg += '\n'
 
         msg += await build_tasks_msg(post_dest.identifier)
         msg += "\n"

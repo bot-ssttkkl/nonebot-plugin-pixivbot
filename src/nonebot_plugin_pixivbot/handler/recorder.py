@@ -52,7 +52,7 @@ class Resp:
 
 
 @context.inject
-@context.register_singleton()
+@context.root.register_singleton()
 class Recorder:
     conf = Inject(Config)
 
