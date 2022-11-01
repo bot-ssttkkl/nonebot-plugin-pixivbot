@@ -20,7 +20,8 @@ async def build_subscriptions_msg(subscriber: PostIdentifier[UID, GID]):
     msg = "当前订阅：\n"
     if len(subscription) > 0:
         for x in subscription:
-            args_text = " ".join(map(lambda k: f'{k}={x.kwargs[k]}', x.kwargs))
+            args = filter(lambda kv: kv[1], x.kwargs.items())
+            args_text = " ".join(map(lambda kv: f'{kv[0]}={kv[1]}', args))
             schedule_text = f'{str(x.schedule[0]).zfill(2)}:{str(x.schedule[1]).zfill(2)}' \
                             f'+{str(x.schedule[2]).zfill(2)}:{str(x.schedule[3]).zfill(2)}*x'
             msg += f'[{x.code}] {x.type.name} {schedule_text} ({args_text})\n'
