@@ -107,7 +107,7 @@ class Scheduler:
                 logger.info(f"[scheduler] {post_dest} is no longer available, removing all his subscriptions...")
                 await self.unschedule_all_by_subscriber(post_dest.identifier)
 
-    def _add_job(self, post_dest: PostDestination[UID, GID], sub: Subscription[UID, GID]):
+    def _add_job(self, sub: Subscription[UID, GID], post_dest: PostDestination[UID, GID]):
         offset_hour, offset_minute, hours, minutes = sub.schedule
         tz = pytz.timezone(sub.tz)
         trigger = IntervalTrigger(hours=hours, minutes=minutes,
@@ -130,10 +130,11 @@ class Scheduler:
         adapter = get_adapter_name(bot)
         async for sub in self.repo.get_by_adapter(adapter):
             post_dest = self.pd_factory_mgr.build(bot, sub.subscriber.user_id, sub.subscriber.group_id)
-            self._add_job(post_dest, sub)
+            self._add_job(sub, post_dest)
 
     async def on_bot_disconnect(self, bot: Bot):
-        async for sub in self.repo.get_by_adapter(get_adapter_name(bot)):
+        adapter = get_adapter_name(bot)
+        async for sub in self.repo.get_by_adapter(adapter):
             try:
                 self._remove_job(sub)
             except Exception as e:
@@ -158,7 +159,7 @@ class Scheduler:
         sub = Subscription(type=type_, kwargs=kwargs, subscriber=post_dest.identifier, schedule=schedule)
         await self.repo.insert(sub)
         logger.success(f"[scheduler] successfully inserted subscription {sub}")
-        self._add_job(post_dest.normalized(), sub)
+        self._add_job(sub, post_dest.normalized())
 
     async def unschedule(self, subscriber: PostIdentifier[UID, GID], code: int) -> bool:
         sub = await self.repo.delete_one(subscriber, code)

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from inspect import isawaitable
-from typing import Awaitable, Union, TypeVar, Sequence, Optional
+from typing import Awaitable, Union, TypeVar, Sequence, Optional, Any
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.model import Illust

@@ -255,11 +255,15 @@ class PixivRepo(AbstractPixivRepo):
                 if not isinstance(x, PixivRepoMetadata):
                     yield x
 
-    async def user_following_with_preview(self, user_id: int, **kwargs) \
-            -> AsyncGenerator[UserPreview, None]:
-        async for x in self._remote.user_following_with_preview(user_id, **kwargs):
-            if not isinstance(x, PixivRepoMetadata):
-                yield x
+    async def user_bookmarks(self, user_id: int = 0,
+                             cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[LazyIllust, None]:
+        logger.info(f"[repo] user_bookmarks {user_id} "
+                    f"cache_strategy={cache_strategy.name}")
+        with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.USER_BOOKMARKS, user_id=user_id),
+                                       cache_strategy) as gen:
+            async for x in gen:
+                if not isinstance(x, PixivRepoMetadata):
+                    yield x
 
     async def user_illusts(self, user_id: int = 0,
                            cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[LazyIllust, None]:
@@ -271,15 +275,58 @@ class PixivRepo(AbstractPixivRepo):
                 if not isinstance(x, PixivRepoMetadata):
                     yield x
 
-    async def user_bookmarks(self, user_id: int = 0,
-                             cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[LazyIllust, None]:
-        logger.info(f"[repo] user_bookmarks {user_id} "
-                    f"cache_strategy={cache_strategy.name}")
-        with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.USER_BOOKMARKS, user_id=user_id),
-                                       cache_strategy) as gen:
+    async def _contact_user_illusts_with_preview(self, user_preview: UserPreview,
+                                                 cache_strategy: CacheStrategy = CacheStrategy.NORMAL) \
+            -> AsyncGenerator[LazyIllust, None]:
+        for illust in user_preview.illusts:
+            yield LazyIllust(illust.id, illust)
+
+        ids = {x.id for x in user_preview.illusts}
+
+        if len(user_preview.illusts) >= 3:
+            gen = self.user_illusts(user_preview.user.id, cache_strategy)
+
             async for x in gen:
-                if not isinstance(x, PixivRepoMetadata):
+                if x.id not in ids:
                     yield x
+
+    async def user_following_illusts(self, user_id: int,
+                                     cache_strategy: CacheStrategy = CacheStrategy.NORMAL) \
+            -> AsyncGenerator[LazyIllust, None]:
+        logger.info(f"[repo] user_following_illusts {user_id} "
+                    f"cache_strategy={cache_strategy.name}")
+
+        n = 0
+        gen = []
+        peeked = []
+
+        async for user_preview in self._remote.user_following_with_preview(user_id):
+            if not isinstance(user_preview, PixivRepoMetadata):
+                n += 1
+                gen.append(self._contact_user_illusts_with_preview(user_preview, cache_strategy))
+                peeked.append(None)
+
+        try:
+            while True:
+                select = -1
+                for i in range(n):
+                    try:
+                        if not peeked[i]:
+                            peeked[i] = await gen[i].__anext__()
+
+                        if select == -1 or peeked[i].create_date > peeked[select].create_date:
+                            select = i
+                    except StopAsyncIteration:
+                        pass
+
+                if select == -1:
+                    break
+
+                yield peeked[select]
+                peeked[select] = None
+        except GeneratorExit:
+            for gen in gen:
+                await gen.aclose()
 
     async def recommended_illusts(self, cache_strategy: CacheStrategy = CacheStrategy.NORMAL) \
             -> AsyncGenerator[LazyIllust, None]:

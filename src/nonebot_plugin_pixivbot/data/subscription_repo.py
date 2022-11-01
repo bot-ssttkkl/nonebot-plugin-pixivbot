@@ -50,12 +50,12 @@ class SubscriptionRepo:
 
     async def insert(self, subscription: Subscription):
         subscription.subscriber = process_subscriber(subscription.subscriber)
-        subscription.code = await self.seq_repo.inc_and_get(subscription.subscriber.dict())
+        subscription.code = await self.seq_repo.inc_and_get(subscription.subscriber.dict() | {"type": "subscription"})
         await SubscriptionDocument.insert_one(SubscriptionDocument(**subscription.dict()))
 
     async def delete_one(self, subscriber: ID, code: int) -> Optional[Subscription]:
-        subscriber = process_subscriber(subscriber)
         # beanie不支持原子性的find_one_and_delete操作
+        subscriber = process_subscriber(subscriber)
         query = {
             "code": code,
             "subscriber": process_subscriber(subscriber).dict()
@@ -66,8 +66,7 @@ class SubscriptionRepo:
         else:
             return None
 
-    @classmethod
-    async def delete_many_by_subscriber(cls, subscriber: ID) -> List[Subscription]:
+    async def delete_many_by_subscriber(self, subscriber: ID) -> List[Subscription]:
         subscriber = process_subscriber(subscriber)
 
         old_doc = await SubscriptionDocument.find(
