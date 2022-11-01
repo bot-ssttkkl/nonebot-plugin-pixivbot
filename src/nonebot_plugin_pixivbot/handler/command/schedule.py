@@ -1,4 +1,4 @@
-from typing import List, TypeVar, Sequence
+from typing import TypeVar, Sequence
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import GroupAdminInterceptor, \
@@ -14,15 +14,15 @@ UID = TypeVar("UID")
 GID = TypeVar("GID")
 
 
-async def build_subscriptions_msg(subscriber: PostIdentifier[UID, GID]):
-    scheduler = context.require(Scheduler)
-    subscription = await scheduler.get_by_subscriber(subscriber)
+async def build_subscriptions_msg(scheduler: Scheduler, subscriber: PostIdentifier[UID, GID]):
+    subscription = [x async for x in scheduler.get_by_subscriber(subscriber)]
     msg = "当前订阅：\n"
     if len(subscription) > 0:
         for x in subscription:
-            msg += f'{x.type.name} ' \
-                   f'{str(x.schedule[0]).zfill(2)}:{str(x.schedule[1]).zfill(2)}' \
-                   f'+{str(x.schedule[2]).zfill(2)}:{str(x.schedule[3]).zfill(2)}*x\n'
+            args_text = " ".join(map(lambda k: f'{k}={x.kwargs[k]}', x.kwargs))
+            schedule_text = f'{str(x.schedule[0]).zfill(2)}:{str(x.schedule[1]).zfill(2)}' \
+                            f'+{str(x.schedule[2]).zfill(2)}:{str(x.schedule[3]).zfill(2)}*x'
+            msg += f'[{x.code}] {x.type.name} {schedule_text} ({args_text})\n'
     else:
         msg += '无\n'
     return msg
@@ -60,10 +60,10 @@ class ScheduleHandler(SubCommandHandler):
     # noinspection PyMethodOverriding
     async def actual_handle(self, *, type: ScheduleType,
                             schedule: str,
-                            args: List,
+                            args: Sequence[str],
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False, **kwargs):
-        await self.scheduler.schedule(type, schedule, args, post_dest=post_dest)
+        await self.scheduler.schedule(type, schedule, args, post_dest)
         await self.post_plain_text(message="订阅成功", post_dest=post_dest)
 
     async def actual_handle_bad_request(self, err: BadRequestError,
@@ -74,7 +74,7 @@ class ScheduleHandler(SubCommandHandler):
             msg += err.message
             msg += '\n'
 
-        msg += await build_subscriptions_msg(post_dest.identifier)
+        msg += await build_subscriptions_msg(self.scheduler, post_dest.identifier)
         msg += "\n" \
                "命令格式：/pixivbot schedule <type> <schedule> [..args]\n" \
                "参数：\n" \
@@ -109,15 +109,15 @@ class UnscheduleHandler(SubCommandHandler):
         if len(args) == 0:
             raise BadRequestError()
         try:
-            return {"type": ScheduleType(args[0])}
+            return {"code": int(args[0])}
         except ValueError as e:
-            raise BadRequestError(f"未知订阅类型：{args[0]}") from e
+            raise BadRequestError(f"不合法的订阅编号：{args[0]}") from e
 
     # noinspection PyMethodOverriding
-    async def actual_handle(self, *, type: ScheduleType,
+    async def actual_handle(self, *, code: int,
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False):
-        if await self.scheduler.unschedule(type, post_dest.identifier):
+        if await self.scheduler.unschedule(post_dest.identifier, code):
             await self.post_plain_text(message="取消订阅成功", post_dest=post_dest)
         else:
             raise BadRequestError("取消订阅失败，不存在该订阅")
@@ -130,7 +130,7 @@ class UnscheduleHandler(SubCommandHandler):
             msg += err.message
             msg += '\n'
 
-        msg += await build_subscriptions_msg(post_dest.identifier)
+        msg += await build_subscriptions_msg(self.scheduler, post_dest.identifier)
         msg += "\n"
-        msg += "命令格式：/pixivbot unschedule <type>"
+        msg += "命令格式：/pixivbot unschedule <id>"
         await self.post_plain_text(message=msg, post_dest=post_dest)
