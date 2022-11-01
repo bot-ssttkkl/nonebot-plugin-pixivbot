@@ -6,10 +6,10 @@ from tests import MyTest
 
 
 class FakeRecorderMixin(MyTest):
-    @pytest.fixture
-    def fake_recorder(self):
+    @pytest.fixture(autouse=True)
+    def FakeRecorder(self):
         from nonebot_plugin_pixivbot import context
-        from nonebot_plugin_pixivbot.handler.common.recorder import Recorder, Req
+        from nonebot_plugin_pixivbot.handler.recorder import Recorder, Req
         from nonebot_plugin_pixivbot.model import PostIdentifier
 
         @context.bind_singleton_to(Recorder)

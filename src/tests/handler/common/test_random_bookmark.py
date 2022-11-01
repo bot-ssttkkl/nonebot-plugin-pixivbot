@@ -1,114 +1,93 @@
 import pytest
 
-from tests import MyTest
+from tests.handler.common import HandlerTester
 from tests.model.mock_message import MockMessageModelMixin
-from tests.protocol_dep.fake_post_dest import FakePostDestinationMixin
-from tests.protocol_dep.fake_postman import FakePostmanManagerMixin
 from tests.service.fake_pixiv_account_binder import FakePixivAccountBinderMixin
 from tests.service.fake_pixiv_service import FakePixivServiceMixin
 
 
-class TestRandomBookmarkHandler(FakePixivServiceMixin,
-                                FakePixivAccountBinderMixin,
-                                MockMessageModelMixin,
-                                FakePostDestinationMixin,
-                                FakePostmanManagerMixin,
-                                MyTest):
-    @pytest.fixture(autouse=True)
-    def remove_interceptor(self, load_pixivbot):
-        from nonebot_plugin_pixivbot import context
+class RandomBookmarkHandlerTester(HandlerTester,
+                                  FakePixivServiceMixin,
+                                  MockMessageModelMixin,
+                                  FakePixivAccountBinderMixin):
+    @pytest.fixture
+    def Handler(self, load_pixivbot):
         from nonebot_plugin_pixivbot.handler.common import RandomBookmarkHandler
+        return RandomBookmarkHandler
 
-        context.require(RandomBookmarkHandler).interceptor = None
 
+class TestRandomBookmarkHandle(RandomBookmarkHandlerTester):
     @pytest.mark.asyncio
-    async def test_handle(self, fake_post_destination,
-                          fake_pixiv_account_binder,
-                          fake_pixiv_service,
-                          fake_postman_manager,
-                          mock_illust_message_model):
+    async def test(self, tester, FakePixivService,
+                   mock_illust_message_model,
+                   FakePostDestination,
+                   FakePixivAccountBinder):
         from nonebot_plugin_pixivbot import context
-        from nonebot_plugin_pixivbot.handler.common import RandomBookmarkHandler
         from nonebot_plugin_pixivbot.model.message import IllustMessagesModel
 
-        post_dest = fake_post_destination(123456, 56789)
+        post_dest = FakePostDestination(123456, 56789)
+        await context.require(FakePixivAccountBinder).bind(post_dest.adapter, post_dest.user_id, 54321)
 
-        await context.require(fake_pixiv_account_binder).bind(post_dest.adapter, post_dest.user_id, 54321)
+        async def except_message():
+            illusts = context.require(FakePixivService).spy_random_bookmark.spy_return
+            return await IllustMessagesModel.from_illusts(illusts, header="这是您点的私家车")
 
-        await context.require(RandomBookmarkHandler).handle(count=3, post_dest=post_dest)
+        await tester(post_dest=post_dest, except_msg=except_message)
 
-        illusts = context.require(fake_pixiv_service).spy_random_bookmark.spy_return
-        except_model = await IllustMessagesModel.from_illusts(illusts, header="这是您点的私家车")
 
-        context.require(fake_postman_manager).assert_call(post_dest, except_model)
-
+class TestRandomBookmarkHandleNotBind(RandomBookmarkHandlerTester):
     @pytest.mark.asyncio
-    async def test_handle_not_bind(self, fake_post_destination,
-                                   fake_pixiv_account_binder,
-                                   fake_pixiv_service,
-                                   fake_postman_manager,
-                                   mock_illust_message_model):
-        from nonebot_plugin_pixivbot import context
-        from nonebot_plugin_pixivbot.handler.common import RandomBookmarkHandler
+    async def test(self, tester):
         from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 
-        post_dest = fake_post_destination(123456, 56789)
-        except_msg = "无效的Pixiv账号，或未绑定Pixiv账号"
-
         with pytest.raises(BadRequestError) as e:
-            await context.require(RandomBookmarkHandler).handle(count=3, post_dest=post_dest)
-        assert e.value.message == except_msg
+            await tester()
+        assert e.value.message == "无效的Pixiv账号，或未绑定Pixiv账号"
+
+
+class TestRandomBookmarkHandleArg(RandomBookmarkHandlerTester):
+    args = ["54321"]
 
     @pytest.mark.asyncio
-    async def test_handle_arg(self, fake_post_destination,
-                              fake_pixiv_account_binder,
-                              fake_pixiv_service,
-                              fake_postman_manager,
-                              mock_illust_message_model):
+    async def test(self, tester, FakePixivService,
+                   mock_illust_message_model,
+                   FakePostDestination,
+                   FakePixivAccountBinder):
         from nonebot_plugin_pixivbot import context
-        from nonebot_plugin_pixivbot.handler.common import RandomBookmarkHandler
         from nonebot_plugin_pixivbot.model.message import IllustMessagesModel
 
-        post_dest = fake_post_destination(123456, 56789)
+        post_dest = FakePostDestination(123456, 56789)
+        await context.require(FakePixivAccountBinder).bind(post_dest.adapter, post_dest.user_id, 54321)
 
-        await context.require(RandomBookmarkHandler).handle("54321", count=3, post_dest=post_dest)
+        async def except_message():
+            illusts = context.require(FakePixivService).spy_random_bookmark.spy_return
+            return await IllustMessagesModel.from_illusts(illusts, header="这是您点的私家车")
 
-        illusts = context.require(fake_pixiv_service).spy_random_bookmark.spy_return
-        except_model = await IllustMessagesModel.from_illusts(illusts, header="这是您点的私家车")
+        await tester(post_dest=post_dest, except_msg=except_message)
 
-        context.require(fake_postman_manager).assert_call(post_dest, except_model)
+
+class TestRandomBookmarkHandleInvalidArg(RandomBookmarkHandlerTester):
+    args = ["5a4b321"]
 
     @pytest.mark.asyncio
-    async def test_handle_invalid_arg(self, fake_post_destination,
-                                      fake_pixiv_account_binder,
-                                      fake_pixiv_service,
-                                      fake_postman_manager,
-                                      mock_illust_message_model):
-        from nonebot_plugin_pixivbot import context
-        from nonebot_plugin_pixivbot.handler.common import RandomBookmarkHandler
+    async def test(self, tester):
         from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 
-        post_dest = fake_post_destination(123456, 56789)
-        except_msg = "5a4b321不是合法的ID"
-
         with pytest.raises(BadRequestError) as e:
-            await context.require(RandomBookmarkHandler).handle("5a4b321", count=3, post_dest=post_dest)
-        assert e.value.message == except_msg
+            await tester()
+        assert e.value.message == "5a4b321不是合法的ID"
 
+
+class TestRandomBookmarkHandleNoData(RandomBookmarkHandlerTester):
     @pytest.mark.asyncio
-    async def test_handle_no_data(self, fake_post_destination,
-                                  fake_pixiv_service,
-                                  fake_postman_manager,
-                                  mock_illust_message_model):
+    async def test(self, tester, FakePixivService, FakePostDestination, FakePixivAccountBinder):
         from nonebot_plugin_pixivbot import context
-        from nonebot_plugin_pixivbot.handler.common import RandomBookmarkHandler
         from nonebot_plugin_pixivbot.utils.errors import QueryError
 
-        post_dest = fake_post_destination(123456, 56789)
-        except_msg = "总之是Pixiv返回的错误信息"
+        post_dest = FakePostDestination(123456, 56789)
+        await context.require(FakePixivAccountBinder).bind(post_dest.adapter, post_dest.user_id, 54321)
 
-        context.require(fake_pixiv_service).no_data = True
+        context.require(FakePixivService).no_data = True
 
         with pytest.raises(QueryError) as e:
-            await context.require(RandomBookmarkHandler).handle("54321", post_dest=post_dest)
-        assert e.value.message == except_msg
+            await tester(post_dest=post_dest)

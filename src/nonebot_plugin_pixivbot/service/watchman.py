@@ -127,10 +127,10 @@ class Watchman:
         logger.success(f"[watchman] successfully inserted subscription {task}")
         self._add_job(task, subscriber.normalized())
 
-    async def unwatch(self, type: WatchType,
+    async def unwatch(self, type_: WatchType,
                       kwargs: Dict[str, Any],
                       subscriber: ID) -> bool:
-        task = await self.repo.delete_one(type, kwargs, subscriber)
+        task = await self.repo.delete_one(type_, kwargs, subscriber)
         if task:
             logger.success(f"[scheduler] successfully removed subscription {task}")
             self._remove_job(task)

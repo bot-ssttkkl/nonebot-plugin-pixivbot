@@ -117,7 +117,7 @@ class Context:
         """
         bind key (usually the implementation class) to src_key (usually the base class)
         """
-        self._container[key] = self._container[src_key]
+        self._container[key] = self._find_provider(src_key)
         logger.trace(f"bind bean {key} to {src_key}")
 
     def bind_singleton_to(self, key: Type[T], *args, **kwargs) -> Callable[[Type[T2]], Type[T2]]:
@@ -133,10 +133,13 @@ class Context:
         return decorator
 
     def require(self, key: Type[T]) -> T:
+        return self._find_provider(key).provide()
+
+    def _find_provider(self, key: Type[T]) -> T:
         if key in self._container:
-            return self._container[key].provide()
+            return self._container[key]
         elif self._parent is not None:
-            return self._parent.require(key)
+            return self._parent._find_provider(key)
         else:
             raise KeyError(key)
 

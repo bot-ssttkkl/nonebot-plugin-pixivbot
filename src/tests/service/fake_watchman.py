@@ -1,14 +1,13 @@
-from typing import List, Dict, Any
+from typing import Dict, Any, AsyncGenerator
 
 import pytest
-from frozendict import frozendict
 
 from tests import MyTest
 
 
 class FakeWatchmanMixin(MyTest):
-    @pytest.fixture
-    async def fake_watchman(self, load_pixivbot):
+    @pytest.fixture(autouse=True)
+    async def FakeWatchman(self, load_pixivbot):
         from nonebot_plugin_pixivbot import context
         from nonebot_plugin_pixivbot.model import PostIdentifier, WatchType, WatchTask
         from nonebot_plugin_pixivbot.service.watchman import Watchman
@@ -18,32 +17,39 @@ class FakeWatchmanMixin(MyTest):
         class FakeWatchman:
             def __init__(self):
                 self.tasks = {}
+                self.code_gen = 0
 
-            async def watch(self, type: WatchType,
+            async def watch(self, type_: WatchType,
                             kwargs: Dict[str, Any],
                             subscriber: PostDestination[int, int]):
-                key = (subscriber.identifier, type, frozendict(kwargs))
-                self.tasks[key] = WatchTask(
-                    type=type,
+                self.code_gen += 1
+                code = self.code_gen
+                self.tasks[code] = WatchTask(
+                    code=code,
+                    type=type_,
                     kwargs=kwargs,
                     subscriber=subscriber.identifier
                 )
 
-            async def unwatch(self, type: WatchType,
-                              kwargs: Dict[str, Any],
-                              subscriber: PostIdentifier[int, int]) -> bool:
-                key = (subscriber, type, frozendict(kwargs))
-                if key in self.tasks:
-                    del self.tasks[key]
+            async def unwatch(self, subscriber: PostIdentifier[int, int], code: int) -> bool:
+                if code in self.tasks:
+                    del self.tasks[code]
                     return True
                 else:
                     return False
 
-            async def get_by_subscriber(self, subscriber: PostIdentifier[int, int]) -> List[WatchTask]:
-                keys = list(filter(lambda x: x[0] == subscriber, self.tasks.keys()))
-                li = []
+            async def unwatch_all_by_subscriber(self, subscriber: PostIdentifier[int, int]):
+                keys = set()
+                for k, v in self.tasks.items():
+                    if v.subscriber == subscriber:
+                        keys.add(k)
+
                 for k in keys:
-                    li.append(self.tasks[k])
-                return li
+                    del self.tasks[k]
+
+            async def get_by_subscriber(self, subscriber: PostIdentifier[int, int]) -> AsyncGenerator[WatchTask, None]:
+                for k, v in self.tasks.items():
+                    if v.subscriber == subscriber:
+                        yield v
 
         return FakeWatchman
