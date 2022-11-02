@@ -33,7 +33,7 @@ class DownloadCache(PixivRepoCache):
         name = "download_cache"
         indexes = [
             IndexModel([("illust_id", 1)], unique=True),
-            IndexModel([("update_time", 1)], expireAfterSeconds=conf.pixiv_download_cache_expires_in)
+            IndexModel([("metadata.update_time", 1)], expireAfterSeconds=conf.pixiv_download_cache_expires_in)
         ]
 
 
@@ -44,7 +44,7 @@ class IllustDetailCache(PixivRepoCache):
         name = "illust_detail_cache"
         indexes = [
             IndexModel([("illust.id", 1)], unique=True),
-            IndexModel([("update_time", 1)], expireAfterSeconds=conf.pixiv_illust_detail_cache_expires_in)
+            IndexModel([("metadata.update_time", 1)], expireAfterSeconds=conf.pixiv_illust_detail_cache_expires_in)
         ]
 
 
@@ -55,7 +55,7 @@ class IllustRankingCache(IllustSetCache):
         name = "illust_ranking_cache"
         indexes = [
             IndexModel([("mode", 1)], unique=True),
-            IndexModel([("update_time", 1)], expireAfterSeconds=conf.pixiv_illust_ranking_cache_expires_in)
+            IndexModel([("metadata.update_time", 1)], expireAfterSeconds=conf.pixiv_illust_ranking_cache_expires_in)
         ]
 
 
@@ -66,7 +66,7 @@ class OtherIllustCache(IllustSetCache):
         name = "other_cache"
         indexes = [
             IndexModel([("type", 1)], unique=True),
-            IndexModel([("update_time", 1)], expireAfterSeconds=conf.pixiv_other_cache_expires_in)
+            IndexModel([("metadata.update_time", 1)], expireAfterSeconds=conf.pixiv_other_cache_expires_in)
         ]
 
 
@@ -77,7 +77,7 @@ class RelatedIllustsCache(IllustSetCache):
         name = "related_illusts_cache"
         indexes = [
             IndexModel([("original_illust_id", 1)], unique=True),
-            IndexModel([("update_time", 1)], expireAfterSeconds=conf.pixiv_related_illusts_cache_expires_in)
+            IndexModel([("metadata.update_time", 1)], expireAfterSeconds=conf.pixiv_related_illusts_cache_expires_in)
         ]
 
 
@@ -88,7 +88,7 @@ class SearchIllustCache(IllustSetCache):
         name = "search_illust_cache"
         indexes = [
             IndexModel([("word", 1)], unique=True),
-            IndexModel([("update_time", 1)], expireAfterSeconds=conf.pixiv_search_illust_cache_delete_in)
+            IndexModel([("metadata.update_time", 1)], expireAfterSeconds=conf.pixiv_search_illust_cache_delete_in)
         ]
 
 
@@ -100,7 +100,7 @@ class SearchUserCache(UserSetCache):
         name = "search_user_cache"
         indexes = [
             IndexModel([("word", 1)], unique=True),
-            IndexModel([("update_time", 1)], expireAfterSeconds=conf.pixiv_search_user_cache_delete_in)
+            IndexModel([("metadata.update_time", 1)], expireAfterSeconds=conf.pixiv_search_user_cache_delete_in)
         ]
 
 
@@ -111,7 +111,7 @@ class UserBookmarksCache(IllustSetCache):
         name = "user_bookmarks_cache"
         indexes = [
             IndexModel([("user_id", 1)], unique=True),
-            IndexModel([("update_time", 1)], expireAfterSeconds=conf.pixiv_user_bookmarks_cache_delete_in)
+            IndexModel([("metadata.update_time", 1)], expireAfterSeconds=conf.pixiv_user_bookmarks_cache_delete_in)
         ]
 
 
@@ -122,7 +122,7 @@ class UserDetailCache(PixivRepoCache):
         name = "user_detail_cache"
         indexes = [
             IndexModel([("user.id", 1)], unique=True),
-            IndexModel([("update_time", 1)], expireAfterSeconds=conf.pixiv_user_detail_cache_expires_in)
+            IndexModel([("metadata.update_time", 1)], expireAfterSeconds=conf.pixiv_user_detail_cache_expires_in)
         ]
 
 
@@ -133,7 +133,7 @@ class UserIllustsCache(IllustSetCache):
         name = "user_illusts_cache"
         indexes = [
             IndexModel([("user_id", 1)], unique=True),
-            IndexModel([("update_time", 1)], expireAfterSeconds=conf.pixiv_user_illusts_cache_delete_in)
+            IndexModel([("metadata.update_time", 1)], expireAfterSeconds=conf.pixiv_user_illusts_cache_delete_in)
         ]
 
 
