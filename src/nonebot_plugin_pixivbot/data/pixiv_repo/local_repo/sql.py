@@ -79,10 +79,10 @@ class SqlPixivRepo:
                 else:
                     yield LazyIllust(cache_illust.illust_id)
                     broken += 1
-
-            yield metadata
         finally:
-            logger.debug(f"[local] {total} got, illust_detail of {broken} are missed")
+            logger.info(f"[local] got {total} illusts, illust_detail of {broken} are missed")
+
+        yield metadata
 
     async def _invalidate_illusts(self, cache_type: str, key: dict):
         session = self.data_source.session()
@@ -185,11 +185,16 @@ class SqlPixivRepo:
                 .outerjoin(UserDetailCache, UserSetCacheUser.user_id == UserDetailCache.user_id)
                 .offset(offset))
 
-        async for cache_user, user in await session.stream(stmt):
-            if user is not None:
-                yield User(**user.user)
-            else:
-                yield User(id=cache_user.user_id, name="", account="")
+        total = 0
+        try:
+            async for cache_user, user in await session.stream(stmt):
+                if user is not None:
+                    yield User(**user.user)
+                else:
+                    yield User(id=cache_user.user_id, name="", account="")
+                total += 1
+        finally:
+            logger.info(f"[local] got {total} users")
 
         yield metadata
 
@@ -247,7 +252,7 @@ class SqlPixivRepo:
     # ================ illust_detail ================
     async def illust_detail(self, illust_id: int) \
             -> AsyncGenerator[Union[Illust, PixivRepoMetadata], None]:
-        logger.debug(f"[local] illust_detail {illust_id}")
+        logger.info(f"[local] illust_detail {illust_id}")
 
         session = self.data_source.session()
         stmt = select(IllustDetailCache).where(IllustDetailCache.illust_id == illust_id).limit(1)
@@ -263,7 +268,7 @@ class SqlPixivRepo:
             raise NoSuchItemError()
 
     async def update_illust_detail(self, illust: Illust, metadata: PixivRepoMetadata):
-        logger.debug(f"[local] update illust_detail {illust.id} {metadata}")
+        logger.info(f"[local] update illust_detail {illust.id} {metadata}")
 
         session = self.data_source.session()
         stmt = (insert(IllustDetailCache)
@@ -278,7 +283,7 @@ class SqlPixivRepo:
     # ================ user_detail ================
     async def user_detail(self, user_id: int) \
             -> AsyncGenerator[Union[User, PixivRepoMetadata], None]:
-        logger.debug(f"[local] user_detail {user_id}")
+        logger.info(f"[local] user_detail {user_id}")
 
         session = self.data_source.session()
         stmt = select(UserDetailCache).where(UserDetailCache.user_id == user_id).limit(1)
@@ -294,7 +299,7 @@ class SqlPixivRepo:
             raise NoSuchItemError()
 
     async def update_user_detail(self, user: User, metadata: PixivRepoMetadata):
-        logger.debug(f"[local] update user_detail {user.id} {metadata}")
+        logger.info(f"[local] update user_detail {user.id} {metadata}")
 
         session = self.data_source.session()
         stmt = (insert(UserDetailCache)
@@ -305,7 +310,7 @@ class SqlPixivRepo:
 
     # ================ image ================
     async def image(self, illust: Illust) -> AsyncGenerator[Union[bytes, PixivRepoMetadata], None]:
-        logger.debug(f"[local] image {illust.id}")
+        logger.info(f"[local] image {illust.id}")
 
         session = self.data_source.session()
         stmt = select(DownloadCache).where(DownloadCache.illust_id == illust.id).limit(1)
@@ -322,7 +327,7 @@ class SqlPixivRepo:
 
     async def update_image(self, illust_id: int, content: bytes,
                            metadata: PixivRepoMetadata):
-        logger.debug(f"[local] update image {illust_id} {metadata}")
+        logger.info(f"[local] update image {illust_id} {metadata}")
 
         session = self.data_source.session()
         stmt = (insert(DownloadCache)
@@ -337,20 +342,20 @@ class SqlPixivRepo:
         if isinstance(mode, str):
             mode = RankingMode[mode]
 
-        logger.debug(f"[local] illust_ranking {mode}")
+        logger.info(f"[local] illust_ranking {mode}")
 
         return self._get_illusts("illust_ranking", {"mode": mode},
                                  expired_in=self.conf.pixiv_illust_ranking_cache_expires_in, offset=offset)
 
     async def invalidate_illust_ranking(self, mode: RankingMode):
-        logger.debug(f"[local] invalidate illust_ranking")
+        logger.info(f"[local] invalidate illust_ranking")
         await self._invalidate_illusts("illust_ranking", {"mode": mode})
 
     async def append_illust_ranking(self, mode: RankingMode, content: List[Union[Illust, LazyIllust]],
                                     metadata: PixivRepoMetadata) -> bool:
-        logger.debug(f"[local] append illust_ranking {mode} "
-                     f"({len(content)} items) "
-                     f"{metadata}")
+        logger.info(f"[local] append illust_ranking {mode} "
+                    f"({len(content)} items) "
+                    f"{metadata}")
         return await self._append_and_check_illusts("illust_ranking", {"mode": mode},
                                                     content=content, metadata=metadata,
                                                     ranked=True)
@@ -358,122 +363,122 @@ class SqlPixivRepo:
     # ================ search_illust ================
     def search_illust(self, word: str, *, offset: int = 0) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
-        logger.debug(f"[local] search_illust {word}")
+        logger.info(f"[local] search_illust {word}")
         return self._get_illusts("search_illust", {"word": word},
                                  expired_in=self.conf.pixiv_search_illust_cache_expires_in, offset=offset)
 
     async def invalidate_search_illust(self, word: str):
-        logger.debug(f"[local] invalidate search_illust {word}")
+        logger.info(f"[local] invalidate search_illust {word}")
         await self._invalidate_illusts("search_illust", {"word": word})
 
     async def append_search_illust(self, word: str, content: List[Union[Illust, LazyIllust]],
                                    metadata: PixivRepoMetadata) -> bool:
         # 返回值表示content中是否有已经存在于集合的文档，下同
-        logger.debug(f"[local] append search_illust {word} "
-                     f"({len(content)} items) "
-                     f"{metadata}")
+        logger.info(f"[local] append search_illust {word} "
+                    f"({len(content)} items) "
+                    f"{metadata}")
         return await self._append_and_check_illusts("search_illust", {"word": word},
                                                     content=content, metadata=metadata)
 
     # ================ user_illusts ================
     def user_illusts(self, user_id: int, *, offset: int = 0) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
-        logger.debug(f"[local] user_illusts {user_id}")
+        logger.info(f"[local] user_illusts {user_id}")
         return self._get_illusts("user_illusts", {"user_id": user_id},
                                  expired_in=self.conf.pixiv_user_illusts_cache_expires_in, offset=offset)
 
     async def invalidate_user_illusts(self, user_id: int):
-        logger.debug(f"[local] invalidate user_illusts {user_id}")
+        logger.info(f"[local] invalidate user_illusts {user_id}")
         await self._invalidate_illusts("user_illusts", {"user_id": user_id})
 
     async def append_user_illusts(self, user_id: int,
                                   content: List[Union[Illust, LazyIllust]],
                                   metadata: PixivRepoMetadata) -> bool:
-        logger.debug(f"[local] append user_illusts {user_id} "
-                     f"({len(content)} items) "
-                     f"{metadata}")
+        logger.info(f"[local] append user_illusts {user_id} "
+                    f"({len(content)} items) "
+                    f"{metadata}")
         return await self._append_and_check_illusts("user_illusts", {"user_id": user_id},
                                                     content=content, metadata=metadata)
 
     # ================ user_bookmarks ================
     def user_bookmarks(self, user_id: int = 0, *, offset: int = 0) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
-        logger.debug(f"[local] user_bookmarks {user_id}")
+        logger.info(f"[local] user_bookmarks {user_id}")
         return self._get_illusts("user_bookmarks", {"user_id": user_id},
                                  expired_in=self.conf.pixiv_user_bookmarks_cache_expires_in, offset=offset)
 
     async def invalidate_user_bookmarks(self, user_id: int):
-        logger.debug(f"[local] invalidate user_bookmarks {user_id}")
+        logger.info(f"[local] invalidate user_bookmarks {user_id}")
         await self._invalidate_illusts("user_bookmarks", {"user_id": user_id})
 
     async def append_user_bookmarks(self, user_id: int,
                                     content: List[Union[Illust, LazyIllust]],
                                     metadata: PixivRepoMetadata) -> bool:
-        logger.debug(f"[local] append user_bookmarks {user_id} "
-                     f"({len(content)} items) "
-                     f"{metadata}")
+        logger.info(f"[local] append user_bookmarks {user_id} "
+                    f"({len(content)} items) "
+                    f"{metadata}")
         return await self._append_and_check_illusts("user_bookmarks", {"user_id": user_id},
                                                     content=content, metadata=metadata)
 
     # ================ recommended_illusts ================
     def recommended_illusts(self, *, offset: int = 0) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
-        logger.debug(f"[local] recommended_illusts")
+        logger.info(f"[local] recommended_illusts")
         return self._get_illusts("other", {"type": "recommended_illusts"},
                                  expired_in=self.conf.pixiv_other_cache_expires_in, offset=offset)
 
     async def invalidate_recommended_illusts(self):
-        logger.debug(f"[local] invalidate recommended_illusts")
+        logger.info(f"[local] invalidate recommended_illusts")
         await self._invalidate_illusts("other", {"type": "recommended_illusts"})
 
     async def append_recommended_illusts(self, content: List[Union[Illust, LazyIllust]],
                                          metadata: PixivRepoMetadata) -> bool:
-        logger.debug(f"[local] append recommended_illusts "
-                     f"({len(content)} items) "
-                     f"{metadata}")
+        logger.info(f"[local] append recommended_illusts "
+                    f"({len(content)} items) "
+                    f"{metadata}")
         return await self._append_and_check_illusts("other", {"type": "recommended_illusts"},
                                                     content=content, metadata=metadata)
 
     # ================ related_illusts ================
     def related_illusts(self, illust_id: int, *, offset: int = 0) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
-        logger.debug(f"[local] related_illusts {illust_id}")
+        logger.info(f"[local] related_illusts {illust_id}")
         return self._get_illusts("related_illusts", {"original_illust_id": illust_id},
                                  expired_in=self.conf.pixiv_related_illusts_cache_expires_in, offset=offset)
 
     async def invalidate_related_illusts(self, illust_id: int):
-        logger.debug(f"[local] invalidate related_illusts")
+        logger.info(f"[local] invalidate related_illusts")
         await self._invalidate_illusts("related_illusts", {"original_illust_id": illust_id})
 
     async def append_related_illusts(self, illust_id: int, content: List[Union[Illust, LazyIllust]],
                                      metadata: PixivRepoMetadata) -> bool:
-        logger.debug(f"[local] append related_illusts {illust_id} "
-                     f"({len(content)} items) "
-                     f"{metadata}")
+        logger.info(f"[local] append related_illusts {illust_id} "
+                    f"({len(content)} items) "
+                    f"{metadata}")
         return await self._append_and_check_illusts("related_illusts", {"original_illust_id": illust_id},
                                                     content=content, metadata=metadata)
 
     # ================ search_user ================
     def search_user(self, word: str, *, offset: int = 0) \
             -> AsyncGenerator[Union[User, PixivRepoMetadata], None]:
-        logger.debug(f"[local] search_user {word}")
+        logger.info(f"[local] search_user {word}")
         return self._get_users("search_user", {"word": word},
                                expired_in=self.conf.pixiv_search_user_cache_expires_in, offset=offset)
 
     async def invalidate_search_user(self, word: str):
-        logger.debug(f"[local] invalidate search_user {word}")
+        logger.info(f"[local] invalidate search_user {word}")
         await self._invalidate_users("search_user", {"word": word})
 
     async def append_search_user(self, word: str, content: List[User],
                                  metadata: PixivRepoMetadata) -> bool:
-        logger.debug(f"[local] append search_user {word} "
-                     f"({len(content)} items) "
-                     f"{metadata}")
+        logger.info(f"[local] append search_user {word} "
+                    f"({len(content)} items) "
+                    f"{metadata}")
         return await self._append_and_check_users("search_user", {"word": word},
                                                   content=content, metadata=metadata)
 
     async def invalidate_all(self):
-        logger.debug(f"[local] invalidate_all")
+        logger.info(f"[local] invalidate_all")
 
         session = self.data_source.session()
         await session.execute(delete(IllustSetCache))
