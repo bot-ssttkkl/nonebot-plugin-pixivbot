@@ -65,7 +65,7 @@ class MongoLocalTagRepo:
 
         if len(opt) != 0:
             await self.mongo.db.local_tags.bulk_write(opt, ordered=False)
-            logger.info(f"[local_tag_repo] added {tags} local tags")
+            logger.info(f"[local_tag_repo] added {len(tags)} local tags")
 
     async def update_from_illusts(self, illusts: Collection[Illust]):
         tags = {}
