@@ -9,19 +9,19 @@ from beanie.odm.operators.update.general import Set
 from nonebot import logger
 from pymongo import UpdateOne
 
+from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
+from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User
-from .abstract_repo import AbstractPixivRepo
-from .errors import CacheExpiredError, NoSuchItemError
-from .lazy_illust import LazyIllust
-from .models import PixivRepoMetadata, UserDetailCache, PixivRepoCache, IllustDetailCache, IllustSetCache, UserSetCache, \
+from .mongo_models import UserDetailCache, PixivRepoCache, IllustDetailCache, IllustSetCache, UserSetCache, \
     SearchIllustCache, SearchUserCache, UserIllustsCache, UserBookmarksCache, OtherIllustCache, RelatedIllustsCache, \
     IllustRankingCache, DownloadCache
-from .pkg_context import context
-from ..local_tag_repo import LocalTagRepo
-from ..source import MongoDataSource
-from ...context import Inject
+from ..errors import CacheExpiredError, NoSuchItemError
+from ..lazy_illust import LazyIllust
+from ..models import PixivRepoMetadata
+from ...local_tag import LocalTagRepo
+from ...source import MongoDataSource
 
 
 def _handle_expires_in(metadata: PixivRepoMetadata, expires_in: int):
@@ -31,25 +31,21 @@ def _handle_expires_in(metadata: PixivRepoMetadata, expires_in: int):
 
 @context.inject
 @context.register_singleton()
-class LocalPixivRepo(AbstractPixivRepo):
-    conf = Inject(Config)
-    mongo = Inject(MongoDataSource)
-    local_tag_repo = Inject(LocalTagRepo)
+class MongoPixivRepo:
+    conf: Config = Inject(Config)
+    mongo: MongoDataSource = Inject(MongoDataSource)
+    local_tag_repo: LocalTagRepo = Inject(LocalTagRepo)
 
     async def _add_to_local_tags(self, illusts: List[Union[LazyIllust, Illust]]):
-        tags = {}
+        li = []
         for x in illusts:
             if isinstance(x, LazyIllust):
                 if not x.loaded:
                     continue
                 x = x.content
-            for t in x.tags:
-                if t.translated_name:
-                    tags[t.name] = t
+            li.append(x)
 
-        await self.local_tag_repo.update_many(tags.values())
-
-        logger.debug(f"[local] add {len(tags)} local tags")
+        await self.local_tag_repo.update_from_illusts(li)
 
     async def _illusts_agen(self, doc_type: Type[PixivRepoCache],
                             *criteria: Union[Mapping[str, Any], bool],
@@ -385,7 +381,6 @@ class LocalPixivRepo(AbstractPixivRepo):
             await self._add_to_local_tags([illust])
 
     # ================ user_detail ================
-
     async def user_detail(self, user_id: int) \
             -> AsyncGenerator[Union[User, PixivRepoMetadata], None]:
         logger.debug(f"[local] user_detail {user_id}")
@@ -415,7 +410,6 @@ class LocalPixivRepo(AbstractPixivRepo):
         )
 
     # ================ search_illust ================
-
     def search_illust(self, word: str, *, offset: int = 0) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
         logger.debug(f"[local] search_illust {word}")
@@ -539,7 +533,6 @@ class LocalPixivRepo(AbstractPixivRepo):
                                                     content=content, metadata=metadata)
 
     # ================ illust_ranking ================
-
     def illust_ranking(self, mode: Union[str, RankingMode], *, offset: int = 0) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
         if isinstance(mode, str):
@@ -602,4 +595,4 @@ class LocalPixivRepo(AbstractPixivRepo):
         await self.mongo.db.other_cache.delete_many({})
 
 
-__all__ = ("LocalPixivRepo",)
+__all__ = ("MongoPixivRepo",)

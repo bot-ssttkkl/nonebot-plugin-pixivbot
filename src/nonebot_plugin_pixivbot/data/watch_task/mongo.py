@@ -1,14 +1,15 @@
-from typing import TypeVar, AsyncGenerator, Optional, Any, List
+from typing import TypeVar, AsyncGenerator, Optional, Any, Collection
 
 from beanie import Document, BulkWriter
 from pymongo import IndexModel
+from pymongo.errors import DuplicateKeyError
 
+from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import WatchTask, PostIdentifier
-from .source import MongoDataSource
-from .source.mongo.seq import SeqRepo
-from .utils.process_subscriber import process_subscriber
-from ..context import Inject
+from ..seq import SeqRepo
+from ..source import MongoDataSource
+from ..utils.process_subscriber import process_subscriber
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -21,7 +22,8 @@ class WatchTaskDocument(WatchTask[Any, Any], Document):
         name = "watch_task"
         indexes = [
             IndexModel([("subscriber.adapter", 1)]),
-            IndexModel([("subscriber", 1), ("code", 1)], unique=True)
+            IndexModel([("subscriber", 1), ("code", 1)]),
+            IndexModel([("subscriber", 1), ("type", 1), ("kwargs", 1)], unique=True)
         ]
 
 
@@ -30,7 +32,7 @@ context.require(MongoDataSource).document_models.append(WatchTaskDocument)
 
 @context.inject
 @context.register_singleton()
-class WatchTaskRepo:
+class MongoWatchTaskRepo:
     mongo = Inject(MongoDataSource)
     seq_repo: SeqRepo = Inject(SeqRepo)
 
@@ -48,12 +50,21 @@ class WatchTaskRepo:
         return await WatchTaskDocument.find_one(WatchTaskDocument.subscriber == subscriber,
                                                 WatchTaskDocument.code == code)
 
-    async def insert(self, task: WatchTask):
-        task.subscriber = process_subscriber(task.subscriber)
-        task.code = await self.seq_repo.inc_and_get(task.subscriber.dict() | {"type": "watch_task"})
-        await WatchTaskDocument.insert_one(WatchTaskDocument(**task.dict()))
+    async def insert(self, task: WatchTask) -> bool:
+        try:
+            task.subscriber = process_subscriber(task.subscriber)
+            doc = WatchTaskDocument(**task.dict())
+            await doc.save()
 
-    async def update(self, task: WatchTask):
+            task.code = await self.seq_repo.inc_and_get(f'watch_task {task.subscriber}')
+            doc.code = task.code
+            await doc.save()
+
+            return True
+        except DuplicateKeyError:
+            return False
+
+    async def update(self, task: WatchTask) -> bool:
         if isinstance(task, WatchTaskDocument):
             await task.save()
         else:
@@ -62,6 +73,7 @@ class WatchTaskRepo:
                 WatchTaskDocument.subscriber == task.subscriber,
                 WatchTaskDocument.code == task.code
             ).update(**task.dict(exclude={"subscriber", "code"}))
+        return True
 
     async def delete_one(self, subscriber: ID, code: int) -> Optional[WatchTask]:
         # beanie不支持原子性的find_one_and_delete操作
@@ -76,7 +88,7 @@ class WatchTaskRepo:
         else:
             return None
 
-    async def delete_many_by_subscriber(self, subscriber: ID) -> List[WatchTask]:
+    async def delete_many_by_subscriber(self, subscriber: ID) -> Collection[WatchTask]:
         subscriber = process_subscriber(subscriber)
 
         old_doc = await WatchTaskDocument.find(
@@ -90,4 +102,4 @@ class WatchTaskRepo:
         return old_doc
 
 
-__all__ = ("WatchTaskRepo",)
+__all__ = ("MongoWatchTaskRepo",)

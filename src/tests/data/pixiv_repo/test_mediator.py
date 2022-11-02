@@ -10,7 +10,7 @@ from tests import MyTest
 class TestMediateSingle(MyTest):
     @pytest.fixture
     def cache_factory_with_cache(self):
-        from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
+        from nonebot_plugin_pixivbot.data.pixiv_repo.base import PixivRepoMetadata
 
         cache_metadata = PixivRepoMetadata(update_time=datetime.fromtimestamp(0))
 
@@ -23,8 +23,8 @@ class TestMediateSingle(MyTest):
 
     @pytest.fixture
     def cache_factory_with_expired_cache(self):
-        from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
-        from nonebot_plugin_pixivbot.data.pixiv_repo.local_repo import CacheExpiredError
+        from nonebot_plugin_pixivbot.data.pixiv_repo.base import PixivRepoMetadata
+        from nonebot_plugin_pixivbot.data.pixiv_repo.mongo_local_repo import CacheExpiredError
 
         cache_metadata = PixivRepoMetadata(update_time=datetime.fromtimestamp(0))
 
@@ -38,7 +38,7 @@ class TestMediateSingle(MyTest):
 
     @pytest.fixture
     def remote_factory(self):
-        from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
+        from nonebot_plugin_pixivbot.data.pixiv_repo.base import PixivRepoMetadata
 
         async def remote_factory():
             await sleep(0.2)
@@ -49,7 +49,7 @@ class TestMediateSingle(MyTest):
 
     @pytest.mark.asyncio
     async def test_with_cache(self, cache_factory_with_cache, remote_factory):
-        from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
+        from nonebot_plugin_pixivbot.data.pixiv_repo.base import PixivRepoMetadata
         from nonebot_plugin_pixivbot.data.pixiv_repo.mediator import mediate_single
 
         cache_updater = AsyncMock()
@@ -69,7 +69,7 @@ class TestMediateSingle(MyTest):
 
     @pytest.mark.asyncio
     async def test_with_remote(self, cache_factory_with_expired_cache, remote_factory):
-        from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
+        from nonebot_plugin_pixivbot.data.pixiv_repo.base import PixivRepoMetadata
         from nonebot_plugin_pixivbot.data.pixiv_repo.mediator import mediate_single
 
         cache_updater = AsyncMock()
@@ -91,7 +91,7 @@ class TestMediateSingle(MyTest):
 class TestMediateCollection(MyTest):
     @pytest.fixture
     def cache_factory_with_cache(self):
-        from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
+        from nonebot_plugin_pixivbot.data.pixiv_repo.base import PixivRepoMetadata
 
         cache_metadata = PixivRepoMetadata(update_time=datetime.fromtimestamp(0),
                                            pages=5,
@@ -115,7 +115,7 @@ class TestMediateCollection(MyTest):
 
     @pytest.fixture
     def cache_factory_with_cache_and_empty_next_qs(self):
-        from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
+        from nonebot_plugin_pixivbot.data.pixiv_repo.base import PixivRepoMetadata
 
         cache_metadata = PixivRepoMetadata(update_time=datetime.fromtimestamp(0),
                                            pages=5,
@@ -139,7 +139,7 @@ class TestMediateCollection(MyTest):
 
     @pytest.fixture
     def cache_factory_with_no_cache(self):
-        from nonebot_plugin_pixivbot.data.pixiv_repo.local_repo import NoSuchItemError
+        from nonebot_plugin_pixivbot.data.pixiv_repo.mongo_local_repo import NoSuchItemError
 
         async def agen():
             await sleep(0.1)
@@ -151,8 +151,8 @@ class TestMediateCollection(MyTest):
 
     @pytest.fixture
     def cache_factory_with_expired_cache(self):
-        from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
-        from nonebot_plugin_pixivbot.data.pixiv_repo.local_repo import CacheExpiredError
+        from nonebot_plugin_pixivbot.data.pixiv_repo.base import PixivRepoMetadata
+        from nonebot_plugin_pixivbot.data.pixiv_repo.mongo_local_repo import CacheExpiredError
 
         cache_metadata = PixivRepoMetadata(update_time=datetime.fromtimestamp(0),
                                            pages=5,
@@ -168,7 +168,7 @@ class TestMediateCollection(MyTest):
 
     @pytest.fixture
     def remote_factory(self):
-        from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
+        from nonebot_plugin_pixivbot.data.pixiv_repo.base import PixivRepoMetadata
 
         async def remote_factory(next=0):
             await sleep(0.1)
@@ -190,7 +190,7 @@ class TestMediateMany(TestMediateCollection):
     @pytest.mark.asyncio
     async def test_with_cache_and_empty_next_qs(self, cache_factory_with_cache_and_empty_next_qs, remote_factory):
         from nonebot_plugin_pixivbot.data.pixiv_repo.mediator import mediate_many
-        from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
+        from nonebot_plugin_pixivbot.data.pixiv_repo.base import PixivRepoMetadata
 
         cache_invalidator = AsyncMock()
         cache_appender = AsyncMock()
@@ -213,7 +213,7 @@ class TestMediateMany(TestMediateCollection):
     @pytest.mark.asyncio
     async def test_with_cache_and_remote(self, cache_factory_with_cache, remote_factory):
         from nonebot_plugin_pixivbot.data.pixiv_repo.mediator import mediate_many
-        from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
+        from nonebot_plugin_pixivbot.data.pixiv_repo.base import PixivRepoMetadata
 
         cache_invalidator = AsyncMock()
         cache_appender_calls = []
@@ -242,7 +242,7 @@ class TestMediateMany(TestMediateCollection):
     @pytest.mark.asyncio
     async def test_with_remote(self, cache_factory_with_no_cache, remote_factory):
         from nonebot_plugin_pixivbot.data.pixiv_repo.mediator import mediate_many
-        from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
+        from nonebot_plugin_pixivbot.data.pixiv_repo.base import PixivRepoMetadata
 
         cache_invalidator = AsyncMock()
         cache_appender_calls = []
@@ -271,7 +271,7 @@ class TestMediateMany(TestMediateCollection):
     @pytest.mark.asyncio
     async def test_with_expired_cache_and_remote(self, cache_factory_with_expired_cache, remote_factory):
         from nonebot_plugin_pixivbot.data.pixiv_repo.mediator import mediate_many
-        from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
+        from nonebot_plugin_pixivbot.data.pixiv_repo.base import PixivRepoMetadata
 
         cache_invalidator = AsyncMock()
         cache_appender_calls = []
@@ -302,7 +302,7 @@ class TestMediateAppend(TestMediateCollection):
     @pytest.mark.asyncio
     async def test_with_cache_and_empty_next_qs(self, cache_factory_with_cache_and_empty_next_qs, remote_factory):
         from nonebot_plugin_pixivbot.data.pixiv_repo.mediator import mediate_append
-        from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
+        from nonebot_plugin_pixivbot.data.pixiv_repo.base import PixivRepoMetadata
 
         cache_appender = AsyncMock()
 
@@ -322,7 +322,7 @@ class TestMediateAppend(TestMediateCollection):
     @pytest.mark.asyncio
     async def test_with_cache_and_remote(self, cache_factory_with_cache, remote_factory):
         from nonebot_plugin_pixivbot.data.pixiv_repo.mediator import mediate_append
-        from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
+        from nonebot_plugin_pixivbot.data.pixiv_repo.base import PixivRepoMetadata
 
         cache_appender_calls = []
 
@@ -348,7 +348,7 @@ class TestMediateAppend(TestMediateCollection):
     @pytest.mark.asyncio
     async def test_with_remote(self, cache_factory_with_no_cache, remote_factory):
         from nonebot_plugin_pixivbot.data.pixiv_repo.mediator import mediate_append
-        from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
+        from nonebot_plugin_pixivbot.data.pixiv_repo.base import PixivRepoMetadata
 
         cache_appender_calls = []
 
@@ -376,7 +376,7 @@ class TestMediateAppend(TestMediateCollection):
                                       cache_factory_with_expired_cache,
                                       remote_factory):
         from nonebot_plugin_pixivbot.data.pixiv_repo.mediator import mediate_append
-        from nonebot_plugin_pixivbot.data.pixiv_repo.abstract_repo import PixivRepoMetadata
+        from nonebot_plugin_pixivbot.data.pixiv_repo.base import PixivRepoMetadata
 
         cache_updated = False
 

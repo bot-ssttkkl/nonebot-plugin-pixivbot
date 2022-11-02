@@ -21,3 +21,6 @@ class WatchTask(GenericModel, Generic[UID, GID]):
     kwargs: Dict[str, Any]
     subscriber: PostIdentifier[UID, GID]
     checkpoint: datetime = datetime.now(timezone.utc)
+
+    class Config:
+        orm_mode = True

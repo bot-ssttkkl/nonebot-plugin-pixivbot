@@ -13,7 +13,7 @@ from nonebot import logger, Bot
 from nonebot.exception import ActionFailed
 
 from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.data.subscription_repo import SubscriptionRepo
+from nonebot_plugin_pixivbot.data.subscription import SubscriptionRepo
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier
 from nonebot_plugin_pixivbot.model.subscription import ScheduleType
