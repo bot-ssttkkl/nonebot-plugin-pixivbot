@@ -112,8 +112,11 @@ class WatchHandler(SubCommandHandler):
                             success_message: str,
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False, **kwargs):
-        await self.watchman.watch(type, watch_kwargs, post_dest)
-        await self.post_plain_text(success_message, post_dest)
+        ok = await self.watchman.watch(type, watch_kwargs, post_dest)
+        if ok:
+            await self.post_plain_text(success_message, post_dest)
+        else:
+            await self.post_plain_text("该订阅已存在", post_dest)
 
     async def actual_handle_bad_request(self, err: BadRequestError,
                                         *, post_dest: PostDestination[UID, GID],
@@ -127,7 +130,7 @@ class WatchHandler(SubCommandHandler):
         msg += "\n" \
                "命令格式：/pixivbot watch <type> [..args]\n" \
                "参数：\n" \
-               "  <type>：可选值有user_illusts, following_illusts" \
+               "  <type>：可选值有user_illusts, following_illusts\n" \
                "  [...args]：根据<type>不同需要提供不同的参数\n" \
                "示例：/pixivbot watch user_illusts <用户名>\n"
         await self.post_plain_text(message=msg, post_dest=post_dest)
@@ -164,7 +167,7 @@ class UnwatchHandler(SubCommandHandler):
     async def actual_handle(self, *, code: int,
                             post_dest: PostDestination[UID, GID],
                             silently: bool = False, **kwargs):
-        if await self.watchman.unwatch(post_dest.identifier, code, ):
+        if await self.watchman.unwatch(post_dest.identifier, code):
             await self.post_plain_text(message="取消订阅成功", post_dest=post_dest)
         else:
             raise BadRequestError("取消订阅失败，不存在该订阅")

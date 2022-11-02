@@ -1,6 +1,5 @@
 from abc import ABC
-from abc import abstractmethod
-from typing import Type, Callable, Union, Awaitable, TypeVar, Sequence
+from typing import Type, Callable, TypeVar, Sequence
 
 from lazy import lazy
 from nonebot import Bot, on_command

@@ -1,14 +1,14 @@
-from typing import TypeVar, AsyncGenerator, Optional, List, Any
+from typing import TypeVar, Optional, Any, AsyncGenerator, Collection
 
 from beanie import Document, BulkWriter
 from pymongo import IndexModel
 
+from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier
-from .source import MongoDataSource
-from .source.mongo.seq import SeqRepo
-from .utils.process_subscriber import process_subscriber
-from ..context import Inject
+from ..source import MongoDataSource
+from ..seq import SeqRepo
+from ..utils.process_subscriber import process_subscriber
 
 UID = TypeVar("UID")
 GID = TypeVar("GID")
@@ -30,7 +30,7 @@ context.require(MongoDataSource).document_models.append(SubscriptionDocument)
 
 @context.inject
 @context.register_singleton()
-class SubscriptionRepo:
+class MongoSubscriptionRepo:
     mongo: MongoDataSource = Inject(MongoDataSource)
     seq_repo: SeqRepo = Inject(SeqRepo)
 
@@ -50,7 +50,7 @@ class SubscriptionRepo:
 
     async def insert(self, subscription: Subscription):
         subscription.subscriber = process_subscriber(subscription.subscriber)
-        subscription.code = await self.seq_repo.inc_and_get(subscription.subscriber.dict() | {"type": "subscription"})
+        subscription.code = await self.seq_repo.inc_and_get(f'subscription {subscription.subscriber}')
         await SubscriptionDocument.insert_one(SubscriptionDocument(**subscription.dict()))
 
     async def delete_one(self, subscriber: ID, code: int) -> Optional[Subscription]:
@@ -66,7 +66,7 @@ class SubscriptionRepo:
         else:
             return None
 
-    async def delete_many_by_subscriber(self, subscriber: ID) -> List[Subscription]:
+    async def delete_many_by_subscriber(self, subscriber: ID) -> Collection[Subscription]:
         subscriber = process_subscriber(subscriber)
 
         old_doc = await SubscriptionDocument.find(
@@ -80,4 +80,4 @@ class SubscriptionRepo:
         return old_doc
 
 
-__all__ = ("SubscriptionRepo",)
+__all__ = ("MongoSubscriptionRepo",)

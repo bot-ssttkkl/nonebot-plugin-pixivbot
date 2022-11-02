@@ -4,7 +4,7 @@ from nonebot import logger
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.data.local_tag_repo import LocalTagRepo
+from nonebot_plugin_pixivbot.data.local_tag import LocalTagRepo
 from nonebot_plugin_pixivbot.data.pixiv_repo import LazyIllust, PixivRepo
 from nonebot_plugin_pixivbot.enums import RandomIllustMethod, RankingMode
 from nonebot_plugin_pixivbot.global_context import context

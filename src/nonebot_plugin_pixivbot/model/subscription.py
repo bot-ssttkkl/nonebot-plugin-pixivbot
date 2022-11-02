@@ -26,5 +26,8 @@ class Subscription(GenericModel, Generic[UID, GID]):
     schedule: Sequence[int]
     tz: str = tzlocal.get_localzone_name()
 
+    class Config:
+        orm_mode = True
+
 
 __all__ = ("Subscription", "ScheduleType")

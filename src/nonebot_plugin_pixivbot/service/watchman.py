@@ -10,7 +10,7 @@ from nonebot.exception import ActionFailed
 from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.data.watch_task_repo import WatchTaskRepo
+from nonebot_plugin_pixivbot.data.watch_task import WatchTaskRepo
 from nonebot_plugin_pixivbot.handler.watch.following_illusts import WatchFollowingIllustsHandler
 from nonebot_plugin_pixivbot.handler.watch.user_illusts import WatchUserIllustsHandler
 from nonebot_plugin_pixivbot.model import PostIdentifier, WatchTask, WatchType
@@ -121,16 +121,16 @@ class Watchman:
 
     async def watch(self, type_: WatchType,
                     kwargs: Dict[str, Any],
-                    subscriber: PD):
+                    subscriber: PD) -> bool:
         task = WatchTask(type=type_, kwargs=kwargs, subscriber=subscriber.identifier)
-        await self.repo.insert(task)
-        logger.success(f"[watchman] successfully inserted subscription {task}")
-        self._add_job(task, subscriber.normalized())
+        ok = await self.repo.insert(task)
+        if ok:
+            logger.success(f"[watchman] successfully inserted subscription {task}")
+            self._add_job(task, subscriber.normalized())
+        return ok
 
-    async def unwatch(self, type_: WatchType,
-                      kwargs: Dict[str, Any],
-                      subscriber: ID) -> bool:
-        task = await self.repo.delete_one(type_, kwargs, subscriber)
+    async def unwatch(self, type_: WatchType, code: int) -> bool:
+        task = await self.repo.delete_one(type_, code)
         if task:
             logger.success(f"[scheduler] successfully removed subscription {task}")
             self._remove_job(task)

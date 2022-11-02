@@ -4,13 +4,13 @@ from typing import Optional
 
 from nonebot_plugin_pixivbot.model import Illust
 from nonebot_plugin_pixivbot.utils.lazy_delegation import LazyDelegation
-from .pkg_context import context
 
 __all__ = ("LazyIllust",)
 
 
 def _get_src():
-    from .repo import PixivRepo
+    from .base import PixivRepo
+    from nonebot_plugin_pixivbot import context
     return context.require(PixivRepo)
 
 

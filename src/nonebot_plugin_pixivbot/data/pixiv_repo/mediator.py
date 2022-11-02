@@ -1,8 +1,10 @@
 from datetime import datetime, timezone
 from typing import List, AsyncGenerator, TypeVar, Union, Callable, Awaitable, Optional, Any, Mapping
 
-from .abstract_repo import PixivRepoMetadata
+from nonebot import logger
+
 from .errors import NoSuchItemError, CacheExpiredError
+from .models import PixivRepoMetadata
 
 T = TypeVar("T")
 
@@ -18,6 +20,8 @@ async def mediate_single(cache_factory: Callable[..., AsyncGenerator[Union[T, Pi
         async for x in cache_factory(**query_kwargs):
             yield x
     except (NoSuchItemError, CacheExpiredError):
+        logger.info("[mediator] no cache or cache expired")
+
         content = None
         metadata = None
 
@@ -28,11 +32,12 @@ async def mediate_single(cache_factory: Callable[..., AsyncGenerator[Union[T, Pi
                 content = x
 
         if metadata:
-            try:
-                yield metadata
-                yield content
-            finally:
-                await cache_updater(content, metadata)
+            # 先update再yield，受到SharedAsyncGeneratorManager的影响finally内的语句无法按时执行
+            await cache_updater(content, metadata)
+
+            yield metadata
+            yield content
+
         else:
             raise RuntimeError("no metadata")
 
@@ -122,11 +127,13 @@ async def mediate_many(cache_factory: Callable[..., AsyncGenerator[Union[T, Pixi
                                                                    cache_appender, max_item, max_page):
             yield x
     except NoSuchItemError:
+        logger.info("[mediator] no cache")
         async for x in _load_many_from_remote_and_append(remote_factory, query_kwargs,
                                                          cache_appender,
                                                          max_item, max_page):
             yield x
     except CacheExpiredError:
+        logger.info("[mediator] cache expired")
         await cache_invalidator()
         async for x in _load_many_from_remote_and_append(remote_factory, query_kwargs,
                                                          cache_appender,
@@ -158,11 +165,13 @@ async def mediate_append(cache_factory: Callable[..., AsyncGenerator[Union[T, Pi
                                                                    cache_appender, max_item, max_page):
             yield x
     except NoSuchItemError:
+        logger.info("[mediator] no cache")
         async for x in _load_many_from_remote_and_append(remote_factory, query_kwargs,
                                                          cache_appender,
                                                          max_item, max_page):
             yield x
     except CacheExpiredError as e:
+        logger.info("[mediator] cache expired")
         loaded_items = 0
         loaded_pages = 0
 

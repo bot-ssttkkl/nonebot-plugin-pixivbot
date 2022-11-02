@@ -9,16 +9,17 @@ from nonebot import logger
 from pixivpy_async import *
 from pixivpy_async.error import TokenError
 
+from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
+from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.enums import DownloadQuantity, RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User, UserPreview
 from nonebot_plugin_pixivbot.utils.errors import QueryError, RateLimitError
 from nonebot_plugin_pixivbot.utils.lifecycler import on_startup, on_shutdown
-from .abstract_repo import AbstractPixivRepo, PixivRepoMetadata
+from .base import PixivRepo
 from .compressor import Compressor
 from .lazy_illust import LazyIllust
-from .pkg_context import context
-from ...context import Inject
+from .models import PixivRepoMetadata
 
 T = TypeVar("T")
 
@@ -46,7 +47,7 @@ def _auto_retry(func):
 
 @context.inject
 @context.register_eager_singleton()
-class RemotePixivRepo(AbstractPixivRepo):
+class RemotePixivRepo(PixivRepo):
     _conf = Inject(Config)
     _compressor = Inject(Compressor)
 
