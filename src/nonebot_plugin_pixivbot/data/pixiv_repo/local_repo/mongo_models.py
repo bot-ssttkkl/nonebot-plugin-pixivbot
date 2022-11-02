@@ -6,9 +6,9 @@ from pymongo import IndexModel
 from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.data.pixiv_repo.models import PixivRepoMetadata
-from nonebot_plugin_pixivbot.data.source import MongoDataSource
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User
+from ...source.mongo import MongoDataSource
 
 conf = context.require(Config)
 

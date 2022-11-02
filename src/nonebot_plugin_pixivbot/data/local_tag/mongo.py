@@ -8,7 +8,7 @@ from pymongo import *
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Tag, Illust
-from ..source import MongoDataSource
+from ..source.mongo import MongoDataSource
 
 
 class LocalTag(Tag, Document):
