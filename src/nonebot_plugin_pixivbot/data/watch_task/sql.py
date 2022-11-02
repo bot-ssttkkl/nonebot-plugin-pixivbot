@@ -29,8 +29,8 @@ class WatchTaskOrm:
     checkpoint = Column(DateTime, nullable=False)
 
     __table_args__ = (
-        Index("adapter"),
-        Index("subscriber", "code"),
+        Index("watch_task_adapter_idx", "adapter"),
+        Index("watch_task_subscriber_code_idx", "subscriber", "code"),
         UniqueConstraint("subscriber", "type", "kwargs", sqlite_on_conflict='IGNORE'),
     )
 
