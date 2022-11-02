@@ -107,13 +107,14 @@ class MongoDataSource:
 
         self._client = client
         self._db = db
-        logger.success("MongoDataSource Initialization Succeed.")
+        logger.success("MongoDataSource Initialized.")
 
     async def finalize(self):
         if self._client:
             self._client.close()
         self._client = None
         self._db = None
+        logger.success("MongoDataSource Disposed.")
 
 
 conf = context.require(Config)
