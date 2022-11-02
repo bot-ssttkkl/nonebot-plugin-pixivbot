@@ -29,9 +29,6 @@ class SqlDataSource:
     conf: Config = Inject(Config)
 
     def __init__(self):
-        if self.conf.pixiv_data_source != DataSourceType.sqlite:
-            raise RuntimeError("pixiv_data_source != 'sqlite'")
-
         self._engine = None
         self._session = None
 
@@ -59,7 +56,7 @@ class SqlDataSource:
         )
         self._session = async_scoped_session(
             session_factory, scopefunc=asyncio.current_task)
-        logger.success("data source initialized")
+        logger.success("SqlDataSource Initialized.")
 
     async def finalize(self):
         await self._engine.dispose()
@@ -67,7 +64,7 @@ class SqlDataSource:
         self._engine = None
         self._session = None
 
-        logger.success("data source disposed")
+        logger.success("SqlDataSource Disposed.")
 
     @property
     def engine(self) -> AsyncEngine:
