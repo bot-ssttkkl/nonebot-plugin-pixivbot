@@ -151,6 +151,16 @@ class SqlPixivRepo:
             await session.execute(stmt)
             await session.commit()
 
+        # insert local tags
+        li = []
+        for x in content:
+            if isinstance(x, LazyIllust):
+                if not x.loaded:
+                    continue
+                x = x.content
+            li.append(x)
+        await self.local_tag_repo.update_from_illusts(li)
+
         return row_count != len(content)
 
     async def _get_users(self, cache_type: str,
