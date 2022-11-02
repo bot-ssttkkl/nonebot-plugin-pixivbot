@@ -4,7 +4,7 @@ from beanie import Document
 from pymongo import IndexModel
 
 from nonebot_plugin_pixivbot import context
-from nonebot_plugin_pixivbot.data.source import MongoDataSource
+from . import MongoDataSource
 
 
 class MetaInfo(Document):

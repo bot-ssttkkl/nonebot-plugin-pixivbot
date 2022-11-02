@@ -6,7 +6,7 @@ from pymongo import IndexModel
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import PixivBinding
-from ..source import MongoDataSource
+from ..source.mongo import MongoDataSource
 
 UID = TypeVar("UID")
 

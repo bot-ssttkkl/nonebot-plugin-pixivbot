@@ -25,7 +25,6 @@ def json_serializer(obj):
 
 
 @context.inject
-@context.register_singleton()
 class SqlDataSource:
     conf: Config = Inject(Config)
 
@@ -85,3 +84,10 @@ class SqlDataSource:
         if self._session is None:
             raise DataSourceNotReadyError()
         return self._session
+
+
+conf = context.require(Config)
+if conf.pixiv_data_source == DataSourceType.sqlite:
+    context.register_eager_singleton()(SqlDataSource)
+
+__all__ = ("SqlDataSource",)

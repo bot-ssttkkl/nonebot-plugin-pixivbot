@@ -11,13 +11,13 @@ from pymongo.errors import OperationFailure
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.errors import DataSourceNotReadyError
+from nonebot_plugin_pixivbot.enums import DataSourceType
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.utils.lifecycler import on_shutdown, on_startup
 from .migration import MongoMigrationManager
 
 
 @context.inject
-@context.register_eager_singleton()
 class MongoDataSource:
     conf = Inject(Config)
     mongo_migration_mgr = Inject(MongoMigrationManager)
@@ -115,5 +115,9 @@ class MongoDataSource:
         self._client = None
         self._db = None
 
+
+conf = context.require(Config)
+if conf.pixiv_data_source == DataSourceType.mongo:
+    context.register_eager_singleton()(MongoDataSource)
 
 __all__ = ("MongoDataSource",)

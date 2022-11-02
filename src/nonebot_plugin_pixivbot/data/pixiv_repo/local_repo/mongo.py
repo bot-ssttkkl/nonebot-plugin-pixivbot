@@ -21,7 +21,7 @@ from ..errors import CacheExpiredError, NoSuchItemError
 from ..lazy_illust import LazyIllust
 from ..models import PixivRepoMetadata
 from ...local_tag import LocalTagRepo
-from ...source import MongoDataSource
+from ...source.mongo import MongoDataSource
 
 
 def _handle_expires_in(metadata: PixivRepoMetadata, expires_in: int):

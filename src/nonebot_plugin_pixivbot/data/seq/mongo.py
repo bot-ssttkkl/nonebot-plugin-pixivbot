@@ -3,7 +3,7 @@ from pymongo import IndexModel, ReturnDocument
 
 from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.data.source import MongoDataSource
+from ..source.mongo import MongoDataSource
 
 
 class Seq(Document):
