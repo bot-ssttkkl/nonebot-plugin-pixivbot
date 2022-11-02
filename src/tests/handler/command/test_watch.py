@@ -9,7 +9,7 @@ from tests.service.fake_watchman import FakeWatchmanMixin
 watch_help_text = "\n" \
                   "命令格式：/pixivbot watch <type> [..args]\n" \
                   "参数：\n" \
-                  "  <type>：可选值有user_illusts, following_illusts" \
+                  "  <type>：可选值有user_illusts, following_illusts\n" \
                   "  [...args]：根据<type>不同需要提供不同的参数\n" \
                   "示例：/pixivbot watch user_illusts <用户名>\n"
 

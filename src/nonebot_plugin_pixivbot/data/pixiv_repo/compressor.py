@@ -6,9 +6,9 @@ from io import BytesIO
 
 from PIL import Image, ImageFile
 
+from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
-from .pkg_context import context
-from ...context import Inject
+from nonebot_plugin_pixivbot.context import Inject
 
 
 @context.inject

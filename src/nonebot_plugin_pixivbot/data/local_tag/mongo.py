@@ -1,13 +1,14 @@
-from typing import Optional, Iterable
+from typing import Optional, Collection
 
 from beanie import Document
 from beanie.odm.operators.update.general import SetOnInsert
+from nonebot import logger
 from pymongo import *
 
+from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.model import Tag
-from .source import MongoDataSource
-from ..context import Inject
+from nonebot_plugin_pixivbot.model import Tag, Illust
+from ..source import MongoDataSource
 
 
 class LocalTag(Tag, Document):
@@ -24,27 +25,24 @@ context.require(MongoDataSource).document_models.append(LocalTag)
 
 @context.inject
 @context.register_singleton()
-class LocalTagRepo:
+class MongoLocalTagRepo:
     mongo = Inject(MongoDataSource)
 
-    @classmethod
-    async def find_by_name(cls, name: str) -> Optional[Tag]:
+    async def find_by_name(self, name: str) -> Optional[Tag]:
         result = await LocalTag.find_one(LocalTag.name == name)
         return result
 
-    @classmethod
-    async def find_by_translated_name(cls, translated_name: str) -> Optional[Tag]:
+    async def find_by_translated_name(self, translated_name: str) -> Optional[Tag]:
         result = await LocalTag.find_one(LocalTag.translated_name == translated_name)
         return result
 
-    @classmethod
-    async def update_one(cls, tag: Tag):
+    async def update_one(self, tag: Tag):
         await LocalTag.find_one(LocalTag.name == tag.name).upsert(
             SetOnInsert({LocalTag.translated_name: tag.translated_name}),
             on_insert=LocalTag(**tag.dict()),
         )
 
-    async def update_many(self, tags: Iterable[Tag]):
+    async def update_many(self, tags: Collection[Tag]):
         # BulkWriter存在bug，upsert不生效
         # https://github.com/roman-right/beanie/issues/224
         #
@@ -67,6 +65,16 @@ class LocalTagRepo:
 
         if len(opt) != 0:
             await self.mongo.db.local_tags.bulk_write(opt, ordered=False)
+            logger.info(f"[local_tag_repo] added {tags} local tags")
+
+    async def update_from_illusts(self, illusts: Collection[Illust]):
+        tags = {}
+        for x in illusts:
+            for t in x.tags:
+                if t.translated_name:
+                    tags[t.name] = t
+
+        await self.update_many(tags.values())
 
 
-__all__ = ("LocalTagRepo",)
+__all__ = ("MongoLocalTagRepo",)

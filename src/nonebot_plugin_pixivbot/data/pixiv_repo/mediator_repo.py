@@ -5,19 +5,18 @@ from frozendict import frozendict
 from nonebot import logger
 from pydantic import BaseModel
 
+from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
+from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User, UserPreview
 from nonebot_plugin_pixivbot.utils.shared_agen import SharedAsyncGeneratorManager
-from .abstract_repo import AbstractPixivRepo
 from .enums import PixivResType, CacheStrategy
 from .lazy_illust import LazyIllust
 from .local_repo import LocalPixivRepo
 from .mediator import mediate_single, mediate_many, mediate_append
 from .models import PixivRepoMetadata
-from .pkg_context import context
 from .remote_repo import RemotePixivRepo
-from ...context import Inject
 
 
 class SharedAgenIdentifier(BaseModel):
@@ -206,7 +205,7 @@ class PixivSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[SharedAgenIde
 
 @context.inject
 @context.root.register_singleton()
-class PixivRepo(AbstractPixivRepo):
+class MediatorPixivRepo:
     _shared_agen_mgr = Inject(PixivSharedAsyncGeneratorManager)
     _local = Inject(LocalPixivRepo)
     _remote = Inject(RemotePixivRepo)
@@ -217,7 +216,7 @@ class PixivRepo(AbstractPixivRepo):
 
     async def illust_detail(self, illust_id: int,
                             cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[Illust, None]:
-        logger.info(f"[repo] illust_detail {illust_id} "
+        logger.info(f"[mediator] illust_detail {illust_id} "
                     f"cache_strategy={cache_strategy.name}")
         with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.ILLUST_DETAIL, illust_id=illust_id),
                                        cache_strategy) as gen:
@@ -227,7 +226,7 @@ class PixivRepo(AbstractPixivRepo):
 
     async def user_detail(self, user_id: int,
                           cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[User, None]:
-        logger.info(f"[repo] user_detail {user_id} "
+        logger.info(f"[mediator] user_detail {user_id} "
                     f"cache_strategy={cache_strategy.name}")
         with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.USER_DETAIL, user_id=user_id),
                                        cache_strategy) as gen:
@@ -237,7 +236,7 @@ class PixivRepo(AbstractPixivRepo):
 
     async def search_illust(self, word: str,
                             cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[LazyIllust, None]:
-        logger.info(f"[repo] search_illust {word} "
+        logger.info(f"[mediator] search_illust {word} "
                     f"cache_strategy={cache_strategy.name}")
         with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.SEARCH_ILLUST, word=word),
                                        cache_strategy) as gen:
@@ -247,7 +246,7 @@ class PixivRepo(AbstractPixivRepo):
 
     async def search_user(self, word: str,
                           cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[User, None]:
-        logger.info(f"[repo] search_user {word} "
+        logger.info(f"[mediator] search_user {word} "
                     f"cache_strategy={cache_strategy.name}")
         with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.SEARCH_USER, word=word),
                                        cache_strategy) as gen:
@@ -257,7 +256,7 @@ class PixivRepo(AbstractPixivRepo):
 
     async def user_bookmarks(self, user_id: int = 0,
                              cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[LazyIllust, None]:
-        logger.info(f"[repo] user_bookmarks {user_id} "
+        logger.info(f"[mediator] user_bookmarks {user_id} "
                     f"cache_strategy={cache_strategy.name}")
         with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.USER_BOOKMARKS, user_id=user_id),
                                        cache_strategy) as gen:
@@ -267,7 +266,7 @@ class PixivRepo(AbstractPixivRepo):
 
     async def user_illusts(self, user_id: int = 0,
                            cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[LazyIllust, None]:
-        logger.info(f"[repo] user_illusts {user_id} "
+        logger.info(f"[mediator] user_illusts {user_id} "
                     f"cache_strategy={cache_strategy.name}")
         with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.USER_ILLUSTS, user_id=user_id),
                                        cache_strategy) as gen:
@@ -293,7 +292,7 @@ class PixivRepo(AbstractPixivRepo):
     async def user_following_illusts(self, user_id: int,
                                      cache_strategy: CacheStrategy = CacheStrategy.NORMAL) \
             -> AsyncGenerator[LazyIllust, None]:
-        logger.info(f"[repo] user_following_illusts {user_id} "
+        logger.info(f"[mediator] user_following_illusts {user_id} "
                     f"cache_strategy={cache_strategy.name}")
 
         n = 0
@@ -330,7 +329,7 @@ class PixivRepo(AbstractPixivRepo):
 
     async def recommended_illusts(self, cache_strategy: CacheStrategy = CacheStrategy.NORMAL) \
             -> AsyncGenerator[LazyIllust, None]:
-        logger.info(f"[repo] recommended_illusts "
+        logger.info(f"[mediator] recommended_illusts "
                     f"cache_strategy={cache_strategy.name}")
         with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.RECOMMENDED_ILLUSTS),
                                        cache_strategy) as gen:
@@ -340,7 +339,7 @@ class PixivRepo(AbstractPixivRepo):
 
     async def related_illusts(self, illust_id: int,
                               cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[LazyIllust, None]:
-        logger.info(f"[repo] related_illusts {illust_id} "
+        logger.info(f"[mediator] related_illusts {illust_id} "
                     f"cache_strategy={cache_strategy.name}")
         with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.RELATED_ILLUSTS, illust_id=illust_id),
                                        cache_strategy) as gen:
@@ -353,7 +352,7 @@ class PixivRepo(AbstractPixivRepo):
         if isinstance(mode, str):
             mode = RankingMode[mode]
 
-        logger.info(f"[repo] illust_ranking {mode} "
+        logger.info(f"[mediator] illust_ranking {mode} "
                     f"cache_strategy={cache_strategy.name}")
         with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.ILLUST_RANKING, mode=mode),
                                        cache_strategy) as gen:
@@ -363,7 +362,7 @@ class PixivRepo(AbstractPixivRepo):
 
     async def image(self, illust: Illust,
                     cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[bytes, None]:
-        logger.info(f"[repo] image {illust.id} "
+        logger.info(f"[mediator] image {illust.id} "
                     f"cache_strategy={cache_strategy.name}")
         with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.IMAGE, illust_id=illust.id),
                                        cache_strategy, illust=illust) as gen:
@@ -372,4 +371,4 @@ class PixivRepo(AbstractPixivRepo):
                     yield x
 
 
-__all__ = ('PixivRepo',)
+__all__ = ('MediatorPixivRepo',)

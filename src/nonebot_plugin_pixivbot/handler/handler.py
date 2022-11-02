@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 from inspect import isawaitable
-from typing import Awaitable, Union, TypeVar, Sequence, Optional, Any
+from typing import Awaitable, Union, TypeVar, Sequence, Optional
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.model import Illust
 from nonebot_plugin_pixivbot.model.message import IllustMessageModel, IllustMessagesModel
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
-from .interceptor.combined_interceptor import CombinedInterceptor
 from .interceptor.base import Interceptor
+from .interceptor.combined_interceptor import CombinedInterceptor
 from .pkg_context import context
 from ..context import Inject
 from ..protocol_dep.postman import PostmanManager
