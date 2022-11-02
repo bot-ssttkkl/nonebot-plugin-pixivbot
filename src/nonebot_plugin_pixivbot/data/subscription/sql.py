@@ -31,8 +31,8 @@ class SubscriptionOrm:
     tz = Column(String, nullable=False, default=tzlocal.get_localzone_name)
 
     __table_args__ = (
-        Index("adapter"),
-        Index("subscriber", "code"),
+        Index("subscription_adapter_idx", "adapter"),
+        Index("subscription_subscriber_code_idx", "subscriber", "code"),
     )
 
 
