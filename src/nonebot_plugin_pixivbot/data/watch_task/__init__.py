@@ -13,7 +13,7 @@ class WatchTaskRepo(Protocol):
     def get_by_adapter(self, adapter: str) -> AsyncIterable[WatchTask]:
         ...
 
-    async def get_by_code(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[WatchTask]:
+    async def get_by_code(self, subscriber: PostIdentifier[T_UID, T_GID], code: str) -> Optional[WatchTask]:
         ...
 
     async def insert(self, task: WatchTask) -> bool:
@@ -22,7 +22,7 @@ class WatchTaskRepo(Protocol):
     async def update(self, task: WatchTask) -> bool:
         ...
 
-    async def delete_one(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[WatchTask]:
+    async def delete_one(self, subscriber: PostIdentifier[T_UID, T_GID], code: str) -> Optional[WatchTask]:
         ...
 
     async def delete_many_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> Collection[WatchTask]:

@@ -6,9 +6,9 @@ from pymongo import IndexModel
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier, T_UID, T_GID
-from ..seq import SeqRepo
 from ..source.mongo import MongoDataSource
 from ..utils.process_subscriber import process_subscriber
+from ..utils.shortuuid import gen_code
 
 
 class SubscriptionDocument(Subscription[Any, Any], Document):
@@ -27,7 +27,6 @@ context.require(MongoDataSource).document_models.append(SubscriptionDocument)
 @context.register_singleton()
 class MongoSubscriptionRepo:
     mongo: MongoDataSource = Inject(MongoDataSource)
-    seq_repo: SeqRepo = Inject(SeqRepo)
 
     async def get_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncGenerator[Subscription, None]:
         subscriber = process_subscriber(subscriber)
@@ -38,17 +37,17 @@ class MongoSubscriptionRepo:
         async for doc in SubscriptionDocument.find(SubscriptionDocument.subscriber.adapter == adapter):
             yield doc
 
-    async def get_by_code(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[Subscription]:
+    async def get_by_code(self, subscriber: PostIdentifier[T_UID, T_GID], code: str) -> Optional[Subscription]:
         subscriber = process_subscriber(subscriber)
         return await SubscriptionDocument.find_one(SubscriptionDocument.subscriber == subscriber,
                                                    SubscriptionDocument.code == code)
 
     async def insert(self, subscription: Subscription):
         subscription.subscriber = process_subscriber(subscription.subscriber)
-        subscription.code = await self.seq_repo.inc_and_get(f'subscription {subscription.subscriber}')
+        subscription.code = gen_code()
         await SubscriptionDocument.insert_one(SubscriptionDocument(**subscription.dict()))
 
-    async def delete_one(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[Subscription]:
+    async def delete_one(self, subscriber: PostIdentifier[T_UID, T_GID], code: str) -> Optional[Subscription]:
         # beanie不支持原子性的find_one_and_delete操作
         subscriber = process_subscriber(subscriber)
         query = {
