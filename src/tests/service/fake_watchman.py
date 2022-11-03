@@ -12,18 +12,18 @@ class FakeWatchmanMixin(MyTest):
         from nonebot_plugin_pixivbot.model import PostIdentifier, WatchType, WatchTask
         from nonebot_plugin_pixivbot.service.watchman import Watchman
         from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
+        from nonebot_plugin_pixivbot.data.utils.shortuuid import gen_code
 
         @context.bind_singleton_to(Watchman)
         class FakeWatchman:
             def __init__(self):
                 self.tasks = {}
-                self.code_gen = 0
 
             async def watch(self, type_: WatchType,
                             kwargs: Dict[str, Any],
                             subscriber: PostDestination[int, int]) -> bool:
                 self.code_gen += 1
-                code = self.code_gen
+                code = gen_code()
                 self.tasks[code] = WatchTask(
                     code=code,
                     type=type_,
@@ -32,7 +32,7 @@ class FakeWatchmanMixin(MyTest):
                 )
                 return True
 
-            async def unwatch(self, subscriber: PostIdentifier[int, int], code: int) -> bool:
+            async def unwatch(self, subscriber: PostIdentifier[int, int], code: str) -> bool:
                 if code in self.tasks:
                     del self.tasks[code]
                     return True
