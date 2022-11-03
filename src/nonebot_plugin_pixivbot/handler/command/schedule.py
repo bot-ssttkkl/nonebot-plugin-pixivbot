@@ -20,7 +20,7 @@ async def build_subscriptions_msg(subscriber: PostIdentifier[T_UID, T_GID]):
         for x in subscription:
             args = list(filter(lambda kv: kv[1], x.kwargs.items()))
             if len(args) != 0:
-                args_text = " ".join(map(lambda kv: f'{kv[0]}={kv[1]}', args))
+                args_text = ", ".join(map(lambda kv: f'{kv[0]}={kv[1]}', args))
                 args_text = f"({args_text})"
             else:
                 args_text = ""
