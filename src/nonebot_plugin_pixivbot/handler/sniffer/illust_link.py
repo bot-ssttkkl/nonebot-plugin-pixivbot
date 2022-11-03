@@ -22,6 +22,7 @@ class IllustLinkHandler(DelegationHandler, MatcherEntryHandler):
     def enabled(self) -> bool:
         return True
 
+    @property
     def delegation(self) -> DelegationHandler:
         return context.require(IllustHandler)
 

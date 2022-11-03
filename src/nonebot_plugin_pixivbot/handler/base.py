@@ -136,10 +136,7 @@ def post_destination(bot: Bot, event: Event):
     return context.require(PostDestinationFactoryManager).from_event(bot, event)
 
 
-@context.inject
 class EntryHandler(Handler, ABC):
-    conf: Config = Inject(Config)
-
     def __init__(self):
         super().__init__()
         self.add_interceptor(context.require(DefaultErrorInterceptor))
