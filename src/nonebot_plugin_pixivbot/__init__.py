@@ -5,8 +5,9 @@ nonebot-plugin-pixivbot
 @License        : MIT
 @GitHub         : https://github.com/ssttkkl/nonebot-plugin-pixivbot
 """
+from .utils.nonebot import default_command_start
 
-help_text = """
+help_text = f"""
 常规语句：
 - 看看榜<范围>：查看pixiv榜单
 - 来张图：从推荐插画随机抽选一张插画
@@ -18,8 +19,8 @@ help_text = """
 - 不够色：获取上一张插画的相关推荐
 
 命令语句：
-- /pixivbot help：查看本帮助
-- /pixivbot bind：绑定Pixiv账号
+- {default_command_start}pixivbot help：查看本帮助
+- {default_command_start}pixivbot bind：绑定Pixiv账号
 
 更多功能：参见https://github.com/ssttkkl/nonebot-plugin-pixivbot
 """.strip()
