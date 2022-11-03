@@ -1,7 +1,6 @@
 from asyncio import sleep, create_task, CancelledError, Semaphore, Task
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
-from functools import wraps
 from io import BytesIO
 from typing import TypeVar, Optional, Awaitable, List, Callable, Tuple, AsyncGenerator, Union
 
@@ -22,27 +21,6 @@ from .lazy_illust import LazyIllust
 from .models import PixivRepoMetadata
 
 T = TypeVar("T")
-
-
-def _auto_retry(func):
-    @wraps(func)
-    async def wrapped(*args, **kwargs):
-        err = None
-        for t in range(10):
-            try:
-                return await func(*args, **kwargs)
-            except CancelledError as e:
-                raise e
-            except QueryError as e:
-                raise e
-            except Exception as e:
-                logger.debug(f"Retrying... {t + 1}/10")
-                logger.exception(e)
-                err = e
-
-        raise err
-
-    return wrapped
 
 
 @context.inject
@@ -302,7 +280,6 @@ class RemotePixivRepo(PixivRepo):
                 yield item
             yield metadata
 
-    @_auto_retry
     async def _raw_illust_detail(self, illust_id: int, **kwargs) -> dict:
         async with self._query():
             raw_result = await self._papi.illust_detail(illust_id, **kwargs)
@@ -315,7 +292,6 @@ class RemotePixivRepo(PixivRepo):
         yield PixivRepoMetadata()
         yield Illust.parse_obj(raw_result["illust"])
 
-    @_auto_retry
     async def _raw_user_detail(self, user_id: int, **kwargs) -> dict:
         async with self._query():
             raw_result = await self._papi.user_detail(user_id, **kwargs)
@@ -421,7 +397,6 @@ class RemotePixivRepo(PixivRepo):
                                  block_tags=self._conf.pixiv_block_tags,
                                  mode=mode.name, **kwargs)
 
-    @_auto_retry
     async def _raw_image(self, illust: Illust, **kwargs) -> bytes:
         download_quantity = self._conf.pixiv_download_quantity
         custom_domain = self._conf.pixiv_download_custom_domain
