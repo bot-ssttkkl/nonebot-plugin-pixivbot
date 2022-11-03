@@ -64,7 +64,27 @@ class CommandHandler(MatcherEntryHandler):
 
     async def on_match(self, bot: Bot, event: Event, state: T_State, matcher: Matcher,
                        post_dest: PostDestination[T_UID, T_GID] = Depends(post_destination)):
-        args = str(event.get_message()).strip().split()[1:]
+        raw_args = str(event.get_message()).strip() + ' '  # 末尾加一个空格用于处理边界
+
+        args = []
+        slash = False
+        pending_arg = ""
+        for c in raw_args:
+            if slash:
+                pending_arg += c
+                slash = False
+            elif c == '\\':
+                slash = True
+            elif c == ' ':
+                pending_arg = pending_arg.strip()
+                if len(pending_arg) != 0:
+                    args.append(pending_arg)
+                    pending_arg = ""
+            else:
+                pending_arg += c
+
+        logger.debug(f"command args: {args}")
+        args = args[1:]
         await self.handle(*args, post_dest=post_dest)
 
     def sub_command(self, type: str) \
