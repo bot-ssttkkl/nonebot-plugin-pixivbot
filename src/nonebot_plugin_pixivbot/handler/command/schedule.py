@@ -10,6 +10,7 @@ from nonebot_plugin_pixivbot.service.scheduler import Scheduler
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .command import CommandHandler, SubCommandHandler
 from ..pkg_context import context
+from ... import default_command_start
 
 
 async def build_subscriptions_msg(subscriber: PostIdentifier[T_UID, T_GID]):
@@ -80,13 +81,13 @@ class ScheduleHandler(SubCommandHandler):
 
         msg += await build_subscriptions_msg(post_dest.identifier)
         msg += "\n" \
-               "命令格式：/pixivbot schedule <type> <schedule> [..args]\n" \
+               f"命令格式：{default_command_start}pixivbot schedule <type> <schedule> [..args]\n" \
                "参数：\n" \
                "  <type>：可选值有random_bookmark, random_recommended_illust, random_illust, " \
                "random_user_illust, ranking\n" \
                "  <schedule>：格式为HH:mm（每日固定时间点推送）或HH:mm*x（间隔时间推送）\n" \
                "  [...args]：根据<type>不同需要提供不同的参数\n" \
-               "示例：/pixivbot schedule ranking 06:00*x day 1-5"
+               f"示例：{default_command_start}pixivbot schedule ranking 06:00*x day 1-5"
         await self.post_plain_text(message=msg, post_dest=post_dest)
 
 
@@ -133,5 +134,5 @@ class UnscheduleHandler(SubCommandHandler):
 
         msg += await build_subscriptions_msg(post_dest.identifier)
         msg += "\n"
-        msg += "命令格式：/pixivbot unschedule <id>"
+        msg += f"命令格式：{default_command_start}pixivbot unschedule <id>"
         await self.post_plain_text(message=msg, post_dest=post_dest)

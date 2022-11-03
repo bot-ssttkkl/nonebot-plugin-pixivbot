@@ -10,6 +10,7 @@ from nonebot_plugin_pixivbot.service.watchman import Watchman
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .command import CommandHandler, SubCommandHandler
 from ..pkg_context import context
+from ... import default_command_start
 
 
 async def parse_and_get_user(raw_user: str):
@@ -139,11 +140,11 @@ class WatchHandler(SubCommandHandler):
 
         msg += await build_tasks_msg(post_dest.identifier)
         msg += "\n" \
-               "命令格式：/pixivbot watch <type> [..args]\n" \
+               f"命令格式：{default_command_start}pixivbot watch <type> [..args]\n" \
                "参数：\n" \
                "  <type>：可选值有user_illusts, following_illusts\n" \
                "  [...args]：根据<type>不同需要提供不同的参数\n" \
-               "示例：/pixivbot watch user_illusts <用户名>\n"
+               f"示例：{default_command_start}pixivbot watch user_illusts <用户名>\n"
         await self.post_plain_text(message=msg, post_dest=post_dest)
 
 
@@ -190,5 +191,5 @@ class UnwatchHandler(SubCommandHandler):
 
         msg += await build_tasks_msg(post_dest.identifier)
         msg += "\n"
-        msg += "命令格式：/pixivbot unwatch <id>"
+        msg += f"命令格式：{default_command_start}pixivbot unwatch <id>"
         await self.post_plain_text(message=msg, post_dest=post_dest)

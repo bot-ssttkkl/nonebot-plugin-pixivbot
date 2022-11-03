@@ -7,6 +7,7 @@ from nonebot_plugin_pixivbot.service.pixiv_account_binder import PixivAccountBin
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .command import SubCommandHandler, CommandHandler
 from ..pkg_context import context
+from ... import default_command_start
 
 
 @context.inject
@@ -51,7 +52,7 @@ class BindHandler(SubCommandHandler):
                     msg = f"当前绑定账号：{pixiv_user_id}\n"
                 else:
                     msg = "当前未绑定Pixiv账号\n"
-                msg += "命令格式：/pixivbot bind <pixiv_user_id>"
+                msg += f"命令格式：{default_command_start}pixivbot bind <pixiv_user_id>"
                 await self.post_plain_text(message=msg, post_dest=post_dest)
 
 
