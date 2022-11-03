@@ -105,8 +105,8 @@ class SqlWatchTaskRepo:
                         kwargs=task.kwargs,
                         adapter=task.subscriber.adapter,
                         checkpoint=task.checkpoint)
-                .where(WatchTask.subscriber == task.subscriber.dict(),
-                       WatchTask.code == task.code))
+                .where(WatchTaskOrm.subscriber == task.subscriber.dict(),
+                       WatchTaskOrm.code == task.code))
         result = await session.execute(stmt)
         await session.commit()
         return result.rowcount == 1
