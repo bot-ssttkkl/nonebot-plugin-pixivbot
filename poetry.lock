@@ -205,7 +205,7 @@ name = "cachetools"
 version = "5.2.0"
 description = "Extensible memoizing collections and decorators"
 category = "main"
-optional = true
+optional = false
 python-versions = "~=3.7"
 
 [[package]]
@@ -320,7 +320,7 @@ name = "dnspython"
 version = "2.2.1"
 description = "DNS toolkit"
 category = "main"
-optional = false
+optional = true
 python-versions = ">=3.6,<4.0"
 
 [package.extras]
@@ -542,7 +542,7 @@ name = "motor"
 version = "3.1.1"
 description = "Non-blocking MongoDB driver for Tornado or asyncio"
 category = "main"
-optional = false
+optional = true
 python-versions = ">=3.7"
 
 [package.dependencies]
@@ -816,7 +816,7 @@ name = "pymongo"
 version = "4.3.2"
 description = "Python driver for MongoDB <http://www.mongodb.org>"
 category = "main"
-optional = false
+optional = true
 python-versions = ">=3.7"
 
 [package.dependencies]
@@ -1328,7 +1328,7 @@ onebot = ["nonebot-plugin-pixivbot-onebot-v11"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "f4809f3b17085cfa8e9608ae884ec60d145c2f35a1add2355c12719ee95f1eed"
+content-hash = "9f98527b535aa8779553067160cb0b9978755d18a0b4212e85c58cbec8beac0a"
 
 [metadata.files]
 aiofiles = [
