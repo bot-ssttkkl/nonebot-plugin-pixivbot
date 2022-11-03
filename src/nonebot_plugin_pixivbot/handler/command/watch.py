@@ -1,4 +1,4 @@
-from typing import Sequence, Dict, Any
+from typing import Sequence
 
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import GroupAdminInterceptor, \
@@ -90,6 +90,12 @@ class WatchHandler(SubCommandHandler):
         if len(args) == 0:
             raise BadRequestError()
 
+        if args[0] == 'fetch':
+            if len(args) < 2:
+                raise BadRequestError("请指定订阅ID")
+            return {"operation": "fetch",
+                    "code": args[1]}
+
         try:
             type = WatchType[args[0]]
             if type == WatchType.user_illusts:
@@ -101,19 +107,27 @@ class WatchHandler(SubCommandHandler):
         except KeyError as e:
             raise BadRequestError(f"未知订阅类型：{args[0]}") from e
 
-        return {"type": type, "watch_kwargs": watch_kwargs, "success_message": "成功订阅" + message}
+        return {"operation": "add",
+                "type": type,
+                "watch_kwargs": watch_kwargs,
+                "success_message": "成功订阅" + message}
 
     # noinspection PyMethodOverriding
-    async def actual_handle(self, *, type: WatchType,
-                            watch_kwargs: Dict[str, Any],
-                            success_message: str,
+    async def actual_handle(self, *, operation: str,
                             post_dest: PostDestination[T_UID, T_GID],
                             silently: bool = False, **kwargs):
-        ok = await self.watchman.watch(type, watch_kwargs, post_dest)
-        if ok:
-            await self.post_plain_text(success_message, post_dest)
-        else:
-            await self.post_plain_text("该订阅已存在", post_dest)
+        if operation == 'fetch':
+            ok = await self.watchman.fetch(kwargs['code'], post_dest)
+            if ok:
+                await self.post_plain_text("拉取完毕", post_dest)
+            else:
+                raise BadRequestError("不存在该订阅")
+        elif operation == 'add':
+            ok = await self.watchman.watch(kwargs['type'], kwargs['watch_kwargs'], post_dest)
+            if ok:
+                await self.post_plain_text(kwargs['success_message'], post_dest)
+            else:
+                raise BadRequestError("该订阅已存在")
 
     async def actual_handle_bad_request(self, err: BadRequestError,
                                         *, post_dest: PostDestination[T_UID, T_GID],
