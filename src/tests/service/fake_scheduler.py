@@ -12,12 +12,12 @@ class FakeSchedulerMixin(MyTest):
         from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
         from nonebot_plugin_pixivbot.model import PostIdentifier, Subscription, ScheduleType
         from nonebot_plugin_pixivbot.service.scheduler import Scheduler
+        from nonebot_plugin_pixivbot.data.utils.shortuuid import gen_code
 
         @context.bind_singleton_to(Scheduler)
         class FakeScheduler:
             def __init__(self):
                 self.subscriptions = {}
-                self.code_gen = 0
 
             async def schedule(self, type_: ScheduleType,
                                schedule: Union[str, Sequence[int]],
@@ -32,8 +32,7 @@ class FakeSchedulerMixin(MyTest):
                 for i, arg in enumerate(args):
                     kwargs[str(i)] = arg
 
-                self.code_gen += 1
-                code = self.code_gen
+                code = gen_code()
                 self.subscriptions[code] = Subscription(code=code,
                                                         type=type_,
                                                         schedule=schedule,
