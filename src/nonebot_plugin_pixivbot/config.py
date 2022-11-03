@@ -16,7 +16,7 @@ class Config(BaseSettings):
     pixiv_refresh_token: str
 
     pixiv_data_source: DataSourceType = DataSourceType.sqlite
-    pixiv_mongo_conn_url: Optional[str]
+    pixiv_mongo_conn_url: str
     pixiv_mongo_database_name: str
     pixiv_sql_conn_url: str = "sqlite+aiosqlite:///pixiv_bot.db"
 
@@ -24,10 +24,11 @@ class Config(BaseSettings):
     def validate_data_source(cls, values):
         if "pixiv_data_source" not in values:
             if "pixiv_mongo_conn_url" in values:
-                pixiv_data_source = DataSourceType.mongo
+                values["pixiv_data_source"] = DataSourceType.mongo
             else:
-                pixiv_data_source = DataSourceType.sqlite
-            values["pixiv_data_source"] = pixiv_data_source
+                values["pixiv_data_source"] = DataSourceType.sqlite
+                values["pixiv_mongo_conn_url"] = ""
+                values["pixiv_mongo_database_name"] = ""
         return values
 
     pixiv_proxy: Optional[str]
