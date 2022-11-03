@@ -7,9 +7,9 @@ from pymongo.errors import DuplicateKeyError
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import WatchTask, PostIdentifier, T_UID, T_GID
-from ..seq import SeqRepo
 from ..source.mongo import MongoDataSource
 from ..utils.process_subscriber import process_subscriber
+from ..utils.shortuuid import gen_code
 
 
 class WatchTaskDocument(WatchTask[Any, Any], Document):
@@ -17,7 +17,7 @@ class WatchTaskDocument(WatchTask[Any, Any], Document):
         name = "watch_task"
         indexes = [
             IndexModel([("subscriber.adapter", 1)]),
-            IndexModel([("subscriber", 1), ("code", 1)]),
+            IndexModel([("subscriber", 1), ("code", 1)], unique=True),
             IndexModel([("subscriber", 1), ("type", 1), ("kwargs", 1)], unique=True)
         ]
 
@@ -29,7 +29,6 @@ context.require(MongoDataSource).document_models.append(WatchTaskDocument)
 @context.register_singleton()
 class MongoWatchTaskRepo:
     mongo = Inject(MongoDataSource)
-    seq_repo: SeqRepo = Inject(SeqRepo)
 
     async def get_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncGenerator[WatchTask, None]:
         subscriber = process_subscriber(subscriber)
@@ -48,11 +47,8 @@ class MongoWatchTaskRepo:
     async def insert(self, task: WatchTask) -> bool:
         try:
             task.subscriber = process_subscriber(task.subscriber)
+            task.code = gen_code()
             doc = WatchTaskDocument(**task.dict())
-            await doc.save()
-
-            task.code = await self.seq_repo.inc_and_get(f'watch_task {task.subscriber}')
-            doc.code = task.code
             await doc.save()
 
             return True

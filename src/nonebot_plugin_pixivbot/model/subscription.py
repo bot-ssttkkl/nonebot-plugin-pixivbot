@@ -16,7 +16,7 @@ class ScheduleType(str, Enum):
 
 
 class Subscription(GenericModel, Generic[T_UID, T_GID]):
-    code: int = 0
+    code: str = ""
     type: ScheduleType
     kwargs: Dict[str, Any]
     subscriber: PostIdentifier[T_UID, T_GID]

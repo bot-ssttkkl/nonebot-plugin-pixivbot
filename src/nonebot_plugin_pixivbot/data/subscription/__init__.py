@@ -13,13 +13,13 @@ class SubscriptionRepo(Protocol):
     def get_by_adapter(self, adapter: str) -> AsyncIterable[Subscription]:
         ...
 
-    async def get_by_code(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[Subscription]:
+    async def get_by_code(self, subscriber: PostIdentifier[T_UID, T_GID], code: str) -> Optional[Subscription]:
         ...
 
     async def insert(self, subscription: Subscription):
         ...
 
-    async def delete_one(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[Subscription]:
+    async def delete_one(self, subscriber: PostIdentifier[T_UID, T_GID], code: str) -> Optional[Subscription]:
         ...
 
     async def delete_many_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> Collection[Subscription]:

@@ -1,14 +1,14 @@
 from typing import Optional, AsyncIterable, Collection
 
 import tzlocal
-from sqlalchemy import Column, Integer, Enum as SqlEnum, JSON, String, select, Index
+from sqlalchemy import Column, Integer, Enum as SqlEnum, JSON, String, select, Index, UniqueConstraint
 from sqlalchemy.dialects.sqlite import insert
 
 from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.data.seq import SeqRepo
 from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
 from nonebot_plugin_pixivbot.data.utils.process_subscriber import process_subscriber
+from nonebot_plugin_pixivbot.data.utils.shortuuid import gen_code
 from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier, ScheduleType, T_UID, T_GID
 
 
@@ -18,7 +18,7 @@ class SubscriptionOrm:
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     subscriber = Column(JSON, nullable=False)
-    code = Column(Integer, nullable=False)
+    code = Column(String, nullable=False)
     type = Column(SqlEnum(ScheduleType), nullable=False)
     kwargs = Column(JSON, nullable=False, default=dict)
     adapter = Column(String, nullable=False)
@@ -27,7 +27,7 @@ class SubscriptionOrm:
 
     __table_args__ = (
         Index("subscription_adapter_idx", "adapter"),
-        Index("subscription_subscriber_code_idx", "subscriber", "code"),
+        UniqueConstraint("subscriber", "code"),
     )
 
 
@@ -35,7 +35,6 @@ class SubscriptionOrm:
 @context.register_singleton()
 class SqlSubscriptionRepo:
     data_source: SqlDataSource = Inject(SqlDataSource)
-    seq_repo: SeqRepo = Inject(SeqRepo)
 
     async def get_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncIterable[Subscription]:
         subscriber = process_subscriber(subscriber)
@@ -59,7 +58,7 @@ class SqlSubscriptionRepo:
 
     async def insert(self, subscription: Subscription):
         subscription.subscriber = process_subscriber(subscription.subscriber)
-        subscription.code = await self.seq_repo.inc_and_get(f'subscription {subscription.subscriber}')
+        subscription.code = gen_code()
 
         session = self.data_source.session()
         stmt = (insert(SubscriptionOrm)
