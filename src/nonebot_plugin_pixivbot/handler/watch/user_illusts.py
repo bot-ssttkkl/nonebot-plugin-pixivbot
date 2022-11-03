@@ -6,14 +6,14 @@ from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.pixiv_repo import PixivRepo
 from nonebot_plugin_pixivbot.data.pixiv_repo.enums import CacheStrategy
 from nonebot_plugin_pixivbot.data.pixiv_repo.remote_repo import RemotePixivRepo
-from nonebot_plugin_pixivbot.model import WatchTask, Illust
+from nonebot_plugin_pixivbot.model import WatchTask, Illust, T_UID, T_GID
 from nonebot_plugin_pixivbot.utils.shared_agen import SharedAsyncGeneratorManager
 from .base import WatchTaskHandler
-from ..handler import PD
 from ..pkg_context import context
-
-
 # 因为要强制从远端获取，所以用这个shared_agen_mgr来缓存
+from ...protocol_dep.post_dest import PostDestination
+
+
 @context.inject
 @context.register_singleton()
 class WatchUserIllustsSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[int, Illust]):
@@ -42,7 +42,10 @@ class WatchUserIllustsHandler(WatchTaskHandler):
         return True
 
     # noinspection PyMethodOverriding
-    async def actual_handle(self, *, task: WatchTask, post_dest: PD, silently: bool = False, **kwargs):
+    async def actual_handle(self, *, task: WatchTask,
+                            post_dest: PostDestination[T_UID, T_GID],
+                            silently: bool = False,
+                            **kwargs):
         with self.shared_agen_mgr.get(task.kwargs["user_id"]) as illusts:
             async for illust in illusts:
                 if illust.create_date <= task.checkpoint:

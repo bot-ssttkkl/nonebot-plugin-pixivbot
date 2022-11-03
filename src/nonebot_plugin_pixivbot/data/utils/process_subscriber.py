@@ -1,14 +1,7 @@
-from typing import TypeVar
-
-from nonebot_plugin_pixivbot.model import PostIdentifier
-
-UID = TypeVar("UID")
-GID = TypeVar("GID")
-
-ID = PostIdentifier[UID, GID]
+from nonebot_plugin_pixivbot.model import PostIdentifier, T_UID, T_GID
 
 
-def process_subscriber(subscriber: ID) -> PostIdentifier[UID, GID]:
+def process_subscriber(subscriber: PostIdentifier[T_UID, T_GID]) -> PostIdentifier[T_UID, T_GID]:
     if subscriber.group_id:
         return PostIdentifier(subscriber.adapter, None, subscriber.group_id)
     elif subscriber.user_id:

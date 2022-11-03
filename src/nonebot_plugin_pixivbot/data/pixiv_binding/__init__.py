@@ -1,21 +1,19 @@
-from typing import Optional, TypeVar, Protocol
+from typing import Optional, Protocol
 
 from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.enums import DataSourceType
-from nonebot_plugin_pixivbot.model import PixivBinding
-
-UID = TypeVar("UID")
+from nonebot_plugin_pixivbot.model import PixivBinding, T_UID
 
 
 class PixivBindingRepo(Protocol):
-    async def get(self, adapter: str, user_id: UID) -> Optional[PixivBinding]:
+    async def get(self, adapter: str, user_id: T_UID) -> Optional[PixivBinding]:
         ...
 
     async def update(self, binding: PixivBinding):
         ...
 
-    async def remove(self, adapter: str, user_id: UID) -> bool:
+    async def remove(self, adapter: str, user_id: T_UID) -> bool:
         ...
 
 

@@ -6,15 +6,15 @@ from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.pixiv_repo import PixivRepo
 from nonebot_plugin_pixivbot.data.pixiv_repo.enums import CacheStrategy
 from nonebot_plugin_pixivbot.data.pixiv_repo.remote_repo import RemotePixivRepo
-from nonebot_plugin_pixivbot.handler.handler import PD
 from nonebot_plugin_pixivbot.handler.watch.base import WatchTaskHandler
-from nonebot_plugin_pixivbot.model import WatchTask, Illust
+from nonebot_plugin_pixivbot.model import WatchTask, Illust, T_GID, T_UID
 from nonebot_plugin_pixivbot.service.pixiv_account_binder import PixivAccountBinder
 from nonebot_plugin_pixivbot.utils.shared_agen import SharedAsyncGeneratorManager
 from ..pkg_context import context
-
-
 # 因为要强制从远端获取，所以用这个shared_agen_mgr来缓存
+from ...protocol_dep.post_dest import PostDestination
+
+
 @context.inject
 @context.register_singleton()
 class WatchFollowingIllustsSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[int, Illust]):
@@ -44,7 +44,10 @@ class WatchFollowingIllustsHandler(WatchTaskHandler):
         return True
 
     # noinspection PyMethodOverriding
-    async def actual_handle(self, *, task: WatchTask, post_dest: PD, silently: bool = False, **kwargs):
+    async def actual_handle(self, *, task: WatchTask,
+                            post_dest: PostDestination[T_UID, T_GID],
+                            silently: bool = False,
+                            **kwargs):
         pixiv_user_id = task.kwargs.get("pixiv_user_id", 0)
         sender_user_id = task.kwargs.get("sender_user_id", 0)
 

@@ -1,18 +1,15 @@
 from datetime import datetime, timezone
 from math import ceil
-from typing import TypeVar
 
 from nonebot import logger
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.context import Inject
+from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.model import UserIdentifier
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .permission_interceptor import PermissionInterceptor
 from ..pkg_context import context
-
-UID = TypeVar("UID")
-GID = TypeVar("GID")
 
 
 @context.inject
@@ -22,9 +19,9 @@ class CooldownInterceptor(PermissionInterceptor):
 
     def __init__(self):
         super().__init__()
-        self.last_query_time = dict[UserIdentifier[UID], datetime]()
+        self.last_query_time = dict[UserIdentifier[T_UID], datetime]()
 
-    def has_permission(self, post_dest: PostDestination[UID, GID]) -> bool:
+    def has_permission(self, post_dest: PostDestination[T_UID, T_GID]) -> bool:
         if self.conf.pixiv_query_cooldown == 0:
             return True
 
@@ -53,7 +50,7 @@ class CooldownInterceptor(PermissionInterceptor):
                 self.last_query_time[identifier] = now
                 return True
 
-    def get_permission_denied_msg(self, post_dest: PostDestination[UID, GID]) -> str:
+    def get_permission_denied_msg(self, post_dest: PostDestination[T_UID, T_GID]) -> str:
         identifier = UserIdentifier(post_dest.adapter, post_dest.user_id)
         now = datetime.now(timezone.utc)
         delta = now - self.last_query_time[identifier]

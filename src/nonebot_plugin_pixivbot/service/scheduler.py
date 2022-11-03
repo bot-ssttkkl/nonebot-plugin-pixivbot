@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timedelta
 from inspect import isawaitable
-from typing import TypeVar, Dict, Sequence, Union, TYPE_CHECKING, AsyncIterable
+from typing import Dict, Sequence, Union, TYPE_CHECKING, AsyncIterable
 
 import pytz
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -16,6 +16,7 @@ from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.subscription import SubscriptionRepo
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier
+from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.model.subscription import ScheduleType
 from nonebot_plugin_pixivbot.protocol_dep.authenticator import AuthenticatorManager
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination, PostDestinationFactoryManager
@@ -25,10 +26,6 @@ from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
 
 if TYPE_CHECKING:
     from nonebot_plugin_pixivbot.handler import Handler
-
-UID = TypeVar("UID")
-GID = TypeVar("GID")
-ID = PostIdentifier[UID, GID]
 
 
 def parse_schedule(raw_schedule: str) -> Sequence[int]:
@@ -91,7 +88,7 @@ class Scheduler:
             ScheduleType.random_user_illust: context.require(RandomUserIllustHandler),
         }
 
-    async def _on_trigger(self, sub: Subscription[UID, GID], post_dest: PostDestination[UID, GID]):
+    async def _on_trigger(self, sub: Subscription[T_UID, T_GID], post_dest: PostDestination[T_UID, T_GID]):
         logger.info(f"[scheduler] triggered {sub}")
 
         try:
@@ -107,7 +104,7 @@ class Scheduler:
                 logger.info(f"[scheduler] {post_dest} is no longer available, removing all his subscriptions...")
                 await self.unschedule_all_by_subscriber(post_dest.identifier)
 
-    def _add_job(self, sub: Subscription[UID, GID], post_dest: PostDestination[UID, GID]):
+    def _add_job(self, sub: Subscription[T_UID, T_GID], post_dest: PostDestination[T_UID, T_GID]):
         offset_hour, offset_minute, hours, minutes = sub.schedule
         tz = pytz.timezone(sub.tz)
         trigger = IntervalTrigger(hours=hours, minutes=minutes,
@@ -121,7 +118,7 @@ class Scheduler:
                                  kwargs={"sub": sub, "post_dest": post_dest})
         logger.success(f"[scheduler] added job \"{job_id}\" on {trigger}")
 
-    def _remove_job(self, sub: Subscription[UID, GID]):
+    def _remove_job(self, sub: Subscription[T_UID, T_GID]):
         job_id = self._make_job_id(sub)
         self.apscheduler.remove_job(job_id)
         logger.success(f"[scheduler] removed job \"{job_id}\"")
@@ -145,7 +142,7 @@ class Scheduler:
     async def schedule(self, type_: ScheduleType,
                        schedule: Union[str, Sequence[int]],
                        args: Sequence[str],
-                       post_dest: PostDestination[UID, GID]):
+                       post_dest: PostDestination[T_UID, T_GID]):
         if args is None:
             args = []
 
@@ -161,7 +158,7 @@ class Scheduler:
         logger.success(f"[scheduler] successfully inserted subscription {sub}")
         self._add_job(sub, post_dest.normalized())
 
-    async def unschedule(self, subscriber: PostIdentifier[UID, GID], code: int) -> bool:
+    async def unschedule(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> bool:
         sub = await self.repo.delete_one(subscriber, code)
         if sub:
             logger.success(f"[scheduler] successfully removed subscription {sub}")
@@ -170,13 +167,13 @@ class Scheduler:
         else:
             return False
 
-    async def unschedule_all_by_subscriber(self, subscriber: PostIdentifier[UID, GID]):
+    async def unschedule_all_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]):
         old = await self.repo.delete_many_by_subscriber(subscriber)
         for sub in old:
             logger.success(f"[scheduler] successfully removed subscription {sub}")
             self._remove_job(sub)
 
-    def get_by_subscriber(self, subscriber: PostIdentifier[UID, GID]) -> AsyncIterable[Subscription]:
+    def get_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncIterable[Subscription]:
         return self.repo.get_by_subscriber(subscriber)
 
 

@@ -6,16 +6,15 @@ from nonebot.internal.matcher import Matcher
 from nonebot.internal.params import Depends
 from nonebot.typing import T_State
 
-from nonebot_plugin_pixivbot.handler.common import IllustHandler
-from nonebot_plugin_pixivbot.handler.entry_handler import DelegationEntryHandler, UID, GID, EntryHandler, \
-    post_destination
-from nonebot_plugin_pixivbot.handler.utils import get_common_query_rule
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
+from ..base import DelegationHandler, T_UID, T_GID, MatcherEntryHandler, post_destination
+from ..common import IllustHandler
 from ..pkg_context import context
+from ..utils import get_common_query_rule
 
 
 @context.root.register_eager_singleton()
-class IllustLinkHandler(DelegationEntryHandler):
+class IllustLinkHandler(DelegationHandler, MatcherEntryHandler):
     @classmethod
     def type(cls) -> str:
         return "illust_link"
@@ -23,7 +22,7 @@ class IllustLinkHandler(DelegationEntryHandler):
     def enabled(self) -> bool:
         return True
 
-    def delegation(self) -> EntryHandler:
+    def delegation(self) -> DelegationHandler:
         return context.require(IllustHandler)
 
     @property
@@ -32,6 +31,6 @@ class IllustLinkHandler(DelegationEntryHandler):
                         rule=get_common_query_rule(), priority=5)
 
     async def on_match(self, bot: Bot, event: Event, state: T_State, matcher: Matcher,
-                       post_dest: PostDestination[UID, GID] = Depends(post_destination)):
+                       post_dest: PostDestination[T_UID, T_GID] = Depends(post_destination)):
         illust_id = state["_matched_groups"][2]
         await self.handle(illust_id, post_dest=post_dest)

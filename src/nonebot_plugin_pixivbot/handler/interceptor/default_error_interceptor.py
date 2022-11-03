@@ -1,22 +1,20 @@
 import asyncio
-from typing import Callable, TypeVar
+from typing import Callable
 
 from nonebot import logger
 from nonebot.exception import ActionFailed
 
+from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError, QueryError
 from .base import Interceptor
 from ..pkg_context import context
 
-UID = TypeVar("UID")
-GID = TypeVar("GID")
-
 
 @context.register_singleton()
 class DefaultErrorInterceptor(Interceptor):
     async def intercept(self, wrapped_func: Callable, *args,
-                        post_dest: PostDestination[UID, GID],
+                        post_dest: PostDestination[T_UID, T_GID],
                         silently: bool,
                         **kwargs):
         try:

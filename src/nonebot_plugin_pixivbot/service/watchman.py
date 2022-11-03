@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from inspect import isawaitable
-from typing import Dict, Any, TypeVar, AsyncIterable
+from typing import Dict, Any, AsyncIterable
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -14,18 +14,13 @@ from nonebot_plugin_pixivbot.data.watch_task import WatchTaskRepo
 from nonebot_plugin_pixivbot.handler.watch.following_illusts import WatchFollowingIllustsHandler
 from nonebot_plugin_pixivbot.handler.watch.user_illusts import WatchUserIllustsHandler
 from nonebot_plugin_pixivbot.model import PostIdentifier, WatchTask, WatchType
+from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.protocol_dep.authenticator import AuthenticatorManager
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination, PostDestinationFactoryManager
 from nonebot_plugin_pixivbot.protocol_dep.postman import PostmanManager
 from nonebot_plugin_pixivbot.service.pixiv_account_binder import PixivAccountBinder
 from nonebot_plugin_pixivbot.utils.lifecycler import on_bot_connect, on_bot_disconnect
 from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
-
-UID = TypeVar("UID")
-GID = TypeVar("GID")
-
-PD = PostDestination[UID, GID]
-ID = PostIdentifier[UID, GID]
 
 
 @context.inject
@@ -44,7 +39,7 @@ class Watchman:
         on_bot_disconnect(self.on_bot_disconnect)
 
     @staticmethod
-    def _make_job_id(task: WatchTask[UID, GID]):
+    def _make_job_id(task: WatchTask[T_UID, T_GID]):
         return f'watchman {task.subscriber} {task.code}'
 
     _trigger_hasher_mapper = {
@@ -57,7 +52,7 @@ class Watchman:
         WatchType.following_illusts: context.require(WatchFollowingIllustsHandler),
     }
 
-    async def _on_trigger(self, task: WatchTask[UID, GID], post_dest: PD):
+    async def _on_trigger(self, task: WatchTask[T_UID, T_GID], post_dest: PostDestination[T_UID, T_GID]):
         logger.info(f"[watchman] triggered {task}")
 
         try:
@@ -90,7 +85,7 @@ class Watchman:
         trigger = IntervalTrigger(seconds=self.conf.pixiv_watch_interval, start_date=yesterday)
         return trigger
 
-    def _add_job(self, task: WatchTask[UID, GID], post_dest: PD):
+    def _add_job(self, task: WatchTask[T_UID, T_GID], post_dest: PostDestination[T_UID, T_GID]):
         job_id = self._make_job_id(task)
         trigger = self._make_job_trigger(task)
         self.apscheduler.add_job(self._on_trigger, id=job_id, trigger=trigger,
@@ -98,7 +93,7 @@ class Watchman:
                                  max_instances=1)
         logger.success(f"[watchman] add job \"{job_id}\" on {trigger}")
 
-    def _remove_job(self, task: WatchTask[UID, GID]):
+    def _remove_job(self, task: WatchTask[T_UID, T_GID]):
         job_id = self._make_job_id(task)
         self.apscheduler.remove_job(job_id)
         logger.success(f"[watchman] remove job \"{job_id}\"")
@@ -121,7 +116,7 @@ class Watchman:
 
     async def watch(self, type_: WatchType,
                     kwargs: Dict[str, Any],
-                    subscriber: PD) -> bool:
+                    subscriber: PostDestination[T_UID, T_GID]) -> bool:
         task = WatchTask(type=type_, kwargs=kwargs, subscriber=subscriber.identifier)
         ok = await self.repo.insert(task)
         if ok:
@@ -138,11 +133,11 @@ class Watchman:
         else:
             return False
 
-    async def unwatch_all_by_subscriber(self, subscriber: ID):
+    async def unwatch_all_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]):
         old = await self.repo.delete_many_by_subscriber(subscriber)
         for task in old:
             logger.success(f"[scheduler] successfully removed subscription {task}")
             self._remove_job(task)
 
-    def get_by_subscriber(self, subscriber: ID) -> AsyncIterable[WatchTask]:
+    def get_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncIterable[WatchTask]:
         return self.repo.get_by_subscriber(subscriber)

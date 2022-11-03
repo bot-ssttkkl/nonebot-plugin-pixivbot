@@ -20,7 +20,7 @@ class Config(BaseSettings):
     pixiv_mongo_database_name: str
     pixiv_sql_conn_url: str = "sqlite+aiosqlite:///pixiv_bot.db"
 
-    @root_validator(pre=True)
+    @root_validator(pre=True, allow_reuse=True)
     def validate_data_source(cls, values):
         if "pixiv_data_source" not in values:
             if "pixiv_mongo_conn_url" in values:

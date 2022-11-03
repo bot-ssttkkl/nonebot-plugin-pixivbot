@@ -1,5 +1,5 @@
+from typing import Sequence
 from typing import Tuple
-from typing import TypeVar, Sequence
 from typing import Union
 
 from lazy import lazy
@@ -10,16 +10,14 @@ from nonebot.internal.params import Depends
 from nonebot.typing import T_State
 
 from nonebot_plugin_pixivbot.enums import RankingMode
+from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.decode_integer import decode_integer
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .base import CommonHandler
-from ..entry_handler import post_destination
+from ..base import post_destination
 from ..pkg_context import context
 from ..utils import get_common_query_rule
-
-UID = TypeVar("UID")
-GID = TypeVar("GID")
 
 
 @context.root.register_eager_singleton()
@@ -44,7 +42,7 @@ class RankingHandler(CommonHandler):
         return on_regex(r"^看看(.*)?榜\s*(.*)?$", rule=get_common_query_rule(), priority=4, block=True)
 
     async def on_match(self, bot: Bot, event: Event, state: T_State, matcher: Matcher,
-                       post_dest: PostDestination[UID, GID] = Depends(post_destination)):
+                       post_dest: PostDestination[T_UID, T_GID] = Depends(post_destination)):
         if "_matched_groups" in state:
             mode = state["_matched_groups"][0]
             num = state["_matched_groups"][1]
@@ -65,7 +63,7 @@ class RankingHandler(CommonHandler):
                 raise BadRequestError(
                     f'仅支持查询{self.conf.pixiv_ranking_fetch_item}名以内的插画')
 
-    def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
+    def parse_args(self, args: Sequence[str], post_dest: PostDestination[T_UID, T_GID]) -> dict:
         mode = args[0] if len(args) > 0 else None
         range = args[1] if len(args) > 1 else None
 
@@ -96,7 +94,7 @@ class RankingHandler(CommonHandler):
 
     async def actual_handle(self, *, mode: Union[RankingMode, None] = None,
                             range: Union[Tuple[int, int], int, None] = None,
-                            post_dest: PostDestination[UID, GID],
+                            post_dest: PostDestination[T_UID, T_GID],
                             silently: bool = False):
         if mode is None:
             mode = self.conf.pixiv_ranking_default_mode

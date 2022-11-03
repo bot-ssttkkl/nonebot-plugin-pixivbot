@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Type, Callable, TypeVar, Sequence
+from typing import Type, Callable, Sequence
 
 from lazy import lazy
 from nonebot import Bot, on_command
@@ -10,19 +10,16 @@ from nonebot.internal.params import Depends
 from nonebot.typing import T_State
 
 from nonebot_plugin_pixivbot.global_context import context
+from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
-from ..entry_handler import MatcherEntryHandler, post_destination
-from ..handler import Handler
+from ..base import Handler, MatcherEntryHandler, post_destination
 from ..utils import get_command_rule
-
-UID = TypeVar("UID")
-GID = TypeVar("GID")
 
 
 class SubCommandHandler(Handler, ABC):
     async def handle(self, *args,
-                     post_dest: PostDestination[UID, GID],
+                     post_dest: PostDestination[T_UID, T_GID],
                      silently: bool = False,
                      disabled_interceptors: bool = False,
                      **kwargs):
@@ -33,7 +30,7 @@ class SubCommandHandler(Handler, ABC):
             await self.handle_bad_request(err=e, post_dest=post_dest, silently=silently)
 
     async def handle_bad_request(self, err: BadRequestError, *,
-                                 post_dest: PostDestination[UID, GID],
+                                 post_dest: PostDestination[T_UID, T_GID],
                                  silently: bool = False):
         if self.interceptor is not None:
             await self.interceptor.intercept(self.actual_handle_bad_request, err,
@@ -42,7 +39,7 @@ class SubCommandHandler(Handler, ABC):
             await self.actual_handle_bad_request(err, post_dest=post_dest, silently=silently)
 
     async def actual_handle_bad_request(self, err: BadRequestError, *,
-                                        post_dest: PostDestination[UID, GID],
+                                        post_dest: PostDestination[T_UID, T_GID],
                                         silently: bool = False):
         if not silently:
             await self.post_plain_text(err.message, post_dest=post_dest)
@@ -66,7 +63,7 @@ class CommandHandler(MatcherEntryHandler):
         return on_command("pixivbot", rule=get_command_rule(), priority=5)
 
     async def on_match(self, bot: Bot, event: Event, state: T_State, matcher: Matcher,
-                       post_dest: PostDestination[UID, GID] = Depends(post_destination)):
+                       post_dest: PostDestination[T_UID, T_GID] = Depends(post_destination)):
         args = str(event.get_message()).strip().split()[1:]
         await self.handle(*args, post_dest=post_dest)
 
@@ -81,12 +78,12 @@ class CommandHandler(MatcherEntryHandler):
 
         return decorator
 
-    def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
+    def parse_args(self, args: Sequence[str], post_dest: PostDestination[T_UID, T_GID]) -> dict:
         return {"args": args}
 
     # noinspection PyMethodOverriding
     async def actual_handle(self, *, args: Sequence[str],
-                            post_dest: PostDestination[UID, GID],
+                            post_dest: PostDestination[T_UID, T_GID],
                             silently: bool = False):
         logger.debug("args: " + " ".join(map(str, args)))
         if len(args) == 0:

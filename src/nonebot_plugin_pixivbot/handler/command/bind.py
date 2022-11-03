@@ -1,14 +1,12 @@
-from typing import TypeVar, Sequence
+from typing import Sequence
 
 from nonebot_plugin_pixivbot.context import Inject
+from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.service.pixiv_account_binder import PixivAccountBinder
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .command import SubCommandHandler, CommandHandler
 from ..pkg_context import context
-
-UID = TypeVar("UID")
-GID = TypeVar("GID")
 
 
 @context.inject
@@ -23,7 +21,7 @@ class BindHandler(SubCommandHandler):
     def enabled(self) -> bool:
         return True
 
-    async def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
+    async def parse_args(self, args: Sequence[str], post_dest: PostDestination[T_UID, T_GID]) -> dict:
         if len(args) < 1:
             raise BadRequestError()
         else:
@@ -36,13 +34,13 @@ class BindHandler(SubCommandHandler):
 
     # noinspection PyMethodOverriding
     async def actual_handle(self, *, pixiv_user_id: int,
-                            post_dest: PostDestination[UID, GID],
+                            post_dest: PostDestination[T_UID, T_GID],
                             silently: bool = False):
         await self.binder.bind(post_dest.adapter, post_dest.user_id, pixiv_user_id)
         await self.post_plain_text(message="Pixiv账号绑定成功", post_dest=post_dest)
 
     async def actual_handle_bad_request(self, err: BadRequestError,
-                                        *, post_dest: PostDestination[UID, GID],
+                                        *, post_dest: PostDestination[T_UID, T_GID],
                                         silently: bool = False):
         if not silently:
             if err.message:
@@ -69,11 +67,11 @@ class UnbindHandler(SubCommandHandler):
     def enabled(self) -> bool:
         return True
 
-    def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
+    def parse_args(self, args: Sequence[str], post_dest: PostDestination[T_UID, T_GID]) -> dict:
         return {}
 
     # noinspection PyMethodOverriding
-    async def actual_handle(self, *, post_dest: PostDestination[UID, GID],
+    async def actual_handle(self, *, post_dest: PostDestination[T_UID, T_GID],
                             silently: bool = False):
         result = await self.binder.unbind(post_dest.adapter, post_dest.user_id)
         if result:

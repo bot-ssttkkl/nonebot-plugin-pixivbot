@@ -1,24 +1,19 @@
-from typing import TypeVar, Optional, Protocol, AsyncIterable, Collection
+from typing import Optional, Protocol, AsyncIterable, Collection
 
 from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.model import PostIdentifier, WatchTask
-from ...enums import DataSourceType
-
-UID = TypeVar("UID")
-GID = TypeVar("GID")
-
-ID = PostIdentifier[UID, GID]
+from nonebot_plugin_pixivbot.enums import DataSourceType
+from nonebot_plugin_pixivbot.model import PostIdentifier, WatchTask, T_UID, T_GID
 
 
 class WatchTaskRepo(Protocol):
-    def get_by_subscriber(self, subscriber: ID) -> AsyncIterable[WatchTask]:
+    def get_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncIterable[WatchTask]:
         ...
 
     def get_by_adapter(self, adapter: str) -> AsyncIterable[WatchTask]:
         ...
 
-    async def get_by_code(self, subscriber: ID, code: int) -> Optional[WatchTask]:
+    async def get_by_code(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[WatchTask]:
         ...
 
     async def insert(self, task: WatchTask) -> bool:
@@ -27,10 +22,10 @@ class WatchTaskRepo(Protocol):
     async def update(self, task: WatchTask) -> bool:
         ...
 
-    async def delete_one(self, subscriber: ID, code: int) -> Optional[WatchTask]:
+    async def delete_one(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[WatchTask]:
         ...
 
-    async def delete_many_by_subscriber(self, subscriber: ID) -> Collection[WatchTask]:
+    async def delete_many_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> Collection[WatchTask]:
         ...
 
 

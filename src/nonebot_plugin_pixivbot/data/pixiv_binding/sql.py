@@ -1,4 +1,4 @@
-from typing import TypeVar, Optional
+from typing import Optional
 
 from sqlalchemy import Column, String, Integer, select, delete
 from sqlalchemy.dialects.sqlite import insert
@@ -6,9 +6,7 @@ from sqlalchemy.dialects.sqlite import insert
 from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
-from nonebot_plugin_pixivbot.model import PixivBinding
-
-UID = TypeVar("UID")
+from nonebot_plugin_pixivbot.model import PixivBinding, T_UID
 
 
 @context.require(SqlDataSource).registry.mapped
@@ -25,7 +23,7 @@ class PixivBindingOrm:
 class SqlPixivBindingRepo:
     data_source: SqlDataSource = Inject(SqlDataSource)
 
-    async def get(self, adapter: str, user_id: UID) -> Optional[PixivBinding]:
+    async def get(self, adapter: str, user_id: T_UID) -> Optional[PixivBinding]:
         session = self.data_source.session()
         stmt = (select(PixivBindingOrm)
                 .where(PixivBindingOrm.adapter == adapter,
@@ -50,7 +48,7 @@ class SqlPixivBindingRepo:
         await session.execute(stmt)
         await session.commit()
 
-    async def remove(self, adapter: str, user_id: UID) -> bool:
+    async def remove(self, adapter: str, user_id: T_UID) -> bool:
         session = self.data_source.session()
         stmt = (delete(PixivBinding)
                 .where(PixivBindingOrm.adapter == adapter,

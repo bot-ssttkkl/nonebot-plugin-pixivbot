@@ -1,4 +1,4 @@
-from typing import TypeVar, Optional, AsyncIterable, Collection
+from typing import Optional, AsyncIterable, Collection
 
 from sqlalchemy import Column, Integer, Enum as SqlEnum, JSON, String, select, DateTime, UniqueConstraint, update, Index
 from sqlalchemy.dialects.sqlite import insert
@@ -8,12 +8,7 @@ from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.seq import SeqRepo
 from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
 from nonebot_plugin_pixivbot.data.utils.process_subscriber import process_subscriber
-from nonebot_plugin_pixivbot.model import PostIdentifier, WatchType, WatchTask
-
-UID = TypeVar("UID")
-GID = TypeVar("GID")
-
-ID = PostIdentifier[UID, GID]
+from nonebot_plugin_pixivbot.model import PostIdentifier, WatchType, WatchTask, T_UID, T_GID
 
 
 @context.require(SqlDataSource).registry.mapped
@@ -41,7 +36,7 @@ class SqlWatchTaskRepo:
     data_source: SqlDataSource = Inject(SqlDataSource)
     seq_repo: SeqRepo = Inject(SeqRepo)
 
-    async def get_by_subscriber(self, subscriber: ID) -> AsyncIterable[WatchTask]:
+    async def get_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncIterable[WatchTask]:
         subscriber = process_subscriber(subscriber)
 
         session = self.data_source.session()
@@ -61,7 +56,7 @@ class SqlWatchTaskRepo:
         async for x in await session.stream_scalars(stmt):
             yield WatchTask.from_orm(x)
 
-    async def get_by_code(self, subscriber: ID, code: int) -> Optional[WatchTask]:
+    async def get_by_code(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[WatchTask]:
         subscriber = process_subscriber(subscriber)
 
         session = self.data_source.session()
@@ -111,7 +106,7 @@ class SqlWatchTaskRepo:
         await session.commit()
         return result.rowcount == 1
 
-    async def delete_one(self, subscriber: ID, code: int) -> Optional[WatchTask]:
+    async def delete_one(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[WatchTask]:
         subscriber = process_subscriber(subscriber)
 
         session = self.data_source.session()
@@ -128,7 +123,7 @@ class SqlWatchTaskRepo:
         await session.commit()
         return WatchTask.from_orm(task)
 
-    async def delete_many_by_subscriber(self, subscriber: ID) -> Collection[WatchTask]:
+    async def delete_many_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> Collection[WatchTask]:
         subscriber = process_subscriber(subscriber)
 
         session = self.data_source.session()
