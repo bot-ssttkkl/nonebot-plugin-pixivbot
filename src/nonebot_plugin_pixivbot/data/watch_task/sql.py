@@ -63,8 +63,8 @@ class SqlWatchTaskRepo:
 
         session = self.data_source.session()
         stmt = (select(WatchTaskOrm)
-                .where(WatchTask.subscriber == subscriber.dict(),
-                       WatchTask.code == code))
+                .where(WatchTaskOrm.subscriber == subscriber.dict(),
+                       WatchTaskOrm.code == code))
         result = (await session.execute(stmt)).scalar_one_or_none()
         result.checkpoint = result.checkpoint.replace(tzinfo=utc)
         return WatchTask.from_orm(result)
