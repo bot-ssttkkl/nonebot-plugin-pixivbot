@@ -65,16 +65,27 @@ NoneBot插件，支持发送随机Pixiv插画、画师更新推送、定时订�
     - \<schedule\>：有三种格式，*00:30\*x*为每隔30分钟进行一次推送，*12:00*为每天12:00进行一次推送，*00:10+00:30\*x*为从今天00:10开始每隔30分钟进行一次推送（开始时间若是一个过去的时间点，则从下一个开始推送的时间点进行推送）
     - [..args]：
       - \<type\>为ranking时，接受\<mode\> \<range\>
+        - 示例：/pixivbot schedle ranking 12:00 day 1-10
       - \<type\>为random_bookmark时，接受\<pixiv_user_id\>（可空）
-      - \<type\>为random_illust时，接受\<word\>
-      - \<type\>为random_user_illust时，接受\<user\>（可空）
+        - 示例：/pixivbot schedle random_bookmark 01:00*x
+        - 示例：/pixivbot schedle random_bookmark 01:00*x 114514
+      - \<type\>为random_illust时，接受\<word\>，若需要输入空格请用反斜杠`\ `
+        - 示例：/pixivbot schedle random_illust 01:00*x
+        - 示例：/pixivbot schedle random_illust 01:00*x ロリ
+        - 示例：/pixivbot schedle random_illust 01:00*x Hatsune\ Miku
+      - \<type\>为random_user_illust时，接受\<user\>
+        - 示例：/pixivbot schedle random_user_illust 01:00*x 森倉円
+      - \<type\>为random_recommend_illust时，不接受参数
 - **/pixivbot schedule**：查看本群（本用户）的所有定时推送订阅
 - **/pixivbot unschedule \<id\>**：取消本群（本用户）的指定的定时推送订阅
 - **/pixivbot watch \<type\> [..args]**：为本群（本用户）订阅类型为<type>的更新推送功能
     - \<type\>：可选值有user_illusts, following_illusts
     - [..args]：
-      - \<type\>为user_illusts时，接受\<pixiv_user_id\>/\<user\>
-      - \<type\>为following_illusts时，接受\<pixiv_user_id\>/\<user\>（可空）
+      - \<type\>为user_illusts时，接受\<user\>
+        - 示例：/pixivbot watch user_illusts 森倉円
+      - \<type\>为following_illusts时，接受\<pixiv_user_id\>（可空）
+        - 示例：/pixivbot watch following_illusts
+        - 示例：/pixivbot watch following_illusts 114514
 - **/pixivbot watch**：查看本群（本用户）的所有更新推送订阅
 - **/pixivbot watch fetch \<id\>**：【调试用命令】立刻手动触发一次指定的更新推送订阅
 - **/pixivbot unwatch \<id\> [..args]**：取消本群（本用户）的指定的更新推送订阅
