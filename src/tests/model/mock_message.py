@@ -1,4 +1,4 @@
-from typing import Optional, Sequence
+from typing import Optional
 
 import pytest
 from tzlocal import get_localzone
@@ -13,8 +13,8 @@ class MockMessageModelMixin(MyTest):
         from nonebot_plugin_pixivbot.model.message import IllustMessageModel
 
         async def mock_from_illust(illust: Illust, *,
-                             header: Optional[str] = None,
-                             number: Optional[int] = None):
+                                   header: Optional[str] = None,
+                                   number: Optional[int] = None):
             return IllustMessageModel(
                 id=illust.id,
                 header=header,
