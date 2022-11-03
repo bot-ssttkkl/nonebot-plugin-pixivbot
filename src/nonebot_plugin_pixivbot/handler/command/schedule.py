@@ -1,20 +1,18 @@
-from typing import TypeVar, Sequence
+from typing import Sequence
 
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import GroupAdminInterceptor, \
     AnyPermissionInterceptor, SuperuserInterceptor
 from nonebot_plugin_pixivbot.model import PostIdentifier, ScheduleType
+from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.service.scheduler import Scheduler
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .command import CommandHandler, SubCommandHandler
 from ..pkg_context import context
 
-UID = TypeVar("UID")
-GID = TypeVar("GID")
 
-
-async def build_subscriptions_msg(subscriber: PostIdentifier[UID, GID]):
+async def build_subscriptions_msg(subscriber: PostIdentifier[T_UID, T_GID]):
     scheduler = context.require(Scheduler)
     subscription = [x async for x in scheduler.get_by_subscriber(subscriber)]
     msg = "当前订阅：\n"
@@ -53,7 +51,7 @@ class ScheduleHandler(SubCommandHandler):
     def enabled(self) -> bool:
         return True
 
-    def parse_args(self, args: Sequence[str], post_dest: PostIdentifier[UID, GID]) -> dict:
+    def parse_args(self, args: Sequence[str], post_dest: PostIdentifier[T_UID, T_GID]) -> dict:
         if len(args) < 2:
             raise BadRequestError()
         try:
@@ -67,13 +65,13 @@ class ScheduleHandler(SubCommandHandler):
     async def actual_handle(self, *, type: ScheduleType,
                             schedule: str,
                             args: Sequence[str],
-                            post_dest: PostDestination[UID, GID],
+                            post_dest: PostDestination[T_UID, T_GID],
                             silently: bool = False, **kwargs):
         await self.scheduler.schedule(type, schedule, args, post_dest)
         await self.post_plain_text(message="订阅成功", post_dest=post_dest)
 
     async def actual_handle_bad_request(self, err: BadRequestError,
-                                        *, post_dest: PostDestination[UID, GID],
+                                        *, post_dest: PostDestination[T_UID, T_GID],
                                         silently: bool = False):
         msg = ""
         if err.message:
@@ -111,7 +109,7 @@ class UnscheduleHandler(SubCommandHandler):
     def enabled(self) -> bool:
         return True
 
-    def parse_args(self, args: Sequence[str], post_dest: PostIdentifier[UID, GID]) -> dict:
+    def parse_args(self, args: Sequence[str], post_dest: PostIdentifier[T_UID, T_GID]) -> dict:
         if len(args) == 0:
             raise BadRequestError()
         try:
@@ -121,7 +119,7 @@ class UnscheduleHandler(SubCommandHandler):
 
     # noinspection PyMethodOverriding
     async def actual_handle(self, *, code: int,
-                            post_dest: PostDestination[UID, GID],
+                            post_dest: PostDestination[T_UID, T_GID],
                             silently: bool = False):
         if await self.scheduler.unschedule(post_dest.identifier, code):
             await self.post_plain_text(message="取消订阅成功", post_dest=post_dest)
@@ -129,7 +127,7 @@ class UnscheduleHandler(SubCommandHandler):
             raise BadRequestError("取消订阅失败，不存在该订阅")
 
     async def actual_handle_bad_request(self, err: BadRequestError,
-                                        *, post_dest: PostDestination[UID, GID],
+                                        *, post_dest: PostDestination[T_UID, T_GID],
                                         silently: bool = False):
         msg = ""
         if err.message:

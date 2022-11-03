@@ -1,5 +1,3 @@
-from typing import TypeVar
-
 from lazy import lazy
 from nonebot import on_regex
 from nonebot.adapters import Bot, Event
@@ -8,16 +6,14 @@ from nonebot.matcher import Matcher
 from nonebot.typing import T_State
 
 from nonebot_plugin_pixivbot.context import Inject
+from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .base import CommonHandler
-from ..entry_handler import post_destination
+from ..base import post_destination
 from ..pkg_context import context
 from ..recorder import Recorder
 from ..utils import get_common_query_rule
-
-UID = TypeVar("UID")
-GID = TypeVar("GID")
 
 
 @context.inject
@@ -37,12 +33,12 @@ class MoreHandler(CommonHandler):
         return on_regex("^还要((.*)张)?$", rule=get_common_query_rule(), priority=1, block=True)
 
     async def on_match(self, bot: Bot, event: Event, state: T_State, matcher: Matcher,
-                       post_dest: PostDestination[UID, GID] = Depends(post_destination)):
+                       post_dest: PostDestination[T_UID, T_GID] = Depends(post_destination)):
         illust_id = state["_matched_groups"][0]
         await self.handle(illust_id, post_dest=post_dest)
 
     async def actual_handle(self, *, count: int = 1,
-                            post_dest: PostDestination[UID, GID],
+                            post_dest: PostDestination[T_UID, T_GID],
                             silently: bool = False,
                             **kwargs):
         req = self.recorder.get_req(post_dest.identifier)

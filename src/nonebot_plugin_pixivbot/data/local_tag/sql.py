@@ -1,4 +1,4 @@
-from typing import Iterable, Optional, List, Collection
+from typing import Optional, Collection
 
 from nonebot import logger
 from sqlalchemy import Column, String, select

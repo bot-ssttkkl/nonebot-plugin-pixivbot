@@ -1,19 +1,14 @@
-from typing import TypeVar, Optional, Any, AsyncGenerator, Collection
+from typing import Optional, Any, AsyncGenerator, Collection
 
 from beanie import Document, BulkWriter
 from pymongo import IndexModel
 
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier
-from ..source.mongo import MongoDataSource
+from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier, T_UID, T_GID
 from ..seq import SeqRepo
+from ..source.mongo import MongoDataSource
 from ..utils.process_subscriber import process_subscriber
-
-UID = TypeVar("UID")
-GID = TypeVar("GID")
-
-ID = PostIdentifier[UID, GID]
 
 
 class SubscriptionDocument(Subscription[Any, Any], Document):
@@ -34,7 +29,7 @@ class MongoSubscriptionRepo:
     mongo: MongoDataSource = Inject(MongoDataSource)
     seq_repo: SeqRepo = Inject(SeqRepo)
 
-    async def get_by_subscriber(self, subscriber: ID) -> AsyncGenerator[Subscription, None]:
+    async def get_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncGenerator[Subscription, None]:
         subscriber = process_subscriber(subscriber)
         async for doc in SubscriptionDocument.find(SubscriptionDocument.subscriber == subscriber):
             yield doc
@@ -43,7 +38,7 @@ class MongoSubscriptionRepo:
         async for doc in SubscriptionDocument.find(SubscriptionDocument.subscriber.adapter == adapter):
             yield doc
 
-    async def get_by_code(self, subscriber: ID, code: int) -> Optional[Subscription]:
+    async def get_by_code(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[Subscription]:
         subscriber = process_subscriber(subscriber)
         return await SubscriptionDocument.find_one(SubscriptionDocument.subscriber == subscriber,
                                                    SubscriptionDocument.code == code)
@@ -53,7 +48,7 @@ class MongoSubscriptionRepo:
         subscription.code = await self.seq_repo.inc_and_get(f'subscription {subscription.subscriber}')
         await SubscriptionDocument.insert_one(SubscriptionDocument(**subscription.dict()))
 
-    async def delete_one(self, subscriber: ID, code: int) -> Optional[Subscription]:
+    async def delete_one(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[Subscription]:
         # beanie不支持原子性的find_one_and_delete操作
         subscriber = process_subscriber(subscriber)
         query = {
@@ -66,7 +61,7 @@ class MongoSubscriptionRepo:
         else:
             return None
 
-    async def delete_many_by_subscriber(self, subscriber: ID) -> Collection[Subscription]:
+    async def delete_many_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> Collection[Subscription]:
         subscriber = process_subscriber(subscriber)
 
         old_doc = await SubscriptionDocument.find(

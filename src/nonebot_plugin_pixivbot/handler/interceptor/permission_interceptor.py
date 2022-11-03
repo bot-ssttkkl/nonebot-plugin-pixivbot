@@ -1,31 +1,29 @@
 from abc import ABC, abstractmethod
 from inspect import isawaitable
-from typing import TypeVar, Callable, Union, Awaitable, Optional
+from typing import Callable, Union, Awaitable, Optional
 
 from nonebot import get_driver, logger
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.context import Inject
+from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.protocol_dep.authenticator import AuthenticatorManager
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .base import Interceptor
 from ..pkg_context import context
 
-UID = TypeVar("UID")
-GID = TypeVar("GID")
-
 
 class PermissionInterceptor(Interceptor, ABC):
     @abstractmethod
-    def has_permission(self, post_dest: PostDestination[UID, GID]) -> Union[bool, Awaitable[bool]]:
+    def has_permission(self, post_dest: PostDestination[T_UID, T_GID]) -> Union[bool, Awaitable[bool]]:
         raise NotImplementedError()
 
-    def get_permission_denied_msg(self, post_dest: PostDestination[UID, GID]) \
+    def get_permission_denied_msg(self, post_dest: PostDestination[T_UID, T_GID]) \
             -> Union[Optional[str], Awaitable[Optional[str]]]:
         return None
 
     async def intercept(self, wrapped_func: Callable, *args,
-                        post_dest: PostDestination[UID, GID],
+                        post_dest: PostDestination[T_UID, T_GID],
                         silently: bool,
                         **kwargs):
         p = self.has_permission(post_dest)
@@ -52,7 +50,7 @@ class AnyPermissionInterceptor(PermissionInterceptor):
     def append(self, interceptor: PermissionInterceptor):
         self.interceptors.append(interceptor)
 
-    async def has_permission(self, post_dest: PostDestination[UID, GID]) -> bool:
+    async def has_permission(self, post_dest: PostDestination[T_UID, T_GID]) -> bool:
         for inter in self.interceptors:
             p = inter.has_permission(post_dest)
             if isawaitable(p):
@@ -70,7 +68,7 @@ class SuperuserInterceptor(PermissionInterceptor):
         super().__init__()
         self.superusers = get_driver().config.superusers
 
-    def has_permission(self, post_dest: PostDestination[UID, GID]) -> bool:
+    def has_permission(self, post_dest: PostDestination[T_UID, T_GID]) -> bool:
         return str(post_dest.user_id) in self.superusers \
                or f"{post_dest.adapter}:{post_dest.user_id}" in self.superusers
 
@@ -80,7 +78,7 @@ class SuperuserInterceptor(PermissionInterceptor):
 class GroupAdminInterceptor(PermissionInterceptor):
     auth = Inject(AuthenticatorManager)
 
-    def has_permission(self, post_dest: PostDestination[UID, GID]) -> Union[bool, Awaitable[bool]]:
+    def has_permission(self, post_dest: PostDestination[T_UID, T_GID]) -> Union[bool, Awaitable[bool]]:
         if not post_dest.group_id:
             return True
         return self.auth.group_admin(post_dest)
@@ -95,6 +93,6 @@ class BlacklistInterceptor(PermissionInterceptor):
         super().__init__()
         self.blacklist = self.conf.blacklist
 
-    def has_permission(self, post_dest: PostDestination[UID, GID]) -> bool:
+    def has_permission(self, post_dest: PostDestination[T_UID, T_GID]) -> bool:
         return str(post_dest.user_id) not in self.blacklist \
                and f"{post_dest.adapter}:{post_dest.user_id}" not in self.blacklist

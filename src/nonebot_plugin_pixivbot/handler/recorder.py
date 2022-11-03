@@ -2,23 +2,17 @@ from __future__ import annotations
 
 import time
 from collections import OrderedDict
-from typing import Optional, TypeVar
+from typing import Optional
 
 from nonebot import logger
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.model import PostIdentifier
+from nonebot_plugin_pixivbot.model import PostIdentifier, T_UID, T_GID
 from nonebot_plugin_pixivbot.model.message import IllustMessageModel, IllustMessagesModel
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.protocol_dep.postman import PostmanManager
 from .pkg_context import context
-
-UID = TypeVar("UID")
-GID = TypeVar("GID")
-
-PD = PostDestination[UID, GID]
-ID = PostIdentifier[UID, GID]
 
 
 class Req:
@@ -58,16 +52,16 @@ class Recorder:
 
     def __init__(self, max_req_size: int = 65535,
                  max_resp_size: int = 65535):
-        self._reqs = OrderedDict[ID, Req]()
-        self._resps = OrderedDict[ID, Resp]()
+        self._reqs = OrderedDict[PostIdentifier[T_UID, T_GID], Req]()
+        self._resps = OrderedDict[PostIdentifier[T_UID, T_GID], Resp]()
 
         self.max_req_size = max_req_size
         self.max_resp_size = max_resp_size
 
     @staticmethod
-    def _key_fallback(key: ID) -> Optional[ID]:
+    def _key_fallback(key: PostIdentifier[T_UID, T_GID]) -> Optional[PostIdentifier[T_UID, T_GID]]:
         if key.user_id is not None and key.group_id is not None:
-            return ID(key.adapter, None, key.group_id)
+            return PostIdentifier[T_UID, T_GID](key.adapter, None, key.group_id)
         else:
             return None
 
@@ -85,13 +79,13 @@ class Recorder:
             key, req = self._reqs.popitem(last=False)
             logger.info(f"popped first req: ({key})")
 
-    def record_req(self, record: Req, key: ID):
+    def record_req(self, record: Req, key: PostIdentifier[T_UID, T_GID]):
         self._collate_req(True)
         if key in self._reqs:
             self._reqs.move_to_end(key)
         self._reqs[key] = record
 
-    def get_req(self, key: ID) -> Optional[Req]:
+    def get_req(self, key: PostIdentifier[T_UID, T_GID]) -> Optional[Req]:
         self._collate_req(False)
         if key in self._reqs:
             req = self._reqs[key]
@@ -119,13 +113,13 @@ class Recorder:
             key, resp = self._resps.popitem(last=False)
             logger.info(f"popped first resp illust: ({key})")
 
-    def record_resp(self, illust_id: int, key: ID):
+    def record_resp(self, illust_id: int, key: PostIdentifier[T_UID, T_GID]):
         self._collate_resp(True)
         if key in self._resps:
             self._resps.move_to_end(key)
         self._resps[key] = Resp(illust_id)
 
-    def get_resp(self, key: ID) -> Optional[int]:
+    def get_resp(self, key: PostIdentifier[T_UID, T_GID]) -> Optional[int]:
         self._collate_resp(False)
         if key in self._resps:
             rec = self._resps[key]
@@ -147,12 +141,12 @@ class RecordPostmanManager:
         self.delegation = delegation
 
     async def send_illust(self, model: IllustMessageModel,
-                          *, post_dest: PD):
+                          *, post_dest: PostDestination[T_UID, T_GID]):
         await self.delegation.send_illust(model, post_dest=post_dest)
         self.recorder.record_resp(model.id, post_dest.identifier)
 
     async def send_illusts(self, model: IllustMessagesModel,
-                           *, post_dest: PD):
+                           *, post_dest: PostDestination[T_UID, T_GID]):
         await self.delegation.send_illusts(model, post_dest=post_dest)
         if len(model.messages) == 1:
             self.recorder.record_resp(model.messages[0].id, post_dest.identifier)

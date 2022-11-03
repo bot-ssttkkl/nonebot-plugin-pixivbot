@@ -1,13 +1,10 @@
 from enum import Enum
-from typing import TypeVar, Generic, Sequence, Dict, Any
+from typing import Generic, Sequence, Dict, Any
 
 import tzlocal
 from pydantic.generics import GenericModel
 
-from nonebot_plugin_pixivbot.model import PostIdentifier
-
-UID = TypeVar("UID")
-GID = TypeVar("GID")
+from nonebot_plugin_pixivbot.model import PostIdentifier, T_UID, T_GID
 
 
 class ScheduleType(str, Enum):
@@ -18,11 +15,11 @@ class ScheduleType(str, Enum):
     ranking = "ranking"
 
 
-class Subscription(GenericModel, Generic[UID, GID]):
+class Subscription(GenericModel, Generic[T_UID, T_GID]):
     code: int = 0
     type: ScheduleType
     kwargs: Dict[str, Any]
-    subscriber: PostIdentifier[UID, GID]
+    subscriber: PostIdentifier[T_UID, T_GID]
     schedule: Sequence[int]
     tz: str = tzlocal.get_localzone_name()
 

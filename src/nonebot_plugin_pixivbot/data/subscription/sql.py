@@ -1,4 +1,4 @@
-from typing import TypeVar, Optional, AsyncIterable, Collection
+from typing import Optional, AsyncIterable, Collection
 
 import tzlocal
 from sqlalchemy import Column, Integer, Enum as SqlEnum, JSON, String, select, Index
@@ -9,12 +9,7 @@ from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.seq import SeqRepo
 from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
 from nonebot_plugin_pixivbot.data.utils.process_subscriber import process_subscriber
-from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier, ScheduleType
-
-UID = TypeVar("UID")
-GID = TypeVar("GID")
-
-ID = PostIdentifier[UID, GID]
+from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier, ScheduleType, T_UID, T_GID
 
 
 @context.require(SqlDataSource).registry.mapped
@@ -42,7 +37,7 @@ class SqlSubscriptionRepo:
     data_source: SqlDataSource = Inject(SqlDataSource)
     seq_repo: SeqRepo = Inject(SeqRepo)
 
-    async def get_by_subscriber(self, subscriber: ID) -> AsyncIterable[Subscription]:
+    async def get_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncIterable[Subscription]:
         subscriber = process_subscriber(subscriber)
 
         session = self.data_source.session()
@@ -78,7 +73,7 @@ class SqlSubscriptionRepo:
         await session.execute(stmt)
         await session.commit()
 
-    async def delete_one(self, subscriber: ID, code: int) -> Optional[Subscription]:
+    async def delete_one(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[Subscription]:
         subscriber = process_subscriber(subscriber)
 
         session = self.data_source.session()
@@ -95,7 +90,7 @@ class SqlSubscriptionRepo:
         await session.commit()
         return Subscription.from_orm(sub)
 
-    async def delete_many_by_subscriber(self, subscriber: ID) -> Collection[Subscription]:
+    async def delete_many_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> Collection[Subscription]:
         subscriber = process_subscriber(subscriber)
 
         session = self.data_source.session()

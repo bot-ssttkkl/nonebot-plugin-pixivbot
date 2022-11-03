@@ -1,18 +1,15 @@
-from typing import TypeVar, Sequence, Dict, Any
+from typing import Sequence, Dict, Any
 
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import GroupAdminInterceptor, \
     AnyPermissionInterceptor, SuperuserInterceptor
-from nonebot_plugin_pixivbot.model import PostIdentifier, WatchType
+from nonebot_plugin_pixivbot.model import PostIdentifier, WatchType, T_UID, T_GID
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.service.pixiv_service import PixivService
 from nonebot_plugin_pixivbot.service.watchman import Watchman
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .command import CommandHandler, SubCommandHandler
 from ..pkg_context import context
-
-UID = TypeVar("UID")
-GID = TypeVar("GID")
 
 
 async def parse_and_get_user(raw_user: str):
@@ -55,7 +52,7 @@ async def parse_user_illusts_args(args: Sequence[str]):
     return watch_args, message
 
 
-async def parse_following_illusts_args(args: Sequence[str], post_dest: PostDestination[UID, GID]):
+async def parse_following_illusts_args(args: Sequence[str], post_dest: PostDestination[T_UID, T_GID]):
     if len(args) > 1:
         user = await parse_and_get_user(args[1])
 
@@ -89,7 +86,7 @@ class WatchHandler(SubCommandHandler):
     def enabled(self) -> bool:
         return True
 
-    async def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
+    async def parse_args(self, args: Sequence[str], post_dest: PostDestination[T_UID, T_GID]) -> dict:
         if len(args) == 0:
             raise BadRequestError()
 
@@ -110,7 +107,7 @@ class WatchHandler(SubCommandHandler):
     async def actual_handle(self, *, type: WatchType,
                             watch_kwargs: Dict[str, Any],
                             success_message: str,
-                            post_dest: PostDestination[UID, GID],
+                            post_dest: PostDestination[T_UID, T_GID],
                             silently: bool = False, **kwargs):
         ok = await self.watchman.watch(type, watch_kwargs, post_dest)
         if ok:
@@ -119,7 +116,7 @@ class WatchHandler(SubCommandHandler):
             await self.post_plain_text("该订阅已存在", post_dest)
 
     async def actual_handle_bad_request(self, err: BadRequestError,
-                                        *, post_dest: PostDestination[UID, GID],
+                                        *, post_dest: PostDestination[T_UID, T_GID],
                                         silently: bool = False):
         msg = ""
         if err.message:
@@ -155,7 +152,7 @@ class UnwatchHandler(SubCommandHandler):
     def enabled(self) -> bool:
         return True
 
-    def parse_args(self, args: Sequence[str], post_dest: PostDestination[UID, GID]) -> dict:
+    def parse_args(self, args: Sequence[str], post_dest: PostDestination[T_UID, T_GID]) -> dict:
         if len(args) == 0:
             raise BadRequestError()
         try:
@@ -165,7 +162,7 @@ class UnwatchHandler(SubCommandHandler):
 
     # noinspection PyMethodOverriding
     async def actual_handle(self, *, code: int,
-                            post_dest: PostDestination[UID, GID],
+                            post_dest: PostDestination[T_UID, T_GID],
                             silently: bool = False, **kwargs):
         if await self.watchman.unwatch(post_dest.identifier, code):
             await self.post_plain_text(message="取消订阅成功", post_dest=post_dest)
@@ -173,7 +170,7 @@ class UnwatchHandler(SubCommandHandler):
             raise BadRequestError("取消订阅失败，不存在该订阅")
 
     async def actual_handle_bad_request(self, err: BadRequestError,
-                                        *, post_dest: PostDestination[UID, GID],
+                                        *, post_dest: PostDestination[T_UID, T_GID],
                                         silently: bool = False):
         msg = ""
         if err.message:

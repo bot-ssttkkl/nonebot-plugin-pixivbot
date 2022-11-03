@@ -2,7 +2,7 @@ from abc import ABC
 
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.service.pixiv_service import PixivService
-from ..entry_handler import MatcherEntryHandler
+from ..base import MatcherEntryHandler
 from ..interceptor.cooldown_interceptor import CooldownInterceptor
 from ..interceptor.loading_prompt_interceptor import LoadingPromptInterceptor
 from ..interceptor.record_req_interceptor import RecordReqInterceptor

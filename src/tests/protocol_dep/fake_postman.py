@@ -41,7 +41,7 @@ class FakePostmanManagerMixin(MyTest):
                 self.calls.append((post_dest, model))
                 print(f"send illusts: {model} to {post_dest}")
 
-        from nonebot_plugin_pixivbot.handler.handler import Handler
+        from nonebot_plugin_pixivbot.handler.base import Handler
         Handler.__context__.bind(PostmanManager, FakePostmanManager)
 
         return FakePostmanManager
