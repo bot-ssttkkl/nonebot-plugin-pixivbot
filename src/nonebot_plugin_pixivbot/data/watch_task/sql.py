@@ -1,5 +1,6 @@
 from typing import Optional, AsyncIterable, Collection
 
+from pytz import utc
 from sqlalchemy import Column, Integer, Enum as SqlEnum, JSON, String, select, DateTime, UniqueConstraint, update, Index
 from sqlalchemy.dialects.sqlite import insert
 
@@ -44,6 +45,7 @@ class SqlWatchTaskRepo:
             .where(WatchTaskOrm.subscriber == subscriber.dict())
         )
         async for x in await session.stream_scalars(stmt):
+            x.checkpoint = x.checkpoint.replace(tzinfo=utc)
             yield WatchTask.from_orm(x)
 
     async def get_by_adapter(self, adapter: str) -> AsyncIterable[WatchTask]:
@@ -53,6 +55,7 @@ class SqlWatchTaskRepo:
             .where(WatchTaskOrm.adapter == adapter)
         )
         async for x in await session.stream_scalars(stmt):
+            x.checkpoint = x.checkpoint.replace(tzinfo=utc)
             yield WatchTask.from_orm(x)
 
     async def get_by_code(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[WatchTask]:
@@ -63,7 +66,8 @@ class SqlWatchTaskRepo:
                 .where(WatchTask.subscriber == subscriber.dict(),
                        WatchTask.code == code))
         result = (await session.execute(stmt)).scalar_one_or_none()
-        return result
+        result.checkpoint = result.checkpoint.replace(tzinfo=utc)
+        return WatchTask.from_orm(result)
 
     async def insert(self, task: WatchTask) -> bool:
         task.subscriber = process_subscriber(task.subscriber)
