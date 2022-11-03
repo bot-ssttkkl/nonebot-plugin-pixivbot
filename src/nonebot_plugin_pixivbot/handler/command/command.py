@@ -12,8 +12,7 @@ from nonebot.typing import T_State
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
-from ..entry_handler import EntryHandler
-from ..entry_handler import post_destination
+from ..entry_handler import MatcherEntryHandler, post_destination
 from ..handler import Handler
 from ..utils import get_command_rule
 
@@ -50,7 +49,7 @@ class SubCommandHandler(Handler, ABC):
 
 
 @context.root.register_eager_singleton()
-class CommandHandler(EntryHandler):
+class CommandHandler(MatcherEntryHandler):
     def __init__(self):
         super().__init__()
         self.handlers = dict[str, Type[SubCommandHandler]]()

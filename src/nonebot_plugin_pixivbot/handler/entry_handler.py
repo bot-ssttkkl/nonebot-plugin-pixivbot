@@ -37,6 +37,13 @@ class EntryHandler(Handler, ABC):
         if self.conf.pixiv_data_source == DataSourceType.sqlite:
             self.add_interceptor(context.require(SqlRemoveSessionInterceptor))
 
+
+@context.inject
+class MatcherEntryHandler(EntryHandler, ABC):
+    conf: Config = Inject(Config)
+
+    def __init__(self):
+        super().__init__()
         self.matcher.append_handler(self.on_match)
 
     @property

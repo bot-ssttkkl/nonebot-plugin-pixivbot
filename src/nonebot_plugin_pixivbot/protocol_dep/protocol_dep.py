@@ -27,7 +27,7 @@ class ProtocolDepManager(Generic[T], ABC):
     def require(self, adapter: str):
         t = self.factories.get(adapter, None)
         if t is None:
-            raise RuntimeError(f"未找到{adapter}协议的特化插件，请尝试安装nonebot-plugin-pixivbot-{adapter}")
+            raise RuntimeError(f"未找到{adapter}协议的特化插件，请尝试安装nonebot-plugin-pixivbot[{adapter}]")
         return context.require(t)
 
     def __getitem__(self, adapter: str):
