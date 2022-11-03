@@ -1,7 +1,33 @@
+<!-- markdownlint-disable MD033 MD036 MD041 -->
+
+<p align="center">
+  <a href="https://v2.nonebot.dev/"><img src="https://v2.nonebot.dev/logo.png" width="200" height="200" alt="nonebot"></a>
+</p>
+
+<div align="center">
+
 nonebot_plugin_pixivbot
 =====
 
-PixivBot中协议无关的通用部分。目前适配协议：
+_✨ PixivBot ✨_
+
+</div>
+
+<p align="center">
+  <a href="https://raw.githubusercontent.com/ssttkkl/nonebot-plugin-pixivbot/master/LICENSE">
+    <img src="https://img.shields.io/github/license/ssttkkl/nonebot-plugin-pixivbot.svg" alt="license">
+  </a>
+  <a href="https://pypi.python.org/pypi/nonebot-plugin-pixivbot">
+    <img src="https://img.shields.io/pypi/v/nonebot-plugin-pixivbot.svg" alt="pypi">
+  </a>
+  <img src="https://img.shields.io/badge/python-3.9+-blue.svg" alt="python">
+</p>
+
+NoneBot插件，支持发送随机Pixiv插画、画师更新推送、定时订阅推送……
+
+## 开始使用
+
+适配协议：
 
 - [Onebot V11](https://github.com/ssttkkl/nonebot-plugin-pixivbot-onebot-v11)：`pip install nonebot-plugin-pixivbot[onebot]`
 - [KOOK / 开黑啦](https://github.com/ssttkkl/nonebot-plugin-pixivbot-kook)：`pip install nonebot-plugin-pixivbot[kook]`
@@ -41,16 +67,17 @@ PixivBot中协议无关的通用部分。目前适配协议：
       - \<type\>为ranking时，接受\<mode\> \<range\>
       - \<type\>为random_bookmark时，接受\<pixiv_user_id\>（可空）
       - \<type\>为random_illust时，接受\<word\>
-      - \<type\>为random_user_illust时，接受\<user\>
+      - \<type\>为random_user_illust时，接受\<user\>（可空）
 - **/pixivbot schedule**：查看本群（本用户）的所有定时推送订阅
-- **/pixivbot unschedule <type>**：取消本群（本用户）的定时推送订阅
+- **/pixivbot unschedule \<id\>**：取消本群（本用户）的指定的定时推送订阅
 - **/pixivbot watch \<type\> [..args]**：为本群（本用户）订阅类型为<type>的更新推送功能
     - \<type\>：可选值有user_illusts, following_illusts
     - [..args]：
       - \<type\>为user_illusts时，接受\<pixiv_user_id\>/\<user\>
       - \<type\>为following_illusts时，接受\<pixiv_user_id\>/\<user\>（可空）
 - **/pixivbot watch**：查看本群（本用户）的所有更新推送订阅
-- **/pixivbot unwatch \<type\> [..args]**：取消本群（本用户）的更新推送订阅
+- **/pixivbot watch fetch \<id\>**：【调试用命令】立刻手动触发一次指定的更新推送订阅
+- **/pixivbot unwatch \<id\> [..args]**：取消本群（本用户）的指定的更新推送订阅
 - **/pixivbot bind \<pixiv_user_id\>**：绑定Pixiv账号（用于随机书签功能）
 - **/pixivbot unbind**：解绑Pixiv账号
 - **/pixivbot invalidate_cache**：清除缓存（只有超级用户能够发送此命令）
@@ -59,22 +86,19 @@ PixivBot中协议无关的通用部分。目前适配协议：
 
 ## 环境配置
 
-事前准备：登录pixiv账号并获取refresh_token。（参考：[@ZipFile Pixiv OAuth Flow](https://gist.github.com/ZipFile/c9ebedb224406f4f11845ab700124362)）
+事前准备：登录pixiv账号并获取refresh_token。（参考：[@ZipFile Pixiv OAuth Flow](https://gist.github.com/ZipFile/c9ebedb224406f4f11845ab700124362)、[eggplants/get-pixivpy-token](https://github.com/eggplants/get-pixivpy-token)）
 
 1. 参考[安装 | NoneBot](https://v2.nonebot.dev/docs/start/installation)安装NoneBot；
 2. 参考[创建项目 | NoneBot](https://v2.nonebot.dev/docs/tutorial/create-project)创建一个NoneBot实例；
-3. 使用`pip install nonebot-plugin-pixivbot[xxx]`安装特定协议版本的插件；
-4. 修改pyproject.toml，启用插件（`plugins = [..., "nonebot_plugin_pixivbot"]`）；
-5. 安装MongoDB，并创建一个数据库及用户供应用使用；
-6. 在.env.prod中修改配置（参考下方）；
+3. 使用`pip install nonebot-plugin-pixivbot[xxx]`安装特定适配器的插件；
+4. 修改pyproject.toml，启用插件（`plugins=[..., "nonebot_plugin_pixivbot"]`）；
+5. 在.env.prod中修改配置（参考下方）；
 
 ## 配置
 
 最小配置：
 ```
 pixiv_refresh_token=  # 前面获取的REFRESH_TOKEN
-pixiv_mongo_conn_url=  # MongoDB连接URL，格式：mongodb://<用户名>:<密码>@<主机>:<端口>/<数据库>
-pixiv_mongo_database_name=  # 连接的MongoDB数据库
 ```
 
 完整配置（除最小配置出现的配置项以外都是可选项，给出的是默认值）（NoneBot配置项这里不列出，参考[配置 | NoneBot](https://v2.nonebot.dev/docs/tutorial/configuration#%E8%AF%A6%E7%BB%86%E9%85%8D%E7%BD%AE%E9%A1%B9)）：
@@ -83,25 +107,33 @@ pixiv_mongo_database_name=  # 连接的MongoDB数据库
 superuser=[]  # 能够发送超级命令的用户（JSON数组，格式为["onebot:123456", "kaiheila:1919810"]，下同）
 blocklist=[]  # Bot不响应的用户，可以避免Bot之间相互调用（JSON数组）
 
-pixiv_refresh_token=  # 前面获取的REFRESH_TOKEN
-pixiv_mongo_conn_url=  # MongoDB连接URL，格式：mongodb://<用户名>:<密码>@<主机>:<端口>/<数据库>
+pixiv_data_source=  # 使用的数据库类型，可选值：sqlite，mongo。若未设置，则根据是否设置了pixiv_mongo_conn_url自动判断。
+pixiv_sql_conn_url=sqlite+aiosqlite:///pixiv_bot.db  # SQLite连接URL，格式sqlite+aiosqlite:///<数据库文件路径>
+# 注意：使用MongoDB数据库需要安装nonebot-plugin-pixivbot[mongo]
+pixiv_mongo_conn_url=  # MongoDB连接URL，格式：mongodb://<用户名>:<密码>@<主机>:<端口>/<数据库>。
 pixiv_mongo_database_name=  # 连接的MongoDB数据库
+
+pixiv_refresh_token=  # 前面获取的REFRESH_TOKEN
 pixiv_proxy=None  # 代理URL
 pixiv_query_timeout=60  # 查询超时（单位：秒）
 pixiv_loading_prompt_delayed_time=5  # 加载提示消息的延迟时间（“努力加载中”的消息会在请求发出多少秒后发出）（单位：秒）
 pixiv_simultaneous_query=8  # 向Pixiv查询的并发数
 
-# 缓存过期时间（单位：秒）
-pixiv_download_cache_expires_in = 3600 * 24 * 7
-pixiv_illust_detail_cache_expires_in = 3600 * 24 * 7
-pixiv_user_detail_cache_expires_in = 3600 * 24 * 7
-pixiv_illust_ranking_cache_expires_in = 3600 * 6
-pixiv_search_illust_cache_expires_in = 3600 * 24
-pixiv_search_user_cache_expires_in = 3600 * 24
-pixiv_user_illusts_cache_expires_in = 3600 * 24
-pixiv_user_bookmarks_cache_expires_in = 3600 * 24
-pixiv_related_illusts_cache_expires_in = 3600 * 24
-pixiv_other_cache_expires_in = 3600 * 6
+# 缓存过期时间/删除时间（单位：秒）
+pixiv_download_cache_expires_in=604800  # 默认值：7天
+pixiv_illust_detail_cache_expires_in=604800
+pixiv_user_detail_cache_expires_in=604800
+pixiv_illust_ranking_cache_expires_in=21600  # 默认值：6小时
+pixiv_search_illust_cache_expires_in=86400  # 默认值：1天
+pixiv_search_illust_cache_delete_in=2592000  # 默认值：30天
+pixiv_search_user_cache_expires_in=86400
+pixiv_search_user_cache_delete_in=2592000
+pixiv_user_illusts_cache_expires_in=86400
+pixiv_user_illusts_cache_delete_in=2592000
+pixiv_user_bookmarks_cache_expires_in=86400
+pixiv_user_bookmarks_cache_delete_in=2592000
+pixiv_related_illusts_cache_expires_in=86400
+pixiv_other_cache_expires_in=21600
 
 pixiv_block_tags=[]  # 当插画含有指定tag时会被过滤
 pixiv_block_action=no_image  # 过滤时的动作，可选值：no_image(不显示插画，回复插画信息), completely_block(只回复过滤提示), no_reply(无回复)
@@ -174,9 +206,9 @@ pixiv_watch_interval=7200  # 更新推送的查询间隔
 
 ## Special Thanks
 
-[Mikubill/pixivpy-async](https://github.com/Mikubill/pixivpy-async)
+- [Mikubill/pixivpy-async](https://github.com/Mikubill/pixivpy-async)
 
-[nonebot/nonebot2](https://github.com/nonebot/nonebot2)
+- [nonebot/nonebot2](https://github.com/nonebot/nonebot2)
 
 ## LICENSE
 
