@@ -52,19 +52,19 @@ class Watchman:
         WatchType.following_illusts: context.require(WatchFollowingIllustsHandler),
     }
 
-    async def _on_trigger(self, task: WatchTask[T_UID, T_GID], post_dest: PostDestination[T_UID, T_GID]):
+    async def _on_trigger(self, task: WatchTask[T_UID, T_GID], post_dest: PostDestination[T_UID, T_GID],
+                          manually: bool = False):
         logger.info(f"[watchman] triggered {task}")
 
         try:
             try:
-                await self._handlers[task.type].handle_with_parsed_args(post_dest=post_dest, silently=True, task=task)
-            except Exception as e:
+                await self._handlers[task.type].handle_with_parsed_args(post_dest=post_dest, silently=not manually,
+                                                                        task=task, disabled_interceptors=manually)
+            finally:
                 # 保存checkpoint，避免一次异常后下一次重复推送
                 # 但是会存在丢失推送的问题
                 task.checkpoint = datetime.now(timezone.utc)
                 await self.repo.update(task)
-
-                raise e
         except ActionFailed as e:
             logger.error("[watchman] ActionFailed" + str(e))
 
@@ -141,3 +141,10 @@ class Watchman:
 
     def get_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncIterable[WatchTask]:
         return self.repo.get_by_subscriber(subscriber)
+
+    async def fetch(self, code: str, post_dest: PostDestination[T_UID, T_GID]) -> bool:
+        task = await self.repo.get_by_code(post_dest.identifier, code)
+        if task is not None:
+            await self._on_trigger(task, post_dest, manually=True)
+            return True
+        return False
