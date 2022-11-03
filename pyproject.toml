@@ -23,10 +23,11 @@ frozendict = "^2.3.4"
 tzlocal = "^4.2"
 nonebot-plugin-pixivbot-onebot-v11 = { version = "^1.5.0b1", optional = true }
 nonebot-plugin-pixivbot-kook = { version = "^1.4.0", optional = true }
-motor = "^3.0.0"
+motor = { version = "^3.0.0", optional = true }
 beanie = { version = "^1.12.0", optional = true }
 sqlalchemy = { version = "^1.4.42", extras = ["asyncio"] }
 aiosqlite = "^0.17.0"
+cachetools = "^5.2.0"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^5.0.4"
