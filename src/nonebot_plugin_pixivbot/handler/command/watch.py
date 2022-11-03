@@ -155,10 +155,7 @@ class UnwatchHandler(SubCommandHandler):
     def parse_args(self, args: Sequence[str], post_dest: PostDestination[T_UID, T_GID]) -> dict:
         if len(args) == 0:
             raise BadRequestError()
-        try:
-            return {"code": int(args[0])}
-        except ValueError as e:
-            raise BadRequestError(f"不合法的订阅编号：{args[0]}") from e
+        return {"code": args[0]}
 
     # noinspection PyMethodOverriding
     async def actual_handle(self, *, code: int,
