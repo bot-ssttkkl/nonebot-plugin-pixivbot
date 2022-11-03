@@ -23,7 +23,7 @@ class FakePostmanManagerMixin(MyTest):
                     assert pd != post_dest
 
             def assert_called(self, post_dest: PostDestination[int, int],
-                            message: Union[str, IllustMessageModel, IllustMessagesModel]):
+                              message: Union[str, IllustMessageModel, IllustMessagesModel]):
                 assert (post_dest, message) in self.calls
 
             async def send_plain_text(self, message: str,

@@ -21,7 +21,7 @@ class FakeWatchmanMixin(MyTest):
 
             async def watch(self, type_: WatchType,
                             kwargs: Dict[str, Any],
-                            subscriber: PostDestination[int, int]):
+                            subscriber: PostDestination[int, int]) -> bool:
                 self.code_gen += 1
                 code = self.code_gen
                 self.tasks[code] = WatchTask(
@@ -30,6 +30,7 @@ class FakeWatchmanMixin(MyTest):
                     kwargs=kwargs,
                     subscriber=subscriber.identifier
                 )
+                return True
 
             async def unwatch(self, subscriber: PostIdentifier[int, int], code: int) -> bool:
                 if code in self.tasks:

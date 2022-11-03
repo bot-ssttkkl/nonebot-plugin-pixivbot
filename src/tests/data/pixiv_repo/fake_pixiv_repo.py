@@ -10,7 +10,7 @@ class FakePixivRepoMixin(MyTest):
     @pytest.fixture
     def FakePixivRepo(self, load_pixivbot):
         from nonebot_plugin_pixivbot import context
-        from nonebot_plugin_pixivbot.data.pixiv_repo import PixivRepo, LazyIllust
+        from nonebot_plugin_pixivbot.data.pixiv_repo import LazyIllust
         from nonebot_plugin_pixivbot.data.pixiv_repo.base import PixivRepo
         from nonebot_plugin_pixivbot.enums import RankingMode
         from nonebot_plugin_pixivbot.model import Illust, User

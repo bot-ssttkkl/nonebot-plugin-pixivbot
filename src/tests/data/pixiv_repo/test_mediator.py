@@ -24,7 +24,7 @@ class TestMediateSingle(MyTest):
     @pytest.fixture
     def cache_factory_with_expired_cache(self):
         from nonebot_plugin_pixivbot.data.pixiv_repo.base import PixivRepoMetadata
-        from nonebot_plugin_pixivbot.data.pixiv_repo.mongo_local_repo import CacheExpiredError
+        from nonebot_plugin_pixivbot.data.pixiv_repo.errors import CacheExpiredError
 
         cache_metadata = PixivRepoMetadata(update_time=datetime.fromtimestamp(0))
 
@@ -139,7 +139,7 @@ class TestMediateCollection(MyTest):
 
     @pytest.fixture
     def cache_factory_with_no_cache(self):
-        from nonebot_plugin_pixivbot.data.pixiv_repo.mongo_local_repo import NoSuchItemError
+        from nonebot_plugin_pixivbot.data.pixiv_repo.errors import NoSuchItemError
 
         async def agen():
             await sleep(0.1)
@@ -152,7 +152,7 @@ class TestMediateCollection(MyTest):
     @pytest.fixture
     def cache_factory_with_expired_cache(self):
         from nonebot_plugin_pixivbot.data.pixiv_repo.base import PixivRepoMetadata
-        from nonebot_plugin_pixivbot.data.pixiv_repo.mongo_local_repo import CacheExpiredError
+        from nonebot_plugin_pixivbot.data.pixiv_repo.errors import CacheExpiredError
 
         cache_metadata = PixivRepoMetadata(update_time=datetime.fromtimestamp(0),
                                            pages=5,

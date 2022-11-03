@@ -37,10 +37,11 @@ class TestUnscheduleHandleNoArg(UnscheduleTester):
 
         post_dest = FakePostDestination(1234, 56789)
 
-        context.require(FakeScheduler).schedule(type_=ScheduleType.random_bookmark, schedule=(0, 0, 0, 30), args=[],
-                                                post_dest=post_dest)
-        context.require(FakeScheduler).schedule(type_=ScheduleType.ranking, schedule=(6, 0, 0, 0), args=["day"],
-                                                post_dest=post_dest)
+        await context.require(FakeScheduler).schedule(type_=ScheduleType.random_bookmark, schedule=(0, 0, 0, 30),
+                                                      args=[],
+                                                      post_dest=post_dest)
+        await context.require(FakeScheduler).schedule(type_=ScheduleType.ranking, schedule=(6, 0, 0, 0), args=["day"],
+                                                      post_dest=post_dest)
 
 
 class TestUnscheduleHandle(UnscheduleTester):
