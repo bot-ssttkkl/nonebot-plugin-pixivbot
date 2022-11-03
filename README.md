@@ -125,7 +125,7 @@ pixiv_mongo_conn_url=  # MongoDB连接URL，格式：mongodb://<用户名>:<密�
 pixiv_mongo_database_name=  # 连接的MongoDB数据库
 
 pixiv_refresh_token=  # 前面获取的REFRESH_TOKEN
-pixiv_proxy=None  # 代理URL
+pixiv_proxy=None  # 代理URL，推荐使用socks5代理
 pixiv_query_timeout=60  # 查询超时（单位：秒）
 pixiv_loading_prompt_delayed_time=5  # 加载提示消息的延迟时间（“努力加载中”的消息会在请求发出多少秒后发出）（单位：秒）
 pixiv_simultaneous_query=8  # 向Pixiv查询的并发数
