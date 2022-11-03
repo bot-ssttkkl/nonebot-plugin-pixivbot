@@ -16,7 +16,7 @@ class DownloadCache:
                             sqlite_on_conflict_primary_key='REPLACE')
     content: bytes = Column(BLOB, nullable=False)
 
-    update_time: datetime = Column(DateTime, nullable=False)
+    update_time: datetime = Column(DateTime, nullable=False, index=True)
 
 
 @context.require(SqlDataSource).registry.mapped
@@ -27,7 +27,7 @@ class IllustDetailCache:
                             sqlite_on_conflict_primary_key='REPLACE')
     illust: dict = Column(JSON, nullable=False)
 
-    update_time: datetime = Column(DateTime, nullable=False)
+    update_time: datetime = Column(DateTime, nullable=False, index=True)
 
 
 @context.require(SqlDataSource).registry.mapped
@@ -38,7 +38,7 @@ class UserDetailCache:
                           sqlite_on_conflict_primary_key='REPLACE')
     user: dict = Column(JSON, nullable=False)
 
-    update_time: datetime = Column(DateTime, nullable=False)
+    update_time: datetime = Column(DateTime, nullable=False, index=True)
 
 
 @context.require(SqlDataSource).registry.mapped
@@ -49,7 +49,7 @@ class IllustSetCache:
     cache_type: str = Column(String, nullable=False)
     key: dict = Column(JSON, nullable=False)
 
-    update_time: datetime = Column(DateTime, nullable=False)
+    update_time: datetime = Column(DateTime, nullable=False, index=True)
     pages: Optional[int] = Column(Integer)
     next_qs: Optional[dict] = Column(JSON)
 
@@ -82,7 +82,7 @@ class UserSetCache:
     cache_type: str = Column(String, nullable=False)
     key: dict = Column(JSON, nullable=False)
 
-    update_time: datetime = Column(DateTime, nullable=False)
+    update_time: datetime = Column(DateTime, nullable=False, index=True)
     pages: Optional[int] = Column(Integer)
     next_qs: Optional[dict] = Column(JSON)
 
