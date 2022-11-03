@@ -1,5 +1,5 @@
 from inspect import isawaitable
-from typing import List, Union, Optional, Mapping, Any
+from typing import List, Optional, Mapping, Any
 
 import pytest
 
@@ -13,7 +13,7 @@ class HandlerTester(FakePostDestinationMixin,
                     MyTest):
     args: List[str] = []
     kwargs: Mapping[str, Any] = {}
-    except_msg: Union[str, "IllustMessageModel", "IllustMessagesModel"]
+    except_msg: Optional[Any]
 
     @pytest.fixture(autouse=True)
     def remove_interceptor(self, load_pixivbot, Handler):
