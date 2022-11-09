@@ -171,8 +171,8 @@ tests-no-zope = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy 
 
 [[package]]
 name = "beanie"
-version = "1.13.1"
-description = "Python ODM for MongoDB"
+version = "1.15.2"
+description = "Asynchronous Python ODM for MongoDB"
 category = "main"
 optional = true
 python-versions = ">=3.7,<4.0"
@@ -1474,8 +1474,8 @@ attrs = [
     {file = "attrs-22.1.0.tar.gz", hash = "sha256:29adc2665447e5191d0e7c568fde78b21f9672d344281d0c6e1ab085429b22b6"},
 ]
 beanie = [
-    {file = "beanie-1.13.1-py3-none-any.whl", hash = "sha256:954e33ffc7b6b79eec87b61a20c36e296dab98fe021e6798f3f2de752f35f9a6"},
-    {file = "beanie-1.13.1.tar.gz", hash = "sha256:3aae32ba6bd40c3768ca1126a07725577d45133d240cca50ef1e6a35699f6063"},
+    {file = "beanie-1.15.2-py3-none-any.whl", hash = "sha256:31326c2cdeb9f6f25263e3bc55bf48ee73b4f2b02e8acd925be484c1b992babe"},
+    {file = "beanie-1.15.2.tar.gz", hash = "sha256:4baed0eec6c42b199dce6440284156c23cb58aa44481f19f3defd5cdf7c53837"},
 ]
 bleach = [
     {file = "bleach-5.0.1-py3-none-any.whl", hash = "sha256:085f7f33c15bd408dd9b17a4ad77c577db66d76203e5984b1bd59baeee948b2a"},
@@ -2077,6 +2077,8 @@ packaging = [
     {file = "packaging-21.3.tar.gz", hash = "sha256:dd47c42927d89ab911e606518907cc2d3a1f38bbd026385970643f9c5b8ecfeb"},
 ]
 pillow = [
+    {file = "Pillow-9.3.0-1-cp37-cp37m-win32.whl", hash = "sha256:e6ea6b856a74d560d9326c0f5895ef8050126acfdc7ca08ad703eb0081e82b74"},
+    {file = "Pillow-9.3.0-1-cp37-cp37m-win_amd64.whl", hash = "sha256:32a44128c4bdca7f31de5be641187367fe2a450ad83b833ef78910397db491aa"},
     {file = "Pillow-9.3.0-cp310-cp310-macosx_10_10_x86_64.whl", hash = "sha256:0b7257127d646ff8676ec8a15520013a698d1fdc48bc2a79ba4e53df792526f2"},
     {file = "Pillow-9.3.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:b90f7616ea170e92820775ed47e136208e04c967271c9ef615b6fbd08d9af0e3"},
     {file = "Pillow-9.3.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:68943d632f1f9e3dce98908e873b3a090f6cba1cbb1b892a9e8d97c938871fbe"},
