@@ -26,7 +26,7 @@ class SubscriptionOrm:
     tz = Column(String, nullable=False, default=tzlocal.get_localzone_name)
 
     __table_args__ = (
-        Index("ix_adapter", "adapter"),
+        Index("ix_subscription_adapter", "adapter"),
         UniqueConstraint("subscriber", "code"),
     )
 
