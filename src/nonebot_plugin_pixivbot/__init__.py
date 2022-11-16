@@ -48,7 +48,9 @@ from . import service
 from importlib import import_module
 from nonebot import logger
 
-supported_modules = ["nonebot_plugin_pixivbot_onebot_v11", "nonebot_plugin_pixivbot_kook"]
+supported_modules = ["nonebot_plugin_pixivbot_onebot_v11",
+                     "nonebot_plugin_pixivbot_kook",
+                     "nonebot_plugin_pixivbot_telegram"]
 
 for p in supported_modules:
     try:
