@@ -1,10 +1,10 @@
 [[package]]
 name = "aiofiles"
-version = "22.1.0"
+version = "0.8.0"
 description = "File support for asyncio."
 category = "main"
 optional = false
-python-versions = ">=3.7,<4.0"
+python-versions = ">=3.6,<4.0"
 
 [[package]]
 name = "aiohttp"
@@ -149,14 +149,14 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "asyncache"
-version = "0.1.1"
-description = "Helpers to use cachetools with async functions"
+version = "0.3.1"
+description = "Helpers to use cachetools with async code."
 category = "main"
 optional = true
-python-versions = "*"
+python-versions = ">=3.8,<4.0"
 
 [package.dependencies]
-cachetools = ">=2.1"
+cachetools = ">=5.2.0,<6.0.0"
 
 [[package]]
 name = "atomicwrites"
@@ -607,6 +607,18 @@ msgpack = ">=1.0.3,<2.0.0"
 nonebot2 = ">=2.0.0-beta.3,<3.0.0"
 
 [[package]]
+name = "nonebot-adapter-telegram"
+version = "0.1.0b3"
+description = "Telegram Adapter for NoneBot2"
+category = "main"
+optional = true
+python-versions = ">=3.8,<4.0"
+
+[package.dependencies]
+aiofiles = ">=0.8.0,<0.9.0"
+nonebot2 = ">=2.0.0b1,<3.0.0"
+
+[[package]]
 name = "nonebot-plugin-apscheduler"
 version = "0.2.0"
 description = "APScheduler Support for NoneBot2"
@@ -620,14 +632,14 @@ nonebot2 = ">=2.0.0-rc.1,<3.0.0"
 
 [[package]]
 name = "nonebot-plugin-pixivbot-kook"
-version = "1.4.0"
+version = "1.5.0"
 description = "Nonebot Plugin Pixivbot (KOOK)"
 category = "main"
 optional = true
 python-versions = ">=3.9,<4.0"
 
 [package.dependencies]
-asyncache = ">=0.1.1,<0.2.0"
+asyncache = ">=0.1.1,<0.4.0"
 cachetools = ">=5.2.0,<6.0.0"
 nonebot-adapter-kaiheila = ">=0.1.0,<0.2.0"
 nonebot2 = ">=2.0.0rc1,<3.0.0"
@@ -642,6 +654,20 @@ python-versions = ">=3.9,<4.0"
 
 [package.dependencies]
 nonebot-adapter-onebot = ">=2.1.1,<3.0.0"
+nonebot2 = ">=2.0.0rc1,<3.0.0"
+
+[[package]]
+name = "nonebot-plugin-pixivbot-telegram"
+version = "1.5.0.post1"
+description = "Nonebot Plugin Pixivbot (Telegram)"
+category = "main"
+optional = true
+python-versions = ">=3.9,<4.0"
+
+[package.dependencies]
+asyncache = ">=0.1.1,<0.4.0"
+cachetools = ">=5.2.0,<6.0.0"
+nonebot-adapter-telegram = ">=0.1.0b3,<0.2.0"
 nonebot2 = ">=2.0.0rc1,<3.0.0"
 
 [[package]]
@@ -1280,16 +1306,17 @@ multidict = ">=4.0"
 kook = ["nonebot-plugin-pixivbot-kook"]
 mongo = ["beanie", "motor"]
 onebot = ["nonebot-plugin-pixivbot-onebot-v11"]
+telegram = ["nonebot-plugin-pixivbot-telegram"]
 
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "f5dc61d8d4ebec7361c50bc83301e0b7d332763f40a0211a9c853c9afaf201e4"
+content-hash = "651b0e81fcf46ed8e7a1e476f42a41306e88046159d1b2047e421e20efcee935"
 
 [metadata.files]
 aiofiles = [
-    {file = "aiofiles-22.1.0-py3-none-any.whl", hash = "sha256:1142fa8e80dbae46bb6339573ad4c8c0841358f79c6eb50a493dceca14621bad"},
-    {file = "aiofiles-22.1.0.tar.gz", hash = "sha256:9107f1ca0b2a5553987a94a3c9959fe5b491fdf731389aa5b7b1bd0733e32de6"},
+    {file = "aiofiles-0.8.0-py3-none-any.whl", hash = "sha256:7a973fc22b29e9962d0897805ace5856e6a566ab1f0c8e5c91ff6c866519c937"},
+    {file = "aiofiles-0.8.0.tar.gz", hash = "sha256:8334f23235248a3b2e83b2c3a78a22674f39969b96397126cc93664d9a901e59"},
 ]
 aiohttp = [
     {file = "aiohttp-3.8.3-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:ba71c9b4dcbb16212f334126cc3d8beb6af377f6703d9dc2d9fb3874fd667ee9"},
@@ -1416,7 +1443,8 @@ async-timeout = [
     {file = "async_timeout-4.0.2-py3-none-any.whl", hash = "sha256:8ca1e4fcf50d07413d66d1a5e416e42cfdf5851c981d679a09851a6853383b3c"},
 ]
 asyncache = [
-    {file = "asyncache-0.1.1.tar.gz", hash = "sha256:c741b3ccef2c5291b3da05d97bab3cc8d50f2ac8efd7fd79d47e3d7b6a3774de"},
+    {file = "asyncache-0.3.1-py3-none-any.whl", hash = "sha256:ef20a1024d265090dd1e0785c961cf98b9c32cc7d9478973dcf25ac1b80011f5"},
+    {file = "asyncache-0.3.1.tar.gz", hash = "sha256:9a1e60a75668e794657489bdea6540ee7e3259c483517b934670db7600bf5035"},
 ]
 atomicwrites = [
     {file = "atomicwrites-1.4.1.tar.gz", hash = "sha256:81b2c9071a49367a7f770170e5eec8cb66567cfbbc8c73d20ce5ca4a8d71cf11"},
@@ -1942,17 +1970,25 @@ nonebot-adapter-onebot = [
     {file = "nonebot_adapter_onebot-2.1.5-py3-none-any.whl", hash = "sha256:d2a46694c402d5f3c5f6951955a78bbf779e17039d282c612cc1fcff77bc6044"},
     {file = "nonebot_adapter_onebot-2.1.5.tar.gz", hash = "sha256:e740422cceebc1f0379da788ccddaa7937f7d88c140e2a5ea9ba0e91ddee867e"},
 ]
+nonebot-adapter-telegram = [
+    {file = "nonebot-adapter-telegram-0.1.0b3.tar.gz", hash = "sha256:84e23ceb880545dba1cdf8dcfdb8988ea9b42c6eaa2501fb60250a72e7f65c6b"},
+    {file = "nonebot_adapter_telegram-0.1.0b3-py3-none-any.whl", hash = "sha256:5bf8199355e28f70baad33f848e903e7ef856ee16454657009b04c3ab15d8228"},
+]
 nonebot-plugin-apscheduler = [
     {file = "nonebot-plugin-apscheduler-0.2.0.tar.gz", hash = "sha256:7b63e99a611b657533b48fcf1f8c6627c18c2eb3fa820a906cd4ec4666c0ceb0"},
     {file = "nonebot_plugin_apscheduler-0.2.0-py3-none-any.whl", hash = "sha256:9285ee84ca1cfa4db73c86cedb5911bbbd25a21ec0cd5f22447cd12f89e48fb4"},
 ]
 nonebot-plugin-pixivbot-kook = [
-    {file = "nonebot_plugin_pixivbot_kook-1.4.0-py3-none-any.whl", hash = "sha256:fdaf16179c17167605a2adcdeb8c1bb7221fa25b432f1b7fb059b2d7a341e68a"},
-    {file = "nonebot_plugin_pixivbot_kook-1.4.0.tar.gz", hash = "sha256:c89384ad786c992af6b68efb29442a4aad59a595e5af9a02a2a6e5ea0fc51b23"},
+    {file = "nonebot_plugin_pixivbot_kook-1.5.0-py3-none-any.whl", hash = "sha256:7b4e340ea4d4a5c4e8631c891ffeeb4c656228763d145e44ff5387fc12c6d1ce"},
+    {file = "nonebot_plugin_pixivbot_kook-1.5.0.tar.gz", hash = "sha256:33edfaaeb5346fc75e88962ef17324b8b4e38683f29c0161bb24082861112cd6"},
 ]
 nonebot-plugin-pixivbot-onebot-v11 = [
     {file = "nonebot_plugin_pixivbot_onebot_v11-1.5.0-py3-none-any.whl", hash = "sha256:2dd950f4320a34236bd7f68d59b075ada6c4d62cf118888e843f0d7a4966569a"},
     {file = "nonebot_plugin_pixivbot_onebot_v11-1.5.0.tar.gz", hash = "sha256:15533f16ef82962c4008c3522541fce4912304ea509b76a11f14e9bdd5efc855"},
+]
+nonebot-plugin-pixivbot-telegram = [
+    {file = "nonebot_plugin_pixivbot_telegram-1.5.0.post1-py3-none-any.whl", hash = "sha256:95e3a7cfcc209129e48b78b740b8576adaf464f6c931b5f3d9223fa0d9d40048"},
+    {file = "nonebot_plugin_pixivbot_telegram-1.5.0.post1.tar.gz", hash = "sha256:45a8ae772686fbeb7b6ee93b5d0b2188f251d290904dce5abd94453f9f7659cb"},
 ]
 nonebot2 = [
     {file = "nonebot2-2.0.0rc1-py3-none-any.whl", hash = "sha256:99c70300b9d0755bba6ed50b7399f44f6213e119157bc026b960b3e157a38416"},
@@ -1997,8 +2033,6 @@ packaging = [
     {file = "packaging-21.3.tar.gz", hash = "sha256:dd47c42927d89ab911e606518907cc2d3a1f38bbd026385970643f9c5b8ecfeb"},
 ]
 pillow = [
-    {file = "Pillow-9.3.0-1-cp37-cp37m-win32.whl", hash = "sha256:e6ea6b856a74d560d9326c0f5895ef8050126acfdc7ca08ad703eb0081e82b74"},
-    {file = "Pillow-9.3.0-1-cp37-cp37m-win_amd64.whl", hash = "sha256:32a44128c4bdca7f31de5be641187367fe2a450ad83b833ef78910397db491aa"},
     {file = "Pillow-9.3.0-cp310-cp310-macosx_10_10_x86_64.whl", hash = "sha256:0b7257127d646ff8676ec8a15520013a698d1fdc48bc2a79ba4e53df792526f2"},
     {file = "Pillow-9.3.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:b90f7616ea170e92820775ed47e136208e04c967271c9ef615b6fbd08d9af0e3"},
     {file = "Pillow-9.3.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:68943d632f1f9e3dce98908e873b3a090f6cba1cbb1b892a9e8d97c938871fbe"},
