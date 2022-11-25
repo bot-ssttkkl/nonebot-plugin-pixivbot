@@ -286,9 +286,6 @@ category = "dev"
 optional = false
 python-versions = ">=3.7"
 
-[package.dependencies]
-tomli = {version = "*", optional = true, markers = "python_full_version <= \"3.11.0a6\" and extra == \"toml\""}
-
 [package.extras]
 toml = ["tomli"]
 
@@ -646,7 +643,7 @@ nonebot2 = ">=2.0.0rc1,<3.0.0"
 
 [[package]]
 name = "nonebot-plugin-pixivbot-onebot-v11"
-version = "1.5.0"
+version = "1.5.1"
 description = "Nonebot Plugin PixivBot (Onebot V11)"
 category = "main"
 optional = true
@@ -1127,7 +1124,6 @@ python-versions = ">=3.6"
 
 [package.dependencies]
 anyio = ">=3.4.0,<5"
-typing-extensions = {version = ">=3.10.0", markers = "python_version < \"3.10\""}
 
 [package.extras]
 full = ["itsdangerous", "jinja2", "python-multipart", "pyyaml", "requests"]
@@ -1147,14 +1143,6 @@ description = "Python Library for Tom's Obvious, Minimal Language"
 category = "main"
 optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
-
-[[package]]
-name = "tomli"
-version = "2.0.1"
-description = "A lil' TOML parser"
-category = "dev"
-optional = false
-python-versions = ">=3.7"
 
 [[package]]
 name = "tomlkit"
@@ -1310,7 +1298,7 @@ telegram = ["nonebot-plugin-pixivbot-telegram"]
 
 [metadata]
 lock-version = "1.1"
-python-versions = "^3.9"
+python-versions = "~3.11"
 content-hash = "651b0e81fcf46ed8e7a1e476f42a41306e88046159d1b2047e421e20efcee935"
 
 [metadata.files]
@@ -1983,8 +1971,8 @@ nonebot-plugin-pixivbot-kook = [
     {file = "nonebot_plugin_pixivbot_kook-1.5.0.tar.gz", hash = "sha256:33edfaaeb5346fc75e88962ef17324b8b4e38683f29c0161bb24082861112cd6"},
 ]
 nonebot-plugin-pixivbot-onebot-v11 = [
-    {file = "nonebot_plugin_pixivbot_onebot_v11-1.5.0-py3-none-any.whl", hash = "sha256:2dd950f4320a34236bd7f68d59b075ada6c4d62cf118888e843f0d7a4966569a"},
-    {file = "nonebot_plugin_pixivbot_onebot_v11-1.5.0.tar.gz", hash = "sha256:15533f16ef82962c4008c3522541fce4912304ea509b76a11f14e9bdd5efc855"},
+    {file = "nonebot_plugin_pixivbot_onebot_v11-1.5.1-py3-none-any.whl", hash = "sha256:56246a079b3eaea9321e876121155b9034e34e725b425ba175e3365ad0b66743"},
+    {file = "nonebot_plugin_pixivbot_onebot_v11-1.5.1.tar.gz", hash = "sha256:4c8f380a5f01d128658fa483607320cc9480913d18955971b3febacd00b52639"},
 ]
 nonebot-plugin-pixivbot-telegram = [
     {file = "nonebot_plugin_pixivbot_telegram-1.5.0.post1-py3-none-any.whl", hash = "sha256:95e3a7cfcc209129e48b78b740b8576adaf464f6c931b5f3d9223fa0d9d40048"},
@@ -2033,6 +2021,8 @@ packaging = [
     {file = "packaging-21.3.tar.gz", hash = "sha256:dd47c42927d89ab911e606518907cc2d3a1f38bbd026385970643f9c5b8ecfeb"},
 ]
 pillow = [
+    {file = "Pillow-9.3.0-1-cp37-cp37m-win32.whl", hash = "sha256:e6ea6b856a74d560d9326c0f5895ef8050126acfdc7ca08ad703eb0081e82b74"},
+    {file = "Pillow-9.3.0-1-cp37-cp37m-win_amd64.whl", hash = "sha256:32a44128c4bdca7f31de5be641187367fe2a450ad83b833ef78910397db491aa"},
     {file = "Pillow-9.3.0-cp310-cp310-macosx_10_10_x86_64.whl", hash = "sha256:0b7257127d646ff8676ec8a15520013a698d1fdc48bc2a79ba4e53df792526f2"},
     {file = "Pillow-9.3.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:b90f7616ea170e92820775ed47e136208e04c967271c9ef615b6fbd08d9af0e3"},
     {file = "Pillow-9.3.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:68943d632f1f9e3dce98908e873b3a090f6cba1cbb1b892a9e8d97c938871fbe"},
@@ -2406,10 +2396,6 @@ text-unidecode = [
 toml = [
     {file = "toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b"},
     {file = "toml-0.10.2.tar.gz", hash = "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f"},
-]
-tomli = [
-    {file = "tomli-2.0.1-py3-none-any.whl", hash = "sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc"},
-    {file = "tomli-2.0.1.tar.gz", hash = "sha256:de526c12914f0c550d15924c62d72abc48d6fe7364aa87328337a31007fe8a4f"},
 ]
 tomlkit = [
     {file = "tomlkit-0.10.2-py3-none-any.whl", hash = "sha256:905cf92c2111ef80d355708f47ac24ad1b6fc2adc5107455940088c9bbecaedb"},
