@@ -57,10 +57,12 @@ def timedelta_proportion(illusts: list[LazyIllust]) -> np.ndarray:
         else:
             p[i] = float("-inf")
 
-    p = np.array(p)
-    p = p / min_p  # 归一化
-    p = np.exp(p)
-    return p / np.sum(p)
+    if min_p == 0:
+        return uniform(illusts)
+    else:
+        p = p / -min_p  # 归一化
+        p = np.exp(p)
+        return p / np.sum(p)
 
 
 p_gen = {
