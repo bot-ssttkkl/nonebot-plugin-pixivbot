@@ -1,3 +1,4 @@
+from io import StringIO
 from typing import Sequence
 
 from nonebot_plugin_pixivbot.context import Inject
@@ -26,19 +27,18 @@ async def parse_and_get_user(raw_user: str):
 async def build_tasks_msg(identifier: PostIdentifier):
     watchman = context.require(Watchman)
     tasks = [x async for x in watchman.get_by_subscriber(identifier)]
-    msg = "当前订阅：\n"
-    if len(tasks) > 0:
-        for x in tasks:
-            args = list(filter(lambda kv: kv[1], x.kwargs.items()))
-            if len(args) != 0:
-                args_text = ", ".join(map(lambda kv: f'{kv[0]}={kv[1]}', args))
-                args_text = f"({args_text})"
-            else:
-                args_text = ""
-            msg += f'[{x.code}] {x.type.name} {args_text}\n'
-    else:
-        msg += '无\n'
-    return msg
+    with StringIO() as sio:
+        sio.write("当前订阅：\n")
+        if len(tasks) > 0:
+            for t in tasks:
+                sio.write(f'[{t.code}] {t.type.name}')
+                args_text = t.args_text
+                if args_text:
+                    sio.write(f' ({args_text})')
+                sio.write('\n')
+        else:
+            sio.write('无\n')
+        return sio.getvalue()
 
 
 async def parse_user_illusts_args(args: Sequence[str]):
@@ -63,7 +63,7 @@ async def parse_following_illusts_args(args: Sequence[str], post_dest: PostDesti
     else:
         watch_args = {"pixiv_user_id": 0,
                       "sender_user_id": post_dest.user_id}
-        message = f"关注者插画更新"
+        message = "关注者插画更新"
 
     return watch_args, message
 

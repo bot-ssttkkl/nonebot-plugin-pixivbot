@@ -158,7 +158,7 @@ class Scheduler:
         logger.success(f"[scheduler] successfully inserted subscription {sub}")
         self._add_job(sub, post_dest.normalized())
 
-    async def unschedule(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> bool:
+    async def unschedule(self, subscriber: PostIdentifier[T_UID, T_GID], code: str) -> bool:
         sub = await self.repo.delete_one(subscriber, code)
         if sub:
             logger.success(f"[scheduler] successfully removed subscription {sub}")
