@@ -1,6 +1,7 @@
 import asyncio
 from typing import Callable
 
+from aiohttp import ServerConnectionError
 from nonebot import logger
 from nonebot.exception import ActionFailed
 
@@ -19,14 +20,11 @@ class DefaultErrorInterceptor(Interceptor):
                         **kwargs):
         try:
             await wrapped_func(*args, post_dest=post_dest, silently=silently, **kwargs)
-        except asyncio.TimeoutError:
-            logger.warning("Timeout")
+        except (asyncio.TimeoutError, ServerConnectionError, ConnectionError) as e:
+            logger.warning(type(e).__name__)
             if not silently:
-                await self.post_plain_text(f"下载超时", post_dest=post_dest)
-        except BadRequestError as e:
-            if not silently:
-                await self.post_plain_text(str(e), post_dest=post_dest)
-        except QueryError as e:
+                await self.post_plain_text("网络错误", post_dest=post_dest)
+        except (BadRequestError, QueryError) as e:
             if not silently:
                 await self.post_plain_text(str(e), post_dest=post_dest)
         except ActionFailed as e:
