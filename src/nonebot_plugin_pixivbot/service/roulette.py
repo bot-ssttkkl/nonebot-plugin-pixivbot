@@ -15,13 +15,13 @@ def uniform(illusts: list[LazyIllust]) -> np.ndarray:
 def bookmark_proportion(illusts: list[LazyIllust]) -> np.ndarray:
     # 概率正比于书签数
     n = len(illusts)
-    p = [0] * n
+    p = np.zeros(n)
 
     for i, x in enumerate(illusts):
         if x.loaded:
             p[i] = x.content.total_bookmarks + 10  # 加10平滑
         else:
-            p[i] = 0
+            p[i] = 10
 
     p = np.array(p)
     return p / np.sum(p)
@@ -30,13 +30,13 @@ def bookmark_proportion(illusts: list[LazyIllust]) -> np.ndarray:
 def view_proportion(illusts: list[LazyIllust]) -> np.ndarray:
     # 概率正比于查看人数
     n = len(illusts)
-    p = [0] * n
+    p = np.zeros(n)
 
     for i, x in enumerate(illusts):
         if x.loaded:
             p[i] = x.content.total_view + 10  # 加10平滑
         else:
-            p[i] = 0
+            p[i] = 10
 
     p = np.array(p)
     return p / np.sum(p)
@@ -45,7 +45,7 @@ def view_proportion(illusts: list[LazyIllust]) -> np.ndarray:
 def timedelta_proportion(illusts: list[LazyIllust]) -> np.ndarray:
     # 概率正比于 exp(归一化后的画像发布时间差)
     n = len(illusts)
-    p = [0] * n
+    p = np.zeros(n)
 
     now = time()
     min_p = 0
@@ -72,12 +72,11 @@ p_gen = {
 
 
 def roulette(illusts: list[LazyIllust], random_method: RandomIllustMethod, k: int) -> list[LazyIllust]:
-    if random_method not in p_gen:
-        raise ValueError(f"illegal random_method: {random_method}")
-
     n = len(illusts)
     p = p_gen[random_method](illusts)
-    # print([(illusts[i].content.create_date, p[i]) for i in range(n)])
+
+    if n <= k:
+        return illusts
 
     rng = np.random.default_rng()
     winners = rng.choice(n, k, False, p)
