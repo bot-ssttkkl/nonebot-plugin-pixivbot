@@ -8,7 +8,7 @@ class QueryError(Exception):
 
 class RateLimitError(QueryError):
     def __init__(self):
-        super(RateLimitError).__init__("Rate Limit")
+        super().__init__("Rate Limit")
 
 
 class BadRequestError(Exception):
