@@ -54,7 +54,7 @@ class Watchman:
 
     async def _on_trigger(self, task: WatchTask[T_UID, T_GID], post_dest: PostDestination[T_UID, T_GID],
                           manually: bool = False):
-        logger.info(f"[watchman] triggered {task}")
+        logger.info(f"[watchman] triggered \"{task}\"")
 
         try:
             try:
@@ -66,7 +66,7 @@ class Watchman:
                 task.checkpoint = datetime.now(timezone.utc)
                 await self.repo.update(task)
         except ActionFailed as e:
-            logger.error("[watchman] ActionFailed" + str(e))
+            logger.error(f"[watchman] ActionFailed {e}")
 
             available = self.auth_mgr.available(post_dest)
             if isawaitable(available):
@@ -91,12 +91,12 @@ class Watchman:
         self.apscheduler.add_job(self._on_trigger, id=job_id, trigger=trigger,
                                  args=[task, post_dest],
                                  max_instances=1)
-        logger.success(f"[watchman] add job \"{job_id}\" on {trigger}")
+        logger.success(f"[watchman] add job \"{task}\"")
 
     def _remove_job(self, task: WatchTask[T_UID, T_GID]):
         job_id = self._make_job_id(task)
         self.apscheduler.remove_job(job_id)
-        logger.success(f"[watchman] remove job \"{job_id}\"")
+        logger.success(f"[watchman] remove job \"{task}\"")
 
     async def on_bot_connect(self, bot: Bot):
         adapter = get_adapter_name(bot)
@@ -110,8 +110,7 @@ class Watchman:
             try:
                 self._remove_job(task)
             except Exception as e:
-                logger.error(f"[watchman] error occurred when remove job "
-                             f"\"{self._make_job_id(task)}\"")
+                logger.error(f"[watchman] error occurred when remove job \"{task}\"")
                 logger.exception(e)
 
     async def watch(self, type_: WatchType,
@@ -120,14 +119,14 @@ class Watchman:
         task = WatchTask(type=type_, kwargs=kwargs, subscriber=subscriber.identifier)
         ok = await self.repo.insert(task)
         if ok:
-            logger.success(f"[watchman] successfully inserted subscription {task}")
+            logger.success(f"[watchman] inserted subscription \"{task}\"")
             self._add_job(task, subscriber.normalized())
         return ok
 
     async def unwatch(self, type_: WatchType, code: int) -> bool:
         task = await self.repo.delete_one(type_, code)
         if task:
-            logger.success(f"[scheduler] successfully removed subscription {task}")
+            logger.success(f"[scheduler] removed subscription \"{task}\"")
             self._remove_job(task)
             return True
         else:
@@ -136,7 +135,7 @@ class Watchman:
     async def unwatch_all_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]):
         old = await self.repo.delete_many_by_subscriber(subscriber)
         for task in old:
-            logger.success(f"[scheduler] successfully removed subscription {task}")
+            logger.success(f"[scheduler] removed subscription \"{task}\"")
             self._remove_job(task)
 
     def get_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncIterable[WatchTask]:

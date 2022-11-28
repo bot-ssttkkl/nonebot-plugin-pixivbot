@@ -32,6 +32,9 @@ class PostIdentifier(GenericModel, Generic[T_UID, T_GID]):
     def __repr__(self):
         return f"{self.adapter}:{self.user_id}:{self.group_id}"
 
+    def __str__(self):
+        return self.__repr__()
+
     @root_validator(allow_reuse=True)
     def validator(cls, values):
         if not values.get("user_id", None) and not values.get("group_id", None):

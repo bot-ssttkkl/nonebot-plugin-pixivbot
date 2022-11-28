@@ -42,6 +42,9 @@ class Subscription(GenericModel, Generic[T_UID, T_GID]):
             text += f' ({self.args_text})'
         return text
 
+    def __str__(self):
+        return self.__repr__()
+
     class Config:
         orm_mode = True
 
