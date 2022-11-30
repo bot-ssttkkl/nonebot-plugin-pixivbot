@@ -1,6 +1,10 @@
 from typing import List
 
 from beanie import Document
+from beanie.odm.interfaces.aggregate import AggregateInterface
+from beanie.odm.interfaces.find import FindInterface
+from beanie.odm.interfaces.getters import OtherGettersInterface
+from pydantic import BaseModel
 from pymongo import IndexModel
 
 from nonebot_plugin_pixivbot import context
@@ -13,7 +17,10 @@ from ...source.mongo import MongoDataSource
 conf = context.require(Config)
 
 
-class PixivRepoCache(Document):
+class PixivRepoCache(BaseModel,
+                     FindInterface,
+                     AggregateInterface,
+                     OtherGettersInterface):
     metadata: PixivRepoMetadata
 
 
@@ -25,7 +32,7 @@ class UserSetCache(PixivRepoCache):
     user_id: List[int]
 
 
-class DownloadCache(PixivRepoCache):
+class DownloadCache(Document, PixivRepoCache):
     illust_id: int
     content: bytes
 
@@ -37,7 +44,7 @@ class DownloadCache(PixivRepoCache):
         ]
 
 
-class IllustDetailCache(PixivRepoCache):
+class IllustDetailCache(Document, PixivRepoCache):
     illust: Illust
 
     class Settings:
@@ -48,7 +55,7 @@ class IllustDetailCache(PixivRepoCache):
         ]
 
 
-class IllustRankingCache(IllustSetCache):
+class IllustRankingCache(Document, IllustSetCache):
     mode: RankingMode
 
     class Settings:
@@ -59,7 +66,7 @@ class IllustRankingCache(IllustSetCache):
         ]
 
 
-class OtherIllustCache(IllustSetCache):
+class OtherIllustCache(Document, IllustSetCache):
     type: str
 
     class Settings:
@@ -70,7 +77,7 @@ class OtherIllustCache(IllustSetCache):
         ]
 
 
-class RelatedIllustsCache(IllustSetCache):
+class RelatedIllustsCache(Document, IllustSetCache):
     original_illust_id: int
 
     class Settings:
@@ -81,7 +88,7 @@ class RelatedIllustsCache(IllustSetCache):
         ]
 
 
-class SearchIllustCache(IllustSetCache):
+class SearchIllustCache(Document, IllustSetCache):
     word: str
 
     class Settings:
@@ -92,9 +99,8 @@ class SearchIllustCache(IllustSetCache):
         ]
 
 
-class SearchUserCache(UserSetCache):
+class SearchUserCache(Document, UserSetCache):
     word: str
-    user_id: List[int]
 
     class Settings:
         name = "search_user_cache"
@@ -104,7 +110,7 @@ class SearchUserCache(UserSetCache):
         ]
 
 
-class UserBookmarksCache(IllustSetCache):
+class UserBookmarksCache(Document, IllustSetCache):
     user_id: int
 
     class Settings:
@@ -115,7 +121,7 @@ class UserBookmarksCache(IllustSetCache):
         ]
 
 
-class UserDetailCache(PixivRepoCache):
+class UserDetailCache(Document, PixivRepoCache):
     user: User
 
     class Settings:
@@ -126,7 +132,7 @@ class UserDetailCache(PixivRepoCache):
         ]
 
 
-class UserIllustsCache(IllustSetCache):
+class UserIllustsCache(Document, IllustSetCache):
     user_id: int
 
     class Settings:

@@ -91,6 +91,7 @@ class MongoPixivRepo:
         broken = 0
 
         try:
+            # noinspection PyTypeChecker
             async for x in doc_type.aggregate(aggregation):
                 total += 1
                 if "illust" in x and x["illust"] is not None:
@@ -143,6 +144,7 @@ class MongoPixivRepo:
 
         total = 0
         try:
+            # noinspection PyTypeChecker
             async for x in doc_type.aggregate(aggregation):
                 if "user" in x and x["user"] is not None:
                     yield User.parse_obj(x["user"])
@@ -197,6 +199,7 @@ class MongoPixivRepo:
                 {'$count': 'count'}
             ]
 
+            # noinspection PyTypeChecker
             async for result in doc_type.aggregate(agg):
                 return result["count"] != 0
 
@@ -213,6 +216,7 @@ class MongoPixivRepo:
                 {'$count': 'count'}
             ]
 
+            # noinspection PyTypeChecker
             async for result in doc_type.aggregate(agg):
                 return result["count"] != 0
 
