@@ -1,3 +1,5 @@
+from typing import Sequence
+
 from lazy import lazy
 from nonebot import on_regex
 from nonebot.adapters import Bot, Event
@@ -14,6 +16,7 @@ from ..base import post_destination
 from ..pkg_context import context
 from ..recorder import Recorder
 from ..utils import get_common_query_rule
+from ...utils.decode_integer import decode_integer
 
 
 @context.inject
@@ -34,8 +37,12 @@ class MoreHandler(CommonHandler):
 
     async def on_match(self, bot: Bot, event: Event, state: T_State, matcher: Matcher,
                        post_dest: PostDestination[T_UID, T_GID] = Depends(post_destination)):
-        illust_id = state["_matched_groups"][0]
-        await self.handle(illust_id, post_dest=post_dest)
+        count = state["_matched_groups"][1]
+        await self.handle(count, post_dest=post_dest)
+
+    def parse_args(self, args: Sequence[str], post_dest: PostDestination[T_UID, T_GID]) -> dict:
+        count = decode_integer(args[0])
+        return dict(count=count)
 
     async def actual_handle(self, *, count: int = 1,
                             post_dest: PostDestination[T_UID, T_GID],
