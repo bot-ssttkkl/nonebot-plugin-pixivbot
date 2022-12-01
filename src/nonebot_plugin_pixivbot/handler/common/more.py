@@ -41,7 +41,7 @@ class MoreHandler(CommonHandler):
         await self.handle(count, post_dest=post_dest)
 
     def parse_args(self, args: Sequence[str], post_dest: PostDestination[T_UID, T_GID]) -> dict:
-        count = decode_integer(args[0])
+        count = decode_integer(args[0]) if args[0] is not None else 1
         return dict(count=count)
 
     async def actual_handle(self, *, count: int = 1,
