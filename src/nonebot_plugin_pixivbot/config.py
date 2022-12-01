@@ -22,13 +22,24 @@ class Config(BaseSettings):
 
     @root_validator(pre=True, allow_reuse=True)
     def validate_data_source(cls, values):
-        if "pixiv_data_source" not in values:
-            if "pixiv_mongo_conn_url" in values:
-                values["pixiv_data_source"] = DataSourceType.mongo
+        pixiv_data_source = values.get("pixiv_data_source", None)
+        pixiv_mongo_conn_url = values.get("pixiv_mongo_conn_url", None)
+        pixiv_mongo_database_name = values.get("pixiv_mongo_database_name", None)
+
+        if pixiv_data_source is None:
+            if pixiv_mongo_conn_url is not None:
+                pixiv_data_source = DataSourceType.mongo
             else:
-                values["pixiv_data_source"] = DataSourceType.sqlite
-                values["pixiv_mongo_conn_url"] = ""
-                values["pixiv_mongo_database_name"] = ""
+                pixiv_data_source = DataSourceType.sqlite
+
+        if pixiv_data_source == DataSourceType.sqlite:
+            pixiv_mongo_conn_url = ""
+            pixiv_mongo_database_name = ""
+
+        values["pixiv_data_source"] = pixiv_data_source
+        values["pixiv_mongo_conn_url"] = pixiv_mongo_conn_url
+        values["pixiv_mongo_database_name"] = pixiv_mongo_database_name
+
         return values
 
     pixiv_proxy: Optional[str]
