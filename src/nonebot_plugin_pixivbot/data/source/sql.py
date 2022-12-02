@@ -46,8 +46,8 @@ class SqlDataSource(DataSourceLifecycleMixin):
 
         driver = get_driver()
         self._engine = create_async_engine(self.conf.pixiv_sql_conn_url,
-                                           # 仅当debug模式时回显sql语句
-                                           echo=driver.config.log_level.lower() == 'debug',
+                                           # 仅当verbose模式时回显sql语句
+                                           echo=driver.config.log_level.lower() == 'trace',
                                            future=True,
                                            json_serializer=json_serializer)
 

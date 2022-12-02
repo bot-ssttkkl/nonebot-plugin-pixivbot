@@ -162,6 +162,11 @@ class SqlPixivRepo:
             values.append(dict(illust_id=x.id, illust=x.dict(), update_time=metadata.update_time))
         if len(values) != 0:
             stmt = insert(IllustDetailCache).values(values)
+            stmt = stmt.on_conflict_do_update(index_elements=[IllustDetailCache.illust_id],
+                                              set_={
+                                                  IllustDetailCache.illust: stmt.excluded.illust,
+                                                  IllustDetailCache.update_time: stmt.excluded.update_time
+                                              })
             await session.execute(stmt)
             await session.commit()
 
