@@ -11,9 +11,7 @@ elif dialect == 'postgresql':
     from sqlalchemy.dialects.postgresql import JSONB as _JSON
     from sqlalchemy.dialects.postgresql import BYTEA as _BLOB
 else:
-    from sqlalchemy import insert as _insert
-    from sqlalchemy import JSON as _JSON
-    from sqlalchemy import BLOB as _BLOB
+    raise RuntimeError(f"不支持使用此SQL数据库：{dialect}")
 
 insert = _insert
 JSON = _JSON
