@@ -6,7 +6,6 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from nonebot import logger
 from sqlalchemy import select, delete
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
@@ -17,6 +16,7 @@ from nonebot_plugin_pixivbot.data.pixiv_repo.errors import CacheExpiredError, No
 from nonebot_plugin_pixivbot.data.pixiv_repo.local_repo.sql_models import IllustDetailCache, UserDetailCache, \
     DownloadCache, IllustSetCache, IllustSetCacheIllust, UserSetCache, UserSetCacheUser
 from nonebot_plugin_pixivbot.data.pixiv_repo.models import PixivRepoMetadata
+from nonebot_plugin_pixivbot.data.source import with_session_scope_if_sql
 from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
 from nonebot_plugin_pixivbot.data.utils.sql import insert
 from nonebot_plugin_pixivbot.enums import RankingMode
@@ -48,12 +48,18 @@ class SqlPixivRepo:
     apscheduler: AsyncIOScheduler = Inject(AsyncIOScheduler)
 
     def __init__(self):
-        on_startup(partial(self.apscheduler.add_job,
-                           self.clean_expired,
-                           id='pixivbot_sql_pixiv_repo_clean_expired',
-                           trigger=IntervalTrigger(hours=2),
-                           max_instances=1),
-                   replay=True)
+        on_startup(
+            with_session_scope_if_sql(
+                partial(
+                    self.apscheduler.add_job,
+                    self.clean_expired,
+                    id='pixivbot_sql_pixiv_repo_clean_expired',
+                    trigger=IntervalTrigger(hours=2),
+                    max_instances=1
+                )
+            ),
+            replay=True
+        )
 
     async def _get_illusts(self, cache_type: str,
                            key: dict,
@@ -531,72 +537,72 @@ class SqlPixivRepo:
         logger.info(f"[local] clean_expired")
 
         now = datetime.utcnow()
-        async with AsyncSession(self.data_source.engine) as session:
-            stmt = delete(IllustDetailCache).where(
-                IllustDetailCache.update_time <= now - timedelta(seconds=self.conf.pixiv_illust_detail_cache_expires_in)
-            )
-            result = await session.execute(stmt)
-            logger.success(f"[local] deleted {result.rowcount} illust_detail cache")
+        session = self.data_source.session()
+        stmt = delete(IllustDetailCache).where(
+            IllustDetailCache.update_time <= now - timedelta(seconds=self.conf.pixiv_illust_detail_cache_expires_in)
+        )
+        result = await session.execute(stmt)
+        logger.success(f"[local] deleted {result.rowcount} illust_detail cache")
 
-            stmt = delete(UserDetailCache).where(
-                UserDetailCache.update_time <= now - timedelta(seconds=self.conf.pixiv_user_detail_cache_expires_in)
-            )
-            result = await session.execute(stmt)
-            logger.success(f"[local] deleted {result.rowcount} user_detail cache")
+        stmt = delete(UserDetailCache).where(
+            UserDetailCache.update_time <= now - timedelta(seconds=self.conf.pixiv_user_detail_cache_expires_in)
+        )
+        result = await session.execute(stmt)
+        logger.success(f"[local] deleted {result.rowcount} user_detail cache")
 
-            stmt = delete(DownloadCache).where(
-                DownloadCache.update_time <= now - timedelta(seconds=self.conf.pixiv_download_cache_expires_in)
-            )
-            result = await session.execute(stmt)
-            logger.success(f"[local] deleted {result.rowcount} download cache")
+        stmt = delete(DownloadCache).where(
+            DownloadCache.update_time <= now - timedelta(seconds=self.conf.pixiv_download_cache_expires_in)
+        )
+        result = await session.execute(stmt)
+        logger.success(f"[local] deleted {result.rowcount} download cache")
 
-            stmt = delete(IllustSetCache).where(
-                IllustSetCache.cache_type == 'illust_ranking',
-                IllustSetCache.update_time <= now - timedelta(seconds=self.conf.pixiv_illust_ranking_cache_expires_in)
-            )
-            result = await session.execute(stmt)
-            logger.success(f"[local] deleted {result.rowcount} illust_ranking cache")
+        stmt = delete(IllustSetCache).where(
+            IllustSetCache.cache_type == 'illust_ranking',
+            IllustSetCache.update_time <= now - timedelta(seconds=self.conf.pixiv_illust_ranking_cache_expires_in)
+        )
+        result = await session.execute(stmt)
+        logger.success(f"[local] deleted {result.rowcount} illust_ranking cache")
 
-            stmt = delete(IllustSetCache).where(
-                IllustSetCache.cache_type == 'search_illust',
-                IllustSetCache.update_time <= now - timedelta(seconds=self.conf.pixiv_search_illust_cache_delete_in)
-            )
-            result = await session.execute(stmt)
-            logger.success(f"[local] deleted {result.rowcount} search_illust cache")
+        stmt = delete(IllustSetCache).where(
+            IllustSetCache.cache_type == 'search_illust',
+            IllustSetCache.update_time <= now - timedelta(seconds=self.conf.pixiv_search_illust_cache_delete_in)
+        )
+        result = await session.execute(stmt)
+        logger.success(f"[local] deleted {result.rowcount} search_illust cache")
 
-            stmt = delete(UserSetCache).where(
-                UserSetCache.cache_type == 'search_user',
-                UserSetCache.update_time <= now - timedelta(seconds=self.conf.pixiv_search_user_cache_delete_in)
-            )
-            result = await session.execute(stmt)
-            logger.success(f"[local] deleted {result.rowcount} search_user cache")
+        stmt = delete(UserSetCache).where(
+            UserSetCache.cache_type == 'search_user',
+            UserSetCache.update_time <= now - timedelta(seconds=self.conf.pixiv_search_user_cache_delete_in)
+        )
+        result = await session.execute(stmt)
+        logger.success(f"[local] deleted {result.rowcount} search_user cache")
 
-            stmt = delete(IllustSetCache).where(
-                IllustSetCache.cache_type == 'user_illusts',
-                IllustSetCache.update_time <= now - timedelta(seconds=self.conf.pixiv_user_illusts_cache_delete_in)
-            )
-            result = await session.execute(stmt)
-            logger.success(f"[local] deleted {result.rowcount} user_illusts cache")
+        stmt = delete(IllustSetCache).where(
+            IllustSetCache.cache_type == 'user_illusts',
+            IllustSetCache.update_time <= now - timedelta(seconds=self.conf.pixiv_user_illusts_cache_delete_in)
+        )
+        result = await session.execute(stmt)
+        logger.success(f"[local] deleted {result.rowcount} user_illusts cache")
 
-            stmt = delete(IllustSetCache).where(
-                IllustSetCache.cache_type == 'user_bookmarks',
-                IllustSetCache.update_time <= now - timedelta(seconds=self.conf.pixiv_user_bookmarks_cache_delete_in)
-            )
-            result = await session.execute(stmt)
-            logger.success(f"[local] deleted {result.rowcount} user_bookmarks cache")
+        stmt = delete(IllustSetCache).where(
+            IllustSetCache.cache_type == 'user_bookmarks',
+            IllustSetCache.update_time <= now - timedelta(seconds=self.conf.pixiv_user_bookmarks_cache_delete_in)
+        )
+        result = await session.execute(stmt)
+        logger.success(f"[local] deleted {result.rowcount} user_bookmarks cache")
 
-            stmt = delete(IllustSetCache).where(
-                IllustSetCache.cache_type == 'related_illusts',
-                IllustSetCache.update_time <= now - timedelta(seconds=self.conf.pixiv_related_illusts_cache_expires_in)
-            )
-            result = await session.execute(stmt)
-            logger.success(f"[local] deleted {result.rowcount} related_illusts cache")
+        stmt = delete(IllustSetCache).where(
+            IllustSetCache.cache_type == 'related_illusts',
+            IllustSetCache.update_time <= now - timedelta(seconds=self.conf.pixiv_related_illusts_cache_expires_in)
+        )
+        result = await session.execute(stmt)
+        logger.success(f"[local] deleted {result.rowcount} related_illusts cache")
 
-            stmt = delete(IllustSetCache).where(
-                IllustSetCache.cache_type == 'other',
-                IllustSetCache.update_time <= now - timedelta(seconds=self.conf.pixiv_other_cache_expires_in)
-            )
-            result = await session.execute(stmt)
-            logger.success(f"[local] deleted {result.rowcount} other cache")
+        stmt = delete(IllustSetCache).where(
+            IllustSetCache.cache_type == 'other',
+            IllustSetCache.update_time <= now - timedelta(seconds=self.conf.pixiv_other_cache_expires_in)
+        )
+        result = await session.execute(stmt)
+        logger.success(f"[local] deleted {result.rowcount} other cache")
 
-            await session.commit()
+        await session.commit()

@@ -1,3 +1,4 @@
+from functools import wraps
 from typing import Protocol, Callable, Union, Awaitable
 
 from nonebot_plugin_pixivbot import context
@@ -28,5 +29,19 @@ else:
     from .sql import SqlDataSource
 
     context.bind(DataSource, SqlDataSource)
+
+
+def with_session_scope_if_sql(action):
+    @wraps(action)
+    async def wrapper(*args, **kwargs):
+        data_source = context.require(DataSource)
+        if isinstance(data_source, SqlDataSource):
+            async with data_source.session_scope():
+                return await action(*args, **kwargs)
+        else:
+            return await action(*args, **kwargs)
+
+    return wrapper
+
 
 __all__ = ("DataSource",)
