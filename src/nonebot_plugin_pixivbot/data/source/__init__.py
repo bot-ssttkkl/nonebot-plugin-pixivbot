@@ -1,5 +1,6 @@
+from contextlib import asynccontextmanager
 from functools import wraps
-from typing import Protocol, Callable, Union, Awaitable
+from typing import Protocol, Callable, Union, Awaitable, Any
 
 from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
@@ -13,10 +14,23 @@ class DataSource(Protocol):
     async def close(self):
         ...
 
+    def on_initializing(self, func: Callable[[], Union[None, Awaitable[None]]]):
+        ...
+
     def on_initialized(self, func: Callable[[], Union[None, Awaitable[None]]]):
         ...
 
+    def on_closing(self, func: Callable[[], Union[None, Awaitable[None]]]):
+        ...
+
     def on_closed(self, func: Callable[[], Union[None, Awaitable[None]]]):
+        ...
+
+    def session(self) -> Any:
+        ...
+
+    @asynccontextmanager
+    async def session_scope(self):
         ...
 
 
@@ -31,17 +45,14 @@ else:
     context.bind(DataSource, SqlDataSource)
 
 
-def with_session_scope_if_sql(action):
+def with_session_scope(action):
     @wraps(action)
     async def wrapper(*args, **kwargs):
         data_source = context.require(DataSource)
-        if isinstance(data_source, SqlDataSource):
-            async with data_source.session_scope():
-                return await action(*args, **kwargs)
-        else:
+        async with data_source.session_scope():
             return await action(*args, **kwargs)
 
     return wrapper
 
 
-__all__ = ("DataSource",)
+__all__ = ("DataSource", "with_session_scope")

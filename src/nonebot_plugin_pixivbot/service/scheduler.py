@@ -13,7 +13,7 @@ from nonebot import logger, Bot
 from nonebot.exception import ActionFailed
 
 from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.data.source import with_session_scope_if_sql
+from nonebot_plugin_pixivbot.data.source import with_session_scope
 from nonebot_plugin_pixivbot.data.subscription import SubscriptionRepo
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier
@@ -69,8 +69,8 @@ class Scheduler:
     auth_mgr: AuthenticatorManager = Inject(AuthenticatorManager)
 
     def __init__(self):
-        on_bot_connect(with_session_scope_if_sql(self.on_bot_connect), replay=True)
-        on_bot_disconnect(with_session_scope_if_sql(self.on_bot_disconnect))
+        on_bot_connect(with_session_scope(self.on_bot_connect), replay=True)
+        on_bot_disconnect(with_session_scope(self.on_bot_disconnect))
 
     @staticmethod
     def _make_job_id(sub: Subscription):

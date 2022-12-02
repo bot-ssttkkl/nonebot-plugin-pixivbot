@@ -10,7 +10,7 @@ from nonebot.exception import ActionFailed
 from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.data.source import DataSource, SqlDataSource, with_session_scope_if_sql
+from nonebot_plugin_pixivbot.data.source import with_session_scope
 from nonebot_plugin_pixivbot.data.watch_task import WatchTaskRepo
 from nonebot_plugin_pixivbot.handler.watch.following_illusts import WatchFollowingIllustsHandler
 from nonebot_plugin_pixivbot.handler.watch.user_illusts import WatchUserIllustsHandler
@@ -36,8 +36,8 @@ class Watchman:
     auth_mgr = Inject(AuthenticatorManager)
 
     def __init__(self):
-        on_bot_connect(with_session_scope_if_sql(self.on_bot_connect), replay=True)
-        on_bot_disconnect(with_session_scope_if_sql(self.on_bot_disconnect))
+        on_bot_connect(with_session_scope(self.on_bot_connect), replay=True)
+        on_bot_disconnect(with_session_scope(self.on_bot_disconnect))
 
     @staticmethod
     def _make_job_id(task: WatchTask[T_UID, T_GID]):

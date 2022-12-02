@@ -7,6 +7,7 @@ from nonebot import logger
 
 class DataSourceLifecycleMixin:
     def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._on_initializing_callbacks = []
         self._on_initialized_callbacks = []
         self._on_closing_callbacks = []
@@ -25,21 +26,21 @@ class DataSourceLifecycleMixin:
         self._on_closed_callbacks.append(func)
 
     async def fire_initializing(self):
-        logger.debug("[data source] Firing initializing event")
+        logger.trace("[data source] Firing initializing event")
         fut = filter(isawaitable, (x() for x in self._on_initializing_callbacks))
         await asyncio.gather(*fut)
 
     async def fire_initialized(self):
-        logger.debug("[data source] Firing initialized event")
+        logger.trace("[data source] Firing initialized event")
         fut = filter(isawaitable, (x() for x in self._on_initialized_callbacks))
         await asyncio.gather(*fut)
 
     async def fire_closing(self):
-        logger.debug("[data source] Firing closing event")
+        logger.trace("[data source] Firing closing event")
         fut = filter(isawaitable, (x() for x in self._on_closing_callbacks))
         await asyncio.gather(*fut)
 
     async def fire_closed(self):
-        logger.debug("[data source] Firing closed event")
+        logger.trace("[data source] Firing closed event")
         fut = filter(isawaitable, (x() for x in self._on_closed_callbacks))
         await asyncio.gather(*fut)

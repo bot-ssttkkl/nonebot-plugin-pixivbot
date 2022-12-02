@@ -10,7 +10,6 @@ from nonebot.typing import T_State
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.enums import DataSourceType
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Illust, T_UID, T_GID
 from nonebot_plugin_pixivbot.model.message import IllustMessageModel, IllustMessagesModel
@@ -18,9 +17,9 @@ from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestinationFactor
 from nonebot_plugin_pixivbot.protocol_dep.postman import PostmanManager
 from .interceptor.base import Interceptor
 from .interceptor.combined_interceptor import CombinedInterceptor
+from .interceptor.data_source_session_interceptor import DataSourceSessionInterceptor
 from .interceptor.default_error_interceptor import DefaultErrorInterceptor
 from .interceptor.permission_interceptor import BlacklistInterceptor
-from .interceptor.sql_session_interceptor import SqlSessionInterceptor
 from .pkg_context import context
 
 
@@ -141,9 +140,7 @@ class EntryHandler(Handler, ABC):
         super().__init__()
         self.add_interceptor(context.require(DefaultErrorInterceptor))
         self.add_interceptor(context.require(BlacklistInterceptor))
-
-        if self.conf.pixiv_data_source == DataSourceType.sql:
-            self.add_interceptor(context.require(SqlSessionInterceptor))
+        self.add_interceptor(context.require(DataSourceSessionInterceptor))
 
 
 class MatcherEntryHandler(EntryHandler, ABC):
