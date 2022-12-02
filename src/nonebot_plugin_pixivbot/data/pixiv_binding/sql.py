@@ -37,10 +37,12 @@ class SqlPixivBindingRepo:
         else:
             return None
 
-    async def update(self, binding: PixivBinding):
+    async def update(self, binding: PixivBinding[T_UID]):
         session = self.data_source.session()
         stmt = (insert(PixivBindingOrm)
-                .values(**binding.dict())
+                .values(adapter=binding.adapter,
+                        user_id=str(binding.user_id),
+                        pixiv_user_id=binding.pixiv_user_id)
                 .on_conflict_do_update(index_elements=[PixivBindingOrm.adapter, PixivBindingOrm.user_id],
                                        set_={
                                            PixivBindingOrm.pixiv_user_id: binding.pixiv_user_id
