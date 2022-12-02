@@ -20,7 +20,7 @@ from .interceptor.base import Interceptor
 from .interceptor.combined_interceptor import CombinedInterceptor
 from .interceptor.default_error_interceptor import DefaultErrorInterceptor
 from .interceptor.permission_interceptor import BlacklistInterceptor
-from .interceptor.sql_remove_session_interceptor import SqlRemoveSessionInterceptor
+from .interceptor.sql_session_interceptor import SqlSessionInterceptor
 from .pkg_context import context
 
 
@@ -143,7 +143,7 @@ class EntryHandler(Handler, ABC):
         self.add_interceptor(context.require(BlacklistInterceptor))
 
         if self.conf.pixiv_data_source == DataSourceType.sql:
-            self.add_interceptor(context.require(SqlRemoveSessionInterceptor))
+            self.add_interceptor(context.require(SqlSessionInterceptor))
 
 
 class MatcherEntryHandler(EntryHandler, ABC):

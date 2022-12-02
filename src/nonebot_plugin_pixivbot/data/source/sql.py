@@ -1,5 +1,7 @@
-import asyncio
 import json
+import time
+from contextlib import asynccontextmanager
+from contextvars import ContextVar
 from datetime import datetime, date
 
 from nonebot import get_driver, logger
@@ -38,6 +40,8 @@ class SqlDataSource(DataSourceLifecycleMixin):
 
         self._registry = registry()
 
+        self._session_scope = ContextVar("pixivbot_sql_session_scope")
+
         on_startup(self.initialize)
         on_shutdown(self.close)
 
@@ -46,8 +50,8 @@ class SqlDataSource(DataSourceLifecycleMixin):
 
         driver = get_driver()
         self._engine = create_async_engine(self.conf.pixiv_sql_conn_url,
-                                           # 仅当verbose模式时回显sql语句
-                                           echo=driver.config.log_level.lower() == 'trace',
+                                           # 仅当TRACE模式时回显sql语句
+                                           echo=driver.config.log_level == 'TRACE',
                                            future=True,
                                            json_serializer=json_serializer)
 
@@ -56,11 +60,8 @@ class SqlDataSource(DataSourceLifecycleMixin):
 
         # expire_on_commit=False will prevent attributes from being expired
         # after commit.
-        session_factory = sessionmaker(
-            self._engine, expire_on_commit=False, class_=AsyncSession
-        )
-        self._session = async_scoped_session(
-            session_factory, scopefunc=asyncio.current_task)
+        session_factory = sessionmaker(self._engine, expire_on_commit=False, class_=AsyncSession)
+        self._session = async_scoped_session(session_factory, scopefunc=self._session_scope.get)
 
         logger.success(f"[data source] SqlDataSource Initialized (dialect: {conf.pixiv_sql_dialect})")
         await self.fire_initialized()
@@ -91,6 +92,19 @@ class SqlDataSource(DataSourceLifecycleMixin):
         if self._session is None:
             raise DataSourceNotReadyError()
         return self._session
+
+    @asynccontextmanager
+    async def session_scope(self):
+        # 使用时间戳当作session标识
+        session_id = time.time_ns()
+        t_token = self._session_scope.set(session_id)
+        try:
+            logger.trace(f"new sql session scope {session_id}")
+            yield
+        finally:
+            await self.session.remove()
+            self._session_scope.reset(t_token)
+            logger.trace(f"removed sql session scope {session_id}")
 
 
 conf = context.require(Config)
