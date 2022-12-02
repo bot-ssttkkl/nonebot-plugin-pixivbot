@@ -1,14 +1,14 @@
 from typing import Optional, AsyncIterable, Collection
 
 from pytz import utc
-from sqlalchemy import Column, Integer, Enum as SqlEnum, JSON, String, select, DateTime, UniqueConstraint, update, Index
-from sqlalchemy.dialects.sqlite import insert
+from sqlalchemy import Column, Integer, Enum as SqlEnum, String, select, DateTime, UniqueConstraint, update, Index
 
 from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
 from nonebot_plugin_pixivbot.data.utils.process_subscriber import process_subscriber
 from nonebot_plugin_pixivbot.data.utils.shortuuid import gen_code
+from nonebot_plugin_pixivbot.data.utils.sql import insert, JSON
 from nonebot_plugin_pixivbot.model import PostIdentifier, WatchType, WatchTask, T_UID, T_GID
 
 
@@ -27,7 +27,7 @@ class WatchTaskOrm:
     __table_args__ = (
         Index("ix_watch_task_adapter", "adapter"),
         UniqueConstraint("subscriber", "code"),
-        UniqueConstraint("subscriber", "type", "kwargs", sqlite_on_conflict='IGNORE'),
+        UniqueConstraint("subscriber", "type", "kwargs"),
     )
 
 
@@ -81,6 +81,7 @@ class SqlWatchTaskRepo:
                         kwargs=task.kwargs,
                         adapter=task.subscriber.adapter,
                         checkpoint=task.checkpoint))
+        stmt.on_conflict_do_nothing(index_elements=[WatchTaskOrm.type, WatchTaskOrm.kwargs])
         result = await session.execute(stmt)
         await session.commit()
 

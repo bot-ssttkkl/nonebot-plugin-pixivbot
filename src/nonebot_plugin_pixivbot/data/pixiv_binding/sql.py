@@ -1,11 +1,11 @@
 from typing import Optional
 
 from sqlalchemy import Column, String, Integer, select, delete
-from sqlalchemy.dialects.sqlite import insert
 
 from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
+from nonebot_plugin_pixivbot.data.utils.sql import insert
 from nonebot_plugin_pixivbot.model import PixivBinding, T_UID
 
 

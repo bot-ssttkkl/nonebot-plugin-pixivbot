@@ -5,7 +5,7 @@ __all__ = ("DataSourceType", "BlockAction", "DownloadQuantity", "RandomIllustMet
 
 class DataSourceType(str, Enum):
     mongo = 'mongo'
-    sqlite = 'sqlite'
+    sql = 'sql'
 
 
 class BlockAction(str, Enum):
