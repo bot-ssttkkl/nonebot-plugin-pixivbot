@@ -142,7 +142,7 @@ class EntryHandler(Handler, ABC):
         self.add_interceptor(context.require(DefaultErrorInterceptor))
         self.add_interceptor(context.require(BlacklistInterceptor))
 
-        if self.conf.pixiv_data_source == DataSourceType.sqlite:
+        if self.conf.pixiv_data_source == DataSourceType.sql:
             self.add_interceptor(context.require(SqlRemoveSessionInterceptor))
 
 

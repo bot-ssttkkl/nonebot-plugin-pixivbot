@@ -19,5 +19,5 @@ class SqlRemoveSessionInterceptor(Interceptor):
                         silently: bool, **kwargs):
         await wrapped_func(*args, post_dest=post_dest, silently=silently, **kwargs)
 
-        if self.conf.pixiv_data_source == DataSourceType.sqlite:
+        if self.conf.pixiv_data_source == DataSourceType.sql:
             await context.require(SqlDataSource).session.remove()

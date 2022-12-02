@@ -1,4 +1,5 @@
 from typing import Optional, List
+from urllib.parse import urlparse
 
 from nonebot import get_driver
 from pydantic import BaseSettings, validator, root_validator
@@ -15,30 +16,42 @@ class Config(BaseSettings):
 
     pixiv_refresh_token: str
 
-    pixiv_data_source: DataSourceType = DataSourceType.sqlite
+    pixiv_data_source: DataSourceType = DataSourceType.sql
     pixiv_mongo_conn_url: str
     pixiv_mongo_database_name: str
-    pixiv_sql_conn_url: str = "sqlite+aiosqlite:///pixiv_bot.db"
+    pixiv_sql_conn_url: str = "sql+aiosqlite:///pixiv_bot.db"
+    pixiv_sql_dialect: str
 
     @root_validator(pre=True, allow_reuse=True)
     def validate_data_source(cls, values):
         pixiv_data_source = values.get("pixiv_data_source", None)
         pixiv_mongo_conn_url = values.get("pixiv_mongo_conn_url", None)
         pixiv_mongo_database_name = values.get("pixiv_mongo_database_name", None)
+        pixiv_sql_conn_url = values.get("pixiv_sql_conn_url")
+        pixiv_sql_dialect = values.get("pixiv_sql_dialect", None)
 
         if pixiv_data_source is None:
             if pixiv_mongo_conn_url is not None:
                 pixiv_data_source = DataSourceType.mongo
             else:
-                pixiv_data_source = DataSourceType.sqlite
+                pixiv_data_source = DataSourceType.sql
 
-        if pixiv_data_source == DataSourceType.sqlite:
+        if pixiv_data_source == DataSourceType.sql:
             pixiv_mongo_conn_url = ""
             pixiv_mongo_database_name = ""
+
+            url = urlparse(pixiv_sql_conn_url)
+            if '+' in url.scheme:
+                pixiv_sql_dialect = url.scheme.split('+')[0]
+            else:
+                pixiv_sql_dialect = url.scheme
+        else:
+            pixiv_sql_dialect = ""
 
         values["pixiv_data_source"] = pixiv_data_source
         values["pixiv_mongo_conn_url"] = pixiv_mongo_conn_url
         values["pixiv_mongo_database_name"] = pixiv_mongo_database_name
+        values["pixiv_sql_dialect"] = pixiv_sql_dialect
 
         return values
 

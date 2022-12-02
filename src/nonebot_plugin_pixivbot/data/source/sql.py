@@ -12,6 +12,7 @@ from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.errors import DataSourceNotReadyError
 from nonebot_plugin_pixivbot.data.source.lifecycle_mixin import DataSourceLifecycleMixin
 from nonebot_plugin_pixivbot.enums import DataSourceType
+from nonebot_plugin_pixivbot.utils.lifecycler import on_startup, on_shutdown
 
 
 def default_dumps(obj):
@@ -37,11 +38,12 @@ class SqlDataSource(DataSourceLifecycleMixin):
 
         self._registry = registry()
 
-        driver = get_driver()
-        driver.on_startup(self.initialize)
-        driver.on_shutdown(self.close)
+        on_startup(self.initialize)
+        on_shutdown(self.close)
 
     async def initialize(self):
+        await self.fire_initializing()
+
         driver = get_driver()
         self._engine = create_async_engine(self.conf.pixiv_sql_conn_url,
                                            # 仅当debug模式时回显sql语句
@@ -60,17 +62,19 @@ class SqlDataSource(DataSourceLifecycleMixin):
         self._session = async_scoped_session(
             session_factory, scopefunc=asyncio.current_task)
 
+        logger.success(f"[data source] SqlDataSource Initialized (dialect: {conf.pixiv_sql_dialect})")
         await self.fire_initialized()
-        logger.success("SqlDataSource Initialized.")
 
     async def close(self):
+        await self.fire_closing()
+
         await self._engine.dispose()
 
         self._engine = None
         self._session = None
 
+        logger.success("[data source] SqlDataSource Disposed.")
         await self.fire_closed()
-        logger.success("SqlDataSource Disposed.")
 
     @property
     def engine(self) -> AsyncEngine:
@@ -90,7 +94,7 @@ class SqlDataSource(DataSourceLifecycleMixin):
 
 
 conf = context.require(Config)
-if conf.pixiv_data_source == DataSourceType.sqlite:
+if conf.pixiv_data_source == DataSourceType.sql:
     context.register_eager_singleton()(SqlDataSource)
 
 __all__ = ("SqlDataSource",)

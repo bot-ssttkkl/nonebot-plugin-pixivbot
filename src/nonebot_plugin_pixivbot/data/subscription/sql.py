@@ -1,14 +1,14 @@
 from typing import Optional, AsyncIterable, Collection
 
 import tzlocal
-from sqlalchemy import Column, Integer, Enum as SqlEnum, JSON, String, select, Index, UniqueConstraint
-from sqlalchemy.dialects.sqlite import insert
+from sqlalchemy import Column, Integer, Enum as SqlEnum, String, select, Index, UniqueConstraint
 
 from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
 from nonebot_plugin_pixivbot.data.utils.process_subscriber import process_subscriber
 from nonebot_plugin_pixivbot.data.utils.shortuuid import gen_code
+from nonebot_plugin_pixivbot.data.utils.sql import insert, JSON
 from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier, ScheduleType, T_UID, T_GID
 
 

@@ -6,7 +6,6 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from nonebot import logger
 from sqlalchemy import select, delete
-from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from nonebot_plugin_pixivbot import context
@@ -19,6 +18,7 @@ from nonebot_plugin_pixivbot.data.pixiv_repo.local_repo.sql_models import Illust
     DownloadCache, IllustSetCache, IllustSetCacheIllust, UserSetCache, UserSetCacheUser
 from nonebot_plugin_pixivbot.data.pixiv_repo.models import PixivRepoMetadata
 from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
+from nonebot_plugin_pixivbot.data.utils.sql import insert
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User
 from nonebot_plugin_pixivbot.utils.lifecycler import on_startup
@@ -287,6 +287,11 @@ class SqlPixivRepo:
         session = self.data_source.session()
         stmt = (insert(IllustDetailCache)
                 .values(illust_id=illust.id, illust=illust.dict(), update_time=metadata.update_time))
+        stmt = stmt.on_conflict_do_update(index_elements=[IllustDetailCache.illust_id],
+                                          set_={
+                                              IllustDetailCache.illust: stmt.excluded.illust,
+                                              IllustDetailCache.update_time: stmt.excluded.update_time
+                                          })
 
         await session.execute(stmt)
         await session.commit()
@@ -318,6 +323,11 @@ class SqlPixivRepo:
         session = self.data_source.session()
         stmt = (insert(UserDetailCache)
                 .values(user_id=user.id, user=user.dict(), update_time=metadata.update_time))
+        stmt = stmt.on_conflict_do_update(index_elements=[UserDetailCache.user_id],
+                                          set_={
+                                              UserDetailCache.user: stmt.excluded.illust,
+                                              UserDetailCache.update_time: stmt.excluded.update_time
+                                          })
 
         await session.execute(stmt)
         await session.commit()
@@ -346,6 +356,11 @@ class SqlPixivRepo:
         session = self.data_source.session()
         stmt = (insert(DownloadCache)
                 .values(illust_id=illust_id, content=content, update_time=metadata.update_time))
+        stmt = stmt.on_conflict_do_update(index_elements=[DownloadCache.illust_id],
+                                          set_={
+                                              DownloadCache.content: stmt.excluded.content,
+                                              DownloadCache.update_time: stmt.excluded.update_time
+                                          })
 
         await session.execute(stmt)
         await session.commit()
