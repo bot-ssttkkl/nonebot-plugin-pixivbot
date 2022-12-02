@@ -525,6 +525,7 @@ class SqlPixivRepo:
         logger.success(f"[local] deleted {result.rowcount} user_detail cache")
         result = await session.execute(delete(DownloadCache))
         logger.success(f"[local] deleted {result.rowcount} download cache")
+        await session.commit()
 
     async def clean_expired(self):
         logger.info(f"[local] clean_expired")
@@ -597,3 +598,5 @@ class SqlPixivRepo:
             )
             result = await session.execute(stmt)
             logger.success(f"[local] deleted {result.rowcount} other cache")
+
+            await session.commit()
