@@ -15,22 +15,25 @@ from nonebot_plugin_pixivbot.enums import DataSourceType
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.utils.lifecycler import on_shutdown, on_startup
 from .migration import MongoMigrationManager
+from ..lifecycle_mixin import DataSourceLifecycleMixin
 
 
 @context.inject
-class MongoDataSource:
+class MongoDataSource(DataSourceLifecycleMixin):
     conf = Inject(Config)
     mongo_migration_mgr = Inject(MongoMigrationManager)
     app_db_version = 5
 
     def __init__(self):
+        super().__init__()
+
         self._client = None
         self._db = None
 
         self.document_models: List[Type[Document]] = []
 
         on_startup(self.initialize, replay=True)
-        on_shutdown(self.finalize)
+        on_shutdown(self.close)
 
     @property
     def client(self):
@@ -107,13 +110,17 @@ class MongoDataSource:
 
         self._client = client
         self._db = db
+
+        await self.fire_initialized()
         logger.success("MongoDataSource Initialized.")
 
-    async def finalize(self):
+    async def close(self):
         if self._client:
             self._client.close()
         self._client = None
         self._db = None
+
+        await self.fire_closed()
         logger.success("MongoDataSource Disposed.")
 
 
