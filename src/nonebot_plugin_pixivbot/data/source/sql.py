@@ -10,6 +10,7 @@ from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.errors import DataSourceNotReadyError
+from nonebot_plugin_pixivbot.data.source.lifecycle_mixin import DataSourceLifecycleMixin
 from nonebot_plugin_pixivbot.enums import DataSourceType
 
 
@@ -25,10 +26,12 @@ def json_serializer(obj):
 
 
 @context.inject
-class SqlDataSource:
+class SqlDataSource(DataSourceLifecycleMixin):
     conf: Config = Inject(Config)
 
     def __init__(self):
+        super().__init__()
+
         self._engine = None
         self._session = None
 
@@ -36,7 +39,7 @@ class SqlDataSource:
 
         driver = get_driver()
         driver.on_startup(self.initialize)
-        driver.on_shutdown(self.finalize)
+        driver.on_shutdown(self.close)
 
     async def initialize(self):
         driver = get_driver()
@@ -56,14 +59,17 @@ class SqlDataSource:
         )
         self._session = async_scoped_session(
             session_factory, scopefunc=asyncio.current_task)
+
+        await self.fire_initialized()
         logger.success("SqlDataSource Initialized.")
 
-    async def finalize(self):
+    async def close(self):
         await self._engine.dispose()
 
         self._engine = None
         self._session = None
 
+        await self.fire_closed()
         logger.success("SqlDataSource Disposed.")
 
     @property
