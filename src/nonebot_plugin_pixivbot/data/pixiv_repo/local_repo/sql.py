@@ -16,7 +16,7 @@ from nonebot_plugin_pixivbot.data.pixiv_repo.errors import CacheExpiredError, No
 from nonebot_plugin_pixivbot.data.pixiv_repo.local_repo.sql_models import IllustDetailCache, UserDetailCache, \
     DownloadCache, IllustSetCache, IllustSetCacheIllust, UserSetCache, UserSetCacheUser
 from nonebot_plugin_pixivbot.data.pixiv_repo.models import PixivRepoMetadata
-from nonebot_plugin_pixivbot.data.source import with_session_scope_if_sql
+from nonebot_plugin_pixivbot.data.source import with_session_scope
 from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
 from nonebot_plugin_pixivbot.data.utils.sql import insert
 from nonebot_plugin_pixivbot.enums import RankingMode
@@ -49,15 +49,13 @@ class SqlPixivRepo:
 
     def __init__(self):
         on_startup(
-            with_session_scope_if_sql(
-                partial(
-                    self.apscheduler.add_job,
-                    self.clean_expired,
-                    id='pixivbot_sql_pixiv_repo_clean_expired',
-                    trigger=IntervalTrigger(hours=2),
-                    max_instances=1
-                )
-            ),
+            with_session_scope(partial(
+                self.apscheduler.add_job,
+                self.clean_expired,
+                id='pixivbot_sql_pixiv_repo_clean_expired',
+                trigger=IntervalTrigger(hours=2),
+                max_instances=1
+            )),
             replay=True
         )
 

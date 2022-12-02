@@ -92,7 +92,7 @@ class MongoPixivRepo:
 
         try:
             # noinspection PyTypeChecker
-            async for x in doc_type.aggregate(aggregation):
+            async for x in doc_type.aggregate(aggregation, session=self.mongo.session()):
                 total += 1
                 if "illust" in x and x["illust"] is not None:
                     yield LazyIllust(x["illust_id"], Illust.parse_obj(x["illust"]))
@@ -145,7 +145,7 @@ class MongoPixivRepo:
         total = 0
         try:
             # noinspection PyTypeChecker
-            async for x in doc_type.aggregate(aggregation):
+            async for x in doc_type.aggregate(aggregation, session=self.mongo.session()):
                 if "user" in x and x["user"] is not None:
                     yield User.parse_obj(x["user"])
                 else:
@@ -159,7 +159,7 @@ class MongoPixivRepo:
                            expired_in: int,
                            offset: int = 0) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], Any]:
-        doc: Optional[PixivRepoCache] = await doc_type.find_one(*criteria)
+        doc: Optional[PixivRepoCache] = await doc_type.find_one(*criteria, session=self.mongo.session())
         if not doc:
             raise NoSuchItemError()
         _handle_expires_in(doc.metadata, expired_in)
@@ -175,7 +175,7 @@ class MongoPixivRepo:
                          expired_in: int,
                          offset: int = 0) \
             -> AsyncGenerator[Union[User, PixivRepoMetadata], Any]:
-        doc: Optional[PixivRepoCache] = await doc_type.find_one(*criteria)
+        doc: Optional[PixivRepoCache] = await doc_type.find_one(*criteria, session=self.mongo.session())
         if not doc:
             raise NoSuchItemError()
         _handle_expires_in(doc.metadata, expired_in)
@@ -190,7 +190,8 @@ class MongoPixivRepo:
                                     *criteria: Union[Mapping[str, Any], bool],
                                     illust_id: Union[int, Sequence[int]]) -> bool:
         if isinstance(illust_id, int):
-            return await doc_type.find(*criteria, In(doc_type.illust_id, illust_id)).count() != 0
+            return await doc_type.find(*criteria, In(doc_type.illust_id, illust_id),
+                                       session=self.mongo.session()).count() != 0
         else:
             agg = [
                 {'$match': And(*criteria).query},
@@ -207,7 +208,8 @@ class MongoPixivRepo:
                                   *criteria: Union[Mapping[str, Any], bool],
                                   user_id: Union[int, Sequence[int]]) -> bool:
         if isinstance(user_id, int):
-            return await doc_type.find(*criteria, In(doc_type.user_id, user_id)).count() != 0
+            return await doc_type.find(*criteria, In(doc_type.user_id, user_id),
+                                       session=self.mongo.session()).count() != 0
         else:
             agg = [
                 {'$match': And(*criteria).query},
@@ -217,7 +219,7 @@ class MongoPixivRepo:
             ]
 
             # noinspection PyTypeChecker
-            async for result in doc_type.aggregate(agg):
+            async for result in doc_type.aggregate(agg, session=self.mongo.session()):
                 return result["count"] != 0
 
     async def _update_illusts(self, doc_type: Type[IllustSetCache],
@@ -226,7 +228,7 @@ class MongoPixivRepo:
                               metadata: PixivRepoMetadata,
                               append: bool = False):
         if append:
-            await doc_type.find_one(*criteria).update(
+            await doc_type.find_one(*criteria, session=self.mongo.session()).update(
                 Set({
                     doc_type.metadata: metadata
                 }),
@@ -235,38 +237,21 @@ class MongoPixivRepo:
                         "$each": [illust.id for illust in content]
                     }
                 }),
-                upsert=True
+                upsert=True,
+                session=self.mongo.session()
             )
         else:
-            await doc_type.find_one(*criteria).update(
+            await doc_type.find_one(*criteria, session=self.mongo.session()).update(
                 Set({
                     doc_type.illust_id: [illust.id for illust in content],
                     doc_type.metadata: metadata
                 }),
-                upsert=True
+                upsert=True,
+                session=self.mongo.session()
             )
 
         # BulkWriter存在bug，upsert不生效
         # https://github.com/roman-right/beanie/issues/224
-        #
-        # async with BulkWriter() as bw:
-        #     illust_metadata = PixivRepoMetadata(update_time=metadata.update_time)
-        #
-        #     for illust in content:
-        #         if isinstance(illust, LazyIllust) and illust.content is not None:
-        #             illust = illust.content
-        #
-        #         if isinstance(illust, Illust):
-        #             await IllustDetailCache.find_one(
-        #                 IllustDetailCache.illust.id == illust.id
-        #             ).upsert(
-        #                 Set({
-        #                     IllustDetailCache.illust: illust,
-        #                     IllustDetailCache.metadata: illust_metadata
-        #                 }),
-        #                 on_insert=IllustDetailCache(illust=illust, metadata=illust_metadata),
-        #                 bulk_writer=bw
-        #             )
 
         opt = []
         for illust in content:
@@ -283,7 +268,7 @@ class MongoPixivRepo:
                     upsert=True
                 ))
         if len(opt) != 0:
-            await self.mongo.db.illust_detail_cache.bulk_write(opt, ordered=False)
+            await IllustDetailCache.get_motor_collection().bulk_write(opt, ordered=False, session=self.mongo.session())
 
         if self.conf.pixiv_tag_translation_enabled:
             await self._add_to_local_tags(content)
@@ -294,7 +279,7 @@ class MongoPixivRepo:
                             metadata: PixivRepoMetadata,
                             append: bool = False):
         if append:
-            await doc_type.find_one(*criteria).update(
+            await doc_type.find_one(*criteria, session=self.mongo.session()).update(
                 Set({
                     doc_type.metadata: metadata
                 }),
@@ -303,15 +288,17 @@ class MongoPixivRepo:
                         "$each": [user.id for user in content]
                     }
                 }),
-                upsert=True
+                upsert=True,
+                session=self.mongo.session()
             )
         else:
-            await doc_type.find_one(*criteria).update(
+            await doc_type.find_one(*criteria, session=self.mongo.session()).update(
                 Set({
                     doc_type.user_id: [user.id for user in content],
                     doc_type.metadata: metadata
                 }),
-                upsert=True
+                upsert=True,
+                session=self.mongo.session()
             )
         # BulkWriter存在bug，upsert不生效
         # https://github.com/roman-right/beanie/issues/224
@@ -342,7 +329,7 @@ class MongoPixivRepo:
                 upsert=True
             ))
         if len(opt) != 0:
-            await self.mongo.db.user_detail_cache.bulk_write(opt, ordered=False)
+            await self.mongo.db.user_detail_cache.bulk_write(opt, ordered=False, session=self.mongo.session())
 
     async def _append_and_check_illusts(self, doc_type: Type[IllustSetCache],
                                         *criteria: Union[Mapping[str, Any], bool],
@@ -364,7 +351,7 @@ class MongoPixivRepo:
     async def illust_detail(self, illust_id: int) \
             -> AsyncGenerator[Union[Illust, PixivRepoMetadata], None]:
         logger.info(f"[local] illust_detail {illust_id}")
-        doc = await IllustDetailCache.find_one(IllustDetailCache.illust.id == illust_id)
+        doc = await IllustDetailCache.find_one(IllustDetailCache.illust.id == illust_id, session=self.mongo.session())
         if doc is not None:
             _handle_expires_in(doc.metadata, self.conf.pixiv_illust_detail_cache_expires_in)
 
@@ -377,13 +364,15 @@ class MongoPixivRepo:
         logger.info(f"[local] update illust_detail {illust.id} {metadata}")
 
         await IllustDetailCache.find_one(
-            IllustDetailCache.illust.id == illust.id
+            IllustDetailCache.illust.id == illust.id,
+            session=self.mongo.session()
         ).update(
             Set({
                 IllustDetailCache.illust: illust,
                 IllustDetailCache.metadata: metadata
             }),
-            upsert=True
+            upsert=True,
+            session=self.mongo.session()
         )
 
         if self.conf.pixiv_tag_translation_enabled:
@@ -393,7 +382,8 @@ class MongoPixivRepo:
     async def user_detail(self, user_id: int) \
             -> AsyncGenerator[Union[User, PixivRepoMetadata], None]:
         logger.info(f"[local] user_detail {user_id}")
-        doc: Optional[UserDetailCache] = await UserDetailCache.find_one(UserDetailCache.user.id == user_id)
+        doc: Optional[UserDetailCache] = await UserDetailCache.find_one(UserDetailCache.user.id == user_id,
+                                                                        session=self.mongo.session())
         if doc is not None:
             _handle_expires_in(doc.metadata, self.conf.pixiv_user_detail_cache_expires_in)
 
@@ -409,13 +399,15 @@ class MongoPixivRepo:
             metadata = PixivRepoMetadata(update_time=datetime.now(timezone.utc))
 
         await UserDetailCache.find_one(
-            UserDetailCache.user.id == user.id
+            UserDetailCache.user.id == user.id,
+            session=self.mongo.session()
         ).update(
             Set({
                 UserDetailCache.user: user,
                 UserDetailCache.metadata: metadata
             }),
-            upsert=True
+            upsert=True,
+            session=self.mongo.session()
         )
 
     # ================ search_illust ================
@@ -427,7 +419,7 @@ class MongoPixivRepo:
 
     async def invalidate_search_illust(self, word: str):
         logger.info(f"[local] invalidate search_illust {word}")
-        await self.mongo.db.search_illust_cache.delete_one({"word": word})
+        await self.mongo.db.search_illust_cache.delete_one({"word": word}, session=self.mongo.session())
 
     async def append_search_illust(self, word: str, content: List[Union[Illust, LazyIllust]],
                                    metadata: PixivRepoMetadata) -> bool:
@@ -448,7 +440,7 @@ class MongoPixivRepo:
 
     async def invalidate_search_user(self, word: str):
         logger.info(f"[local] invalidate search_user {word}")
-        await SearchUserCache.find_one(SearchUserCache.word == word).delete()
+        await SearchUserCache.find_one(SearchUserCache.word == word, session=self.mongo.session()).delete()
 
     async def append_search_user(self, word: str, content: List[User],
                                  metadata: PixivRepoMetadata) -> bool:
@@ -468,7 +460,7 @@ class MongoPixivRepo:
 
     async def invalidate_user_illusts(self, user_id: int):
         logger.info(f"[local] invalidate user_illusts {user_id}")
-        await UserIllustsCache.find_one(UserIllustsCache.user_id == user_id).delete()
+        await UserIllustsCache.find_one(UserIllustsCache.user_id == user_id, session=self.mongo.session()).delete()
 
     async def append_user_illusts(self, user_id: int,
                                   content: List[Union[Illust, LazyIllust]],
@@ -489,7 +481,7 @@ class MongoPixivRepo:
 
     async def invalidate_user_bookmarks(self, user_id: int):
         logger.info(f"[local] invalidate user_bookmarks {user_id}")
-        await UserBookmarksCache.find_one(UserBookmarksCache.user_id == user_id).delete()
+        await UserBookmarksCache.find_one(UserBookmarksCache.user_id == user_id, session=self.mongo.session()).delete()
 
     async def append_user_bookmarks(self, user_id: int,
                                     content: List[Union[Illust, LazyIllust]],
@@ -501,7 +493,6 @@ class MongoPixivRepo:
                                                     content=content, metadata=metadata)
 
     # ================ recommended_illusts ================
-
     def recommended_illusts(self, *, offset: int = 0) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
         logger.info(f"[local] recommended_illusts")
@@ -510,7 +501,8 @@ class MongoPixivRepo:
 
     async def invalidate_recommended_illusts(self):
         logger.info(f"[local] invalidate recommended_illusts")
-        await OtherIllustCache.find_one(OtherIllustCache.type == "recommended_illusts").delete()
+        await OtherIllustCache.find_one(OtherIllustCache.type == "recommended_illusts",
+                                        session=self.mongo.session()).delete()
 
     async def append_recommended_illusts(self, content: List[Union[Illust, LazyIllust]],
                                          metadata: PixivRepoMetadata) -> bool:
@@ -530,7 +522,8 @@ class MongoPixivRepo:
 
     async def invalidate_related_illusts(self, illust_id: int):
         logger.info(f"[local] invalidate related_illusts")
-        await RelatedIllustsCache.find_one(RelatedIllustsCache.original_illust_id == illust_id).delete()
+        await RelatedIllustsCache.find_one(RelatedIllustsCache.original_illust_id == illust_id,
+                                           session=self.mongo.session()).delete()
 
     async def append_related_illusts(self, illust_id: int, content: List[Union[Illust, LazyIllust]],
                                      metadata: PixivRepoMetadata) -> bool:
@@ -554,7 +547,8 @@ class MongoPixivRepo:
 
     async def invalidate_illust_ranking(self, mode: RankingMode):
         logger.info(f"[local] invalidate illust_ranking")
-        await IllustRankingCache.find_one(IllustRankingCache.mode == mode).delete()
+        await IllustRankingCache.find_one(IllustRankingCache.mode == mode,
+                                          session=self.mongo.session()).delete()
 
     async def append_illust_ranking(self, mode: RankingMode, content: List[Union[Illust, LazyIllust]],
                                     metadata: PixivRepoMetadata) -> bool:
@@ -565,10 +559,9 @@ class MongoPixivRepo:
                                                     content=content, metadata=metadata)
 
     # ================ image ================
-
     async def image(self, illust: Illust) -> AsyncGenerator[Union[bytes, PixivRepoMetadata], None]:
         logger.info(f"[local] image {illust.id}")
-        doc = await DownloadCache.find_one(DownloadCache.illust_id == illust.id)
+        doc = await DownloadCache.find_one(DownloadCache.illust_id == illust.id, session=self.mongo.session())
         if doc is not None:
             _handle_expires_in(doc.metadata, self.conf.pixiv_download_cache_expires_in)
             yield doc.metadata
@@ -582,26 +575,29 @@ class MongoPixivRepo:
                     f"{metadata}")
 
         await DownloadCache.find_one(
-            DownloadCache.illust_id == illust_id
+            DownloadCache.illust_id == illust_id,
+            session=self.mongo.session()
         ).update(
             Set({
                 DownloadCache.content: bson.Binary(content),
                 DownloadCache.metadata: metadata
             }),
-            upsert=True
+            upsert=True,
+            session=self.mongo.session()
         )
 
     async def invalidate_all(self):
         logger.info(f"[local] invalidate_all")
-        await self.mongo.db.download_cache.delete_many({})
-        await self.mongo.db.illust_detail_cache.delete_many({})
-        await self.mongo.db.user_detail_cache.delete_many({})
-        await self.mongo.db.illust_ranking_cache.delete_many({})
-        await self.mongo.db.search_illust_cache.delete_many({})
-        await self.mongo.db.search_user_cache.delete_many({})
-        await self.mongo.db.user_illusts_cache.delete_many({})
-        await self.mongo.db.user_bookmarks_cache.delete_many({})
-        await self.mongo.db.other_cache.delete_many({})
+        session = self.mongo.session()
+        await DownloadCache.delete_all(session=session)
+        await IllustDetailCache.delete_all(session=session)
+        await UserDetailCache.delete_all(session=session)
+        await IllustRankingCache.delete_all(session=session)
+        await SearchIllustCache.delete_all(session=session)
+        await SearchUserCache.delete_all(session=session)
+        await UserIllustsCache.delete_all(session=session)
+        await UserBookmarksCache.delete_all(session=session)
+        await OtherIllustCache.delete_all(session=session)
 
 
 __all__ = ("MongoPixivRepo",)

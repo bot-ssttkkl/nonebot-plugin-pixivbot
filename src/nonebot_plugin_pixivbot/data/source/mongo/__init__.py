@@ -6,6 +6,7 @@ from bson import CodecOptions
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from nonebot import logger
 from pymongo import IndexModel
+from pymongo.client_session import ClientSession
 from pymongo.errors import OperationFailure
 
 from nonebot_plugin_pixivbot.config import Config
@@ -16,10 +17,11 @@ from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.utils.lifecycler import on_shutdown, on_startup
 from .migration import MongoMigrationManager
 from ..lifecycle_mixin import DataSourceLifecycleMixin
+from ..session_scope_mixin import SessionScopeMixin
 
 
 @context.inject
-class MongoDataSource(DataSourceLifecycleMixin):
+class MongoDataSource(DataSourceLifecycleMixin, SessionScopeMixin[ClientSession]):
     conf = Inject(Config)
     mongo_migration_mgr = Inject(MongoMigrationManager)
     app_db_version = 5
@@ -37,14 +39,17 @@ class MongoDataSource(DataSourceLifecycleMixin):
 
     @property
     def client(self):
+        if self._client is None:
+            raise DataSourceNotReadyError()
+
         return self._client
 
     @property
     def db(self):
-        if self._db is not None:
-            return self._db
-        else:
+        if self._db is None:
             raise DataSourceNotReadyError()
+
+        return self._db
 
     @staticmethod
     async def _raw_get_db_version(db: AsyncIOMotorDatabase) -> int:
@@ -122,6 +127,14 @@ class MongoDataSource(DataSourceLifecycleMixin):
 
         await self.fire_closed()
         logger.success("MongoDataSource Disposed.")
+
+    async def _start_session(self) -> ClientSession:
+        if self._client is None:
+            raise DataSourceNotReadyError()
+        return await self._client.start_session()
+
+    async def _close_session(self, session: ClientSession):
+        session.end_session()
 
 
 conf = context.require(Config)
