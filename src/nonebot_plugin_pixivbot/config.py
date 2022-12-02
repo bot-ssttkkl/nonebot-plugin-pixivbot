@@ -19,7 +19,7 @@ class Config(BaseSettings):
     pixiv_data_source: DataSourceType = DataSourceType.sql
     pixiv_mongo_conn_url: str
     pixiv_mongo_database_name: str
-    pixiv_sql_conn_url: str = "sql+aiosqlite:///pixiv_bot.db"
+    pixiv_sql_conn_url: str = "sqlite+aiosqlite:///pixiv_bot.db"
     pixiv_sql_dialect: str
 
     @root_validator(pre=True, allow_reuse=True)
