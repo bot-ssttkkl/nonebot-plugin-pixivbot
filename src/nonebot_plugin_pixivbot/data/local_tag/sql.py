@@ -24,22 +24,22 @@ class SqlLocalTagRepo:
     data_source: SqlDataSource = Inject(SqlDataSource)
 
     async def find_by_name(self, name: str) -> Optional[Tag]:
-        session = self.data_source.session()
-        stmt = select(LocalTag).where(LocalTag.name == name).limit(1)
-        local_tag = (await session.execute(stmt)).scalar_one_or_none()
-        if local_tag is not None:
-            return Tag.from_orm(local_tag)
-        else:
-            return None
+        async with self.data_source.session_scope() as session:
+            stmt = select(LocalTag).where(LocalTag.name == name).limit(1)
+            local_tag = (await session.execute(stmt)).scalar_one_or_none()
+            if local_tag is not None:
+                return Tag.from_orm(local_tag)
+            else:
+                return None
 
     async def find_by_translated_name(self, translated_name: str) -> Optional[Tag]:
-        session = self.data_source.session()
-        stmt = select(LocalTag).where(LocalTag.translated_name == translated_name).limit(1)
-        local_tag = (await session.execute(stmt)).scalar_one_or_none()
-        if local_tag is not None:
-            return Tag.from_orm(local_tag)
-        else:
-            return None
+        async with self.data_source.session_scope() as session:
+            stmt = select(LocalTag).where(LocalTag.translated_name == translated_name).limit(1)
+            local_tag = (await session.execute(stmt)).scalar_one_or_none()
+            if local_tag is not None:
+                return Tag.from_orm(local_tag)
+            else:
+                return None
 
     async def update_one(self, tag: Tag):
         await self.update_many([tag])
@@ -48,16 +48,16 @@ class SqlLocalTagRepo:
         if len(tags) == 0:
             return
 
-        session = self.data_source.session()
-        stmt = insert(LocalTag).values([t.dict() for t in tags])
-        stmt = stmt.on_conflict_do_update(index_elements=[LocalTag.name],
-                                          set_={
-                                              LocalTag.translated_name: stmt.excluded.translated_name
-                                          })
+        async with self.data_source.session_scope() as session:
+            stmt = insert(LocalTag).values([t.dict() for t in tags])
+            stmt = stmt.on_conflict_do_update(index_elements=[LocalTag.name],
+                                              set_={
+                                                  LocalTag.translated_name: stmt.excluded.translated_name
+                                              })
 
-        await session.execute(stmt)
-        await session.commit()
-        logger.info(f"[local_tag_repo] added {len(tags)} local tags")
+            await session.execute(stmt)
+            await session.commit()
+            logger.info(f"[local_tag_repo] added {len(tags)} local tags")
 
     async def update_from_illusts(self, illusts: Collection[Illust]):
         tags = {}

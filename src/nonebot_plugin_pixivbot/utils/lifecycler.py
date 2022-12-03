@@ -4,6 +4,8 @@ on_startup -> on_bot_connect -> on_bot_disconnect -> on_shutdown
 """
 
 import asyncio
+from asyncio import create_task
+from functools import wraps
 from inspect import isawaitable
 
 from nonebot import Bot, get_driver, logger
@@ -64,7 +66,7 @@ async def _fire_startup():
     try:
         logger.info("[lifecycler] on startup")
         cors = [f() for f in _on_startup_callback]
-        cors = [x for x in cors if isawaitable(x)]
+        cors = [create_task(x) for x in cors if isawaitable(x)]
         if len(cors) > 0:
             await asyncio.gather(*cors)
 
@@ -79,7 +81,7 @@ async def _fire_bot_connect(bot: Bot):
     try:
         logger.info(f"[lifecycler] on bot {bot} connect")
         cors = [f(bot) for f in _on_bot_connect_callback]
-        cors = [x for x in cors if isawaitable(x)]
+        cors = [create_task(x) for x in cors if isawaitable(x)]
         if len(cors) > 0:
             await asyncio.gather(*cors)
 
@@ -95,7 +97,7 @@ async def _fire_bot_disconnect(bot: Bot):
     try:
         logger.info(f"[lifecycler] on bot {bot} disconnect")
         cors = [f(bot) for f in _on_bot_disconnect_callback]
-        cors = [x for x in cors if isawaitable(x)]
+        cors = [create_task(x) for x in cors if isawaitable(x)]
         if len(cors) > 0:
             await asyncio.gather(*cors)
 
@@ -112,7 +114,7 @@ async def _fire_shutdown():
     try:
         logger.info(f"[lifecycler] on shutdown")
         cors = [f() for f in _on_shutdown_callback]
-        cors = [x for x in cors if isawaitable(x)]
+        cors = [create_task(x) for x in cors if isawaitable(x)]
         if len(cors) > 0:
             await asyncio.gather(*cors)
     finally:
