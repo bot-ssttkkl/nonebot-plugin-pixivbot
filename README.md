@@ -106,7 +106,33 @@ NoneBot插件，支持发送随机Pixiv插画、画师更新推送、定时订�
 4. 修改pyproject.toml，启用插件（`plugins=[..., "nonebot_plugin_pixivbot"]`）；
 5. 在.env.prod中修改配置（参考下方）；
 
-## 配置
+## 配置外部数据库（可选）
+
+PixivBot需要使用数据库存放订阅以及缓存，默认使用SQLite。
+
+### SQLite
+
+若需要自定义SQLite数据库文件路径，请设置配置项：
+
+- pixiv_sql_conn_url=`sqlite+aiosqlite:///<数据库文件路径>`
+
+### PostgreSQL
+
+若需要使用PostgreSQL，请设置配置项：
+
+- pixiv_sql_conn_url=`postgresql+asyncpg://<用户名>:<密码>@<主机>:<端口>/<数据库名>`
+
+并且安装`nonebot-plugin-pixivbot[postgresql]`
+
+### MongoDB
+
+若需要使用MongoDB，请设置配置项：
+- pixiv_mongo_conn_url=`mongodb://<用户名>:<密码>@<主机>:<端口>/<用户所属的数据库>`
+- pixiv_mongo_database_name=`连接的MongoDB数据库`
+
+并且安装`nonebot-plugin-pixivbot[mongo]`
+
+## 配置项一览
 
 最小配置：
 ```
@@ -119,9 +145,8 @@ pixiv_refresh_token=  # 前面获取的REFRESH_TOKEN
 superuser=[]  # 能够发送超级命令的用户（JSON数组，格式为["onebot:123456", "kaiheila:1919810"]，下同）
 blocklist=[]  # Bot不响应的用户，可以避免Bot之间相互调用（JSON数组）
 
-pixiv_data_source=  # 使用的数据库类型，可选值：sqlite，mongo。若未设置，则根据是否设置了pixiv_mongo_conn_url自动判断。
-pixiv_sql_conn_url=sqlite+aiosqlite:///pixiv_bot.db  # SQLite连接URL，格式sqlite+aiosqlite:///<数据库文件路径>
-# 注意：使用MongoDB数据库需要安装nonebot-plugin-pixivbot[mongo]
+pixiv_data_source=  # 使用的数据库类型，可选值：sql，mongo。若未设置，则根据是否设置了pixiv_mongo_conn_url自动判断。
+pixiv_sql_conn_url=sqlite+aiosqlite:///pixiv_bot.db  # SQL连接URL，仅支持SQLite与PostgreSQL（通过SQLAlchemy进行连接，必须使用异步的DBAPI）
 pixiv_mongo_conn_url=  # MongoDB连接URL，格式：mongodb://<用户名>:<密码>@<主机>:<端口>/<数据库>。
 pixiv_mongo_database_name=  # 连接的MongoDB数据库
 
