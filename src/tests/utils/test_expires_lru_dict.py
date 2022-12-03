@@ -10,9 +10,9 @@ from tests import MyTest
 class TestExpiresLruDict(MyTest):
     @pytest.fixture
     def lru(self):
-        from nonebot_plugin_pixivbot.utils.expires_lru_dict import ExpiresLruDict
+        from nonebot_plugin_pixivbot.utils.expires_lru_dict import AsyncExpiresLruDict
 
-        return ExpiresLruDict(10)
+        return AsyncExpiresLruDict(10)
 
     @pytest.mark.asyncio
     async def test_expires(self, lru):
