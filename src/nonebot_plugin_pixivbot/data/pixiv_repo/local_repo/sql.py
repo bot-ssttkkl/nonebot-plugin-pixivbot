@@ -201,7 +201,7 @@ class SqlPixivRepo:
 
         yield metadata.copy(update={"pages": 0})
 
-        stmt = (select(UserSetCache, UserDetailCache)
+        stmt = (select(UserSetCacheUser, UserDetailCache)
                 .where(UserSetCacheUser.cache_id == cache.id)
                 .outerjoin(UserDetailCache, UserSetCacheUser.user_id == UserDetailCache.user_id)
                 .offset(offset))
