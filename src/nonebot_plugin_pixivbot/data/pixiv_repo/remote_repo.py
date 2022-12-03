@@ -40,8 +40,8 @@ class RemotePixivRepo(PixivRepo):
 
         self.user_id = 0
 
-        on_startup(self.start, replay=True)
-        on_shutdown(self.shutdown)
+        on_startup(replay=True)(self.start)
+        on_shutdown()(self.shutdown)
 
     async def _refresh(self):
         # Latest app version can be found using GET /old/application-info/android

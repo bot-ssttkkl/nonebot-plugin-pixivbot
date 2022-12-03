@@ -34,8 +34,8 @@ class MongoDataSource(DataSourceLifecycleMixin, SessionScopeMixin[ClientSession]
 
         self.document_models: List[Type[Document]] = []
 
-        on_startup(self.initialize, replay=True)
-        on_shutdown(self.close)
+        on_startup(replay=True)(self.initialize)
+        on_shutdown()(self.close)
 
     @property
     def client(self):

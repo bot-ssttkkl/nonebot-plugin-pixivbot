@@ -38,8 +38,8 @@ class SqlDataSource(DataSourceLifecycleMixin, SessionScopeMixin[AsyncSession]):
 
         self._registry = registry()
 
-        on_startup(self.initialize)
-        on_shutdown(self.close)
+        on_startup(replay=True)(self.initialize)
+        on_shutdown()(self.close)
 
     async def initialize(self):
         await self._fire_initializing()

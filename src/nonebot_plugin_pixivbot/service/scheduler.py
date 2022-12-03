@@ -68,8 +68,8 @@ class Scheduler:
     auth_mgr: AuthenticatorManager = Inject(AuthenticatorManager)
 
     def __init__(self):
-        on_bot_connect(self.on_bot_connect, replay=True)
-        on_bot_disconnect(self.on_bot_disconnect)
+        on_bot_connect(replay=True)(self.on_bot_connect)
+        on_bot_disconnect()(self.on_bot_disconnect)
 
     @staticmethod
     def _make_job_id(sub: Subscription):
