@@ -47,15 +47,14 @@ class SqlPixivRepo:
     apscheduler: AsyncIOScheduler = Inject(AsyncIOScheduler)
 
     def __init__(self):
-        on_startup(
+        on_startup(replay=True)(
             partial(
                 self.apscheduler.add_job,
                 self.clean_expired,
                 id='pixivbot_sql_pixiv_repo_clean_expired',
                 trigger=IntervalTrigger(hours=2),
                 max_instances=1
-            ),
-            replay=True
+            )
         )
 
     async def _get_illusts(self, cache_type: str,
