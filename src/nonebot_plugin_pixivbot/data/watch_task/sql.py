@@ -39,99 +39,99 @@ class SqlWatchTaskRepo:
     async def get_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncIterable[WatchTask]:
         subscriber = process_subscriber(subscriber)
 
-        session = self.data_source.session()
-        stmt = (
-            select(WatchTaskOrm)
-            .where(WatchTaskOrm.subscriber == subscriber.dict())
-        )
-        async for x in await session.stream_scalars(stmt):
-            x.checkpoint = x.checkpoint.replace(tzinfo=utc)
-            yield WatchTask.from_orm(x)
+        async with self.data_source.session_scope() as session:
+            stmt = (
+                select(WatchTaskOrm)
+                .where(WatchTaskOrm.subscriber == subscriber.dict())
+            )
+            async for x in await session.stream_scalars(stmt):
+                x.checkpoint = x.checkpoint.replace(tzinfo=utc)
+                yield WatchTask.from_orm(x)
 
     async def get_by_adapter(self, adapter: str) -> AsyncIterable[WatchTask]:
-        session = self.data_source.session()
-        stmt = (
-            select(WatchTaskOrm)
-            .where(WatchTaskOrm.adapter == adapter)
-        )
-        async for x in await session.stream_scalars(stmt):
-            x.checkpoint = x.checkpoint.replace(tzinfo=utc)
-            yield WatchTask.from_orm(x)
+        async with self.data_source.session_scope() as session:
+            stmt = (
+                select(WatchTaskOrm)
+                .where(WatchTaskOrm.adapter == adapter)
+            )
+            async for x in await session.stream_scalars(stmt):
+                x.checkpoint = x.checkpoint.replace(tzinfo=utc)
+                yield WatchTask.from_orm(x)
 
     async def get_by_code(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[WatchTask]:
         subscriber = process_subscriber(subscriber)
 
-        session = self.data_source.session()
-        stmt = (select(WatchTaskOrm)
-                .where(WatchTaskOrm.subscriber == subscriber.dict(),
-                       WatchTaskOrm.code == code))
-        result = (await session.execute(stmt)).scalar_one_or_none()
-        result.checkpoint = result.checkpoint.replace(tzinfo=utc)
-        return WatchTask.from_orm(result)
+        async with self.data_source.session_scope() as session:
+            stmt = (select(WatchTaskOrm)
+                    .where(WatchTaskOrm.subscriber == subscriber.dict(),
+                           WatchTaskOrm.code == code))
+            result = (await session.execute(stmt)).scalar_one_or_none()
+            result.checkpoint = result.checkpoint.replace(tzinfo=utc)
+            return WatchTask.from_orm(result)
 
     async def insert(self, task: WatchTask) -> bool:
         task.subscriber = process_subscriber(task.subscriber)
         task.code = gen_code()
 
-        session = self.data_source.session()
-        stmt = (insert(WatchTaskOrm)
-                .values(subscriber=task.subscriber.dict(),
-                        code=task.code,
-                        type=task.type,
-                        kwargs=task.kwargs,
-                        adapter=task.subscriber.adapter,
-                        checkpoint=task.checkpoint))
-        stmt.on_conflict_do_nothing(index_elements=[WatchTaskOrm.type, WatchTaskOrm.kwargs])
-        result = await session.execute(stmt)
-        await session.commit()
+        async with self.data_source.session_scope() as session:
+            stmt = (insert(WatchTaskOrm)
+                    .values(subscriber=task.subscriber.dict(),
+                            code=task.code,
+                            type=task.type,
+                            kwargs=task.kwargs,
+                            adapter=task.subscriber.adapter,
+                            checkpoint=task.checkpoint))
+            stmt.on_conflict_do_nothing(index_elements=[WatchTaskOrm.type, WatchTaskOrm.kwargs])
+            result = await session.execute(stmt)
+            await session.commit()
 
-        return result.rowcount == 1
+            return result.rowcount == 1
 
     async def update(self, task: WatchTask) -> bool:
         task.subscriber = process_subscriber(task.subscriber)
 
-        session = self.data_source.session()
-        stmt = (update(WatchTaskOrm)
-                .values(type=task.type,
-                        kwargs=task.kwargs,
-                        adapter=task.subscriber.adapter,
-                        checkpoint=task.checkpoint)
-                .where(WatchTaskOrm.subscriber == task.subscriber.dict(),
-                       WatchTaskOrm.code == task.code))
-        result = await session.execute(stmt)
-        await session.commit()
-        return result.rowcount == 1
+        async with self.data_source.session_scope() as session:
+            stmt = (update(WatchTaskOrm)
+                    .values(type=task.type,
+                            kwargs=task.kwargs,
+                            adapter=task.subscriber.adapter,
+                            checkpoint=task.checkpoint)
+                    .where(WatchTaskOrm.subscriber == task.subscriber.dict(),
+                           WatchTaskOrm.code == task.code))
+            result = await session.execute(stmt)
+            await session.commit()
+            return result.rowcount == 1
 
     async def delete_one(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[WatchTask]:
         subscriber = process_subscriber(subscriber)
 
-        session = self.data_source.session()
-        stmt = (select(WatchTaskOrm)
-                .where(WatchTaskOrm.subscriber == subscriber.dict(),
-                       WatchTaskOrm.code == code)
-                .limit(1))
-        task = (await session.execute(stmt)).scalar_one_or_none()
+        async with self.data_source.session_scope() as session:
+            stmt = (select(WatchTaskOrm)
+                    .where(WatchTaskOrm.subscriber == subscriber.dict(),
+                           WatchTaskOrm.code == code)
+                    .limit(1))
+            task = (await session.execute(stmt)).scalar_one_or_none()
 
-        if task is None:
-            return task
+            if task is None:
+                return task
 
-        await session.delete(task)
-        await session.commit()
-        return WatchTask.from_orm(task)
+            await session.delete(task)
+            await session.commit()
+            return WatchTask.from_orm(task)
 
     async def delete_many_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> Collection[WatchTask]:
         subscriber = process_subscriber(subscriber)
 
-        session = self.data_source.session()
-        stmt = (select(WatchTaskOrm)
-                .where(WatchTaskOrm.subscriber == subscriber.dict()))
-        tasks = (await session.execute(stmt)).scalars().all()
+        async with self.data_source.session_scope() as session:
+            stmt = (select(WatchTaskOrm)
+                    .where(WatchTaskOrm.subscriber == subscriber.dict()))
+            tasks = (await session.execute(stmt)).scalars().all()
 
-        for t in tasks:
-            await session.delete(t)
+            for t in tasks:
+                await session.delete(t)
 
-        await session.commit()
-        return tasks
+            await session.commit()
+            return tasks
 
 
 __all__ = ("SqlWatchTaskRepo",)

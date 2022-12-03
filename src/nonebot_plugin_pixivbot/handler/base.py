@@ -17,7 +17,6 @@ from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestinationFactor
 from nonebot_plugin_pixivbot.protocol_dep.postman import PostmanManager
 from .interceptor.base import Interceptor
 from .interceptor.combined_interceptor import CombinedInterceptor
-from .interceptor.data_source_session_interceptor import DataSourceSessionInterceptor
 from .interceptor.default_error_interceptor import DefaultErrorInterceptor
 from .interceptor.permission_interceptor import BlacklistInterceptor
 from .pkg_context import context
@@ -140,7 +139,6 @@ class EntryHandler(Handler, ABC):
         super().__init__()
         self.add_interceptor(context.require(DefaultErrorInterceptor))
         self.add_interceptor(context.require(BlacklistInterceptor))
-        self.add_interceptor(context.require(DataSourceSessionInterceptor))
 
 
 class MatcherEntryHandler(EntryHandler, ABC):

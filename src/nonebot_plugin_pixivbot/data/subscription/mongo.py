@@ -30,25 +30,29 @@ class MongoSubscriptionRepo:
 
     async def get_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncGenerator[Subscription, None]:
         subscriber = process_subscriber(subscriber)
-        async for doc in SubscriptionDocument.find(SubscriptionDocument.subscriber == subscriber,
-                                                   session=self.mongo.session()):
-            yield doc
+        async with self.data_source.session_scope() as session:
+            async for doc in SubscriptionDocument.find(SubscriptionDocument.subscriber == subscriber,
+                                                       session=session):
+                yield doc
 
     async def get_by_adapter(self, adapter: str) -> AsyncGenerator[Subscription, None]:
-        async for doc in SubscriptionDocument.find(SubscriptionDocument.subscriber.adapter == adapter,
-                                                   session=self.mongo.session()):
-            yield doc
+        async with self.data_source.session_scope() as session:
+            async for doc in SubscriptionDocument.find(SubscriptionDocument.subscriber.adapter == adapter,
+                                                       session=session):
+                yield doc
 
     async def get_by_code(self, subscriber: PostIdentifier[T_UID, T_GID], code: str) -> Optional[Subscription]:
         subscriber = process_subscriber(subscriber)
-        return await SubscriptionDocument.find_one(SubscriptionDocument.subscriber == subscriber,
-                                                   SubscriptionDocument.code == code,
-                                                   session=self.mongo.session())
+        async with self.data_source.session_scope() as session:
+            return await SubscriptionDocument.find_one(SubscriptionDocument.subscriber == subscriber,
+                                                       SubscriptionDocument.code == code,
+                                                       session=session)
 
     async def insert(self, subscription: Subscription):
         subscription.subscriber = process_subscriber(subscription.subscriber)
         subscription.code = gen_code()
-        await SubscriptionDocument.insert_one(SubscriptionDocument(**subscription.dict()), session=self.mongo.session())
+        async with self.data_source.session_scope() as session:
+            await SubscriptionDocument.insert_one(SubscriptionDocument(**subscription.dict()), session=session)
 
     async def delete_one(self, subscriber: PostIdentifier[T_UID, T_GID], code: str) -> Optional[Subscription]:
         # beanie不支持原子性的find_one_and_delete操作
@@ -57,33 +61,32 @@ class MongoSubscriptionRepo:
             "code": code,
             "subscriber": process_subscriber(subscriber).dict()
         }
-        result = await SubscriptionDocument.get_motor_collection().find_one_and_delete(query,
-                                                                                       session=self.mongo.session())
-        if result:
-            return Subscription.parse_obj(result)
-        else:
-            return None
+        async with self.data_source.session_scope() as session:
+            result = await SubscriptionDocument.get_motor_collection().find_one_and_delete(query, session=session)
+            if result:
+                return Subscription.parse_obj(result)
+            else:
+                return None
 
     async def delete_many_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> Collection[Subscription]:
-        session = self.mongo.session()
-
         subscriber = process_subscriber(subscriber)
 
-        old_doc = await SubscriptionDocument.find(
-            SubscriptionDocument.subscriber == subscriber,
-            session=session
-        ).to_list()
+        async with self.data_source.session_scope() as session:
+            old_doc = await SubscriptionDocument.find(
+                SubscriptionDocument.subscriber == subscriber,
+                session=session
+            ).to_list()
 
-        # BulkWriter存在bug，session不生效
+            # BulkWriter存在bug，session不生效
 
-        opt = []
-        for x in old_doc:
-            opt.append(DeleteOne({"_id": x.id}))
+            opt = []
+            for x in old_doc:
+                opt.append(DeleteOne({"_id": x.id}))
 
-        if len(opt) != 0:
-            await SubscriptionDocument.get_motor_collection().bulk_write(opt, ordered=False, session=session)
+            if len(opt) != 0:
+                await SubscriptionDocument.get_motor_collection().bulk_write(opt, ordered=False, session=session)
 
-        return old_doc
+            return old_doc
 
 
 __all__ = ("MongoSubscriptionRepo",)
