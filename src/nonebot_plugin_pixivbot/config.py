@@ -19,16 +19,13 @@ class Config(BaseSettings):
     pixiv_data_source: DataSourceType = DataSourceType.sql
     pixiv_mongo_conn_url: str
     pixiv_mongo_database_name: str
-    pixiv_sql_conn_url: str = "sqlite+aiosqlite:///pixiv_bot.db"
+    pixiv_sql_conn_url: str
     pixiv_sql_dialect: str
 
     @root_validator(pre=True, allow_reuse=True)
-    def validate_data_source(cls, values):
+    def detect_data_source(cls, values):
         pixiv_data_source = values.get("pixiv_data_source", None)
         pixiv_mongo_conn_url = values.get("pixiv_mongo_conn_url", None)
-        pixiv_mongo_database_name = values.get("pixiv_mongo_database_name", None)
-        pixiv_sql_conn_url = values.get("pixiv_sql_conn_url")
-        pixiv_sql_dialect = values.get("pixiv_sql_dialect", None)
 
         if pixiv_data_source is None:
             if pixiv_mongo_conn_url is not None:
@@ -36,11 +33,24 @@ class Config(BaseSettings):
             else:
                 pixiv_data_source = DataSourceType.sql
 
-        if pixiv_data_source == DataSourceType.sql:
-            pixiv_mongo_conn_url = ""
-            pixiv_mongo_database_name = ""
+        values["pixiv_data_source"] = pixiv_data_source
+        return values
 
-            url = urlparse(pixiv_sql_conn_url)
+    @root_validator(pre=True, allow_reuse=True)
+    def default_sql_conn_url(cls, values):
+        if "pixiv_sql_conn_url" not in values:
+            values["pixiv_sql_conn_url"] = "sqlite+aiosqlite:///pixiv_bot.db"
+        return values
+
+    @root_validator(pre=True, allow_reuse=True)
+    def detect_sql_dialect(cls, values):
+        pixiv_data_source = values["pixiv_data_source"]
+
+        if pixiv_data_source == DataSourceType.sql:
+            values["pixiv_mongo_conn_url"] = ""
+            values["pixiv_mongo_database_name"] = ""
+
+            url = urlparse(values["pixiv_sql_conn_url"])
             if '+' in url.scheme:
                 pixiv_sql_dialect = url.scheme.split('+')[0]
             else:
@@ -48,9 +58,6 @@ class Config(BaseSettings):
         else:
             pixiv_sql_dialect = ""
 
-        values["pixiv_data_source"] = pixiv_data_source
-        values["pixiv_mongo_conn_url"] = pixiv_mongo_conn_url
-        values["pixiv_mongo_database_name"] = pixiv_mongo_database_name
         values["pixiv_sql_dialect"] = pixiv_sql_dialect
 
         return values
