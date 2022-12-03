@@ -200,26 +200,26 @@ class PixivSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[SharedAgenIde
     async def on_agen_next(self, identifier: SharedAgenIdentifier, item: Any):
         if isinstance(item, PixivRepoMetadata) and not self.get_expires_time(identifier):
             expires_time = self.calc_expires_time(identifier, item.update_time)
-            self.set_expires_time(identifier, expires_time)
+            await self.set_expires_time(identifier, expires_time)
 
 
 @context.inject
 @context.root.register_singleton()
 class MediatorPixivRepo:
-    _shared_agen_mgr = Inject(PixivSharedAsyncGeneratorManager)
-    _local = Inject(LocalPixivRepo)
-    _remote = Inject(RemotePixivRepo)
+    _shared_agen_mgr: PixivSharedAsyncGeneratorManager = Inject(PixivSharedAsyncGeneratorManager)
+    _local: LocalPixivRepo = Inject(LocalPixivRepo)
+    _remote: RemotePixivRepo = Inject(RemotePixivRepo)
 
     async def invalidate_cache(self):
-        self._shared_agen_mgr.invalidate_all()
+        await self._shared_agen_mgr.invalidate_all()
         await self._local.invalidate_all()
 
     async def illust_detail(self, illust_id: int,
                             cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[Illust, None]:
         logger.info(f"[mediator] illust_detail {illust_id} "
                     f"cache_strategy={cache_strategy.name}")
-        with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.ILLUST_DETAIL, illust_id=illust_id),
-                                       cache_strategy) as gen:
+        async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.ILLUST_DETAIL, illust_id=illust_id),
+                                             cache_strategy) as gen:
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):
                     yield x
@@ -228,8 +228,8 @@ class MediatorPixivRepo:
                           cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[User, None]:
         logger.info(f"[mediator] user_detail {user_id} "
                     f"cache_strategy={cache_strategy.name}")
-        with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.USER_DETAIL, user_id=user_id),
-                                       cache_strategy) as gen:
+        async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.USER_DETAIL, user_id=user_id),
+                                             cache_strategy) as gen:
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):
                     yield x
@@ -238,8 +238,8 @@ class MediatorPixivRepo:
                             cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[LazyIllust, None]:
         logger.info(f"[mediator] search_illust {word} "
                     f"cache_strategy={cache_strategy.name}")
-        with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.SEARCH_ILLUST, word=word),
-                                       cache_strategy) as gen:
+        async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.SEARCH_ILLUST, word=word),
+                                             cache_strategy) as gen:
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):
                     yield x
@@ -248,8 +248,8 @@ class MediatorPixivRepo:
                           cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[User, None]:
         logger.info(f"[mediator] search_user {word} "
                     f"cache_strategy={cache_strategy.name}")
-        with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.SEARCH_USER, word=word),
-                                       cache_strategy) as gen:
+        async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.SEARCH_USER, word=word),
+                                             cache_strategy) as gen:
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):
                     yield x
@@ -258,8 +258,8 @@ class MediatorPixivRepo:
                              cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[LazyIllust, None]:
         logger.info(f"[mediator] user_bookmarks {user_id} "
                     f"cache_strategy={cache_strategy.name}")
-        with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.USER_BOOKMARKS, user_id=user_id),
-                                       cache_strategy) as gen:
+        async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.USER_BOOKMARKS, user_id=user_id),
+                                             cache_strategy) as gen:
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):
                     yield x
@@ -268,8 +268,8 @@ class MediatorPixivRepo:
                            cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[LazyIllust, None]:
         logger.info(f"[mediator] user_illusts {user_id} "
                     f"cache_strategy={cache_strategy.name}")
-        with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.USER_ILLUSTS, user_id=user_id),
-                                       cache_strategy) as gen:
+        async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.USER_ILLUSTS, user_id=user_id),
+                                             cache_strategy) as gen:
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):
                     yield x
@@ -331,8 +331,8 @@ class MediatorPixivRepo:
             -> AsyncGenerator[LazyIllust, None]:
         logger.info(f"[mediator] recommended_illusts "
                     f"cache_strategy={cache_strategy.name}")
-        with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.RECOMMENDED_ILLUSTS),
-                                       cache_strategy) as gen:
+        async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.RECOMMENDED_ILLUSTS),
+                                             cache_strategy) as gen:
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):
                     yield x
@@ -341,8 +341,8 @@ class MediatorPixivRepo:
                               cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[LazyIllust, None]:
         logger.info(f"[mediator] related_illusts {illust_id} "
                     f"cache_strategy={cache_strategy.name}")
-        with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.RELATED_ILLUSTS, illust_id=illust_id),
-                                       cache_strategy) as gen:
+        async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.RELATED_ILLUSTS, illust_id=illust_id),
+                                             cache_strategy) as gen:
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):
                     yield x
@@ -354,8 +354,8 @@ class MediatorPixivRepo:
 
         logger.info(f"[mediator] illust_ranking {mode} "
                     f"cache_strategy={cache_strategy.name}")
-        with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.ILLUST_RANKING, mode=mode),
-                                       cache_strategy) as gen:
+        async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.ILLUST_RANKING, mode=mode),
+                                             cache_strategy) as gen:
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):
                     yield x
@@ -364,8 +364,8 @@ class MediatorPixivRepo:
                     cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[bytes, None]:
         logger.info(f"[mediator] image {illust.id} "
                     f"cache_strategy={cache_strategy.name}")
-        with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.IMAGE, illust_id=illust.id),
-                                       cache_strategy, illust=illust) as gen:
+        async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.IMAGE, illust_id=illust.id),
+                                             cache_strategy, illust=illust) as gen:
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):
                     yield x
