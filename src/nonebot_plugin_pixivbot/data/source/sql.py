@@ -42,7 +42,7 @@ class SqlDataSource(DataSourceLifecycleMixin, SessionScopeMixin[AsyncSession]):
         on_shutdown(self.close)
 
     async def initialize(self):
-        await self.fire_initializing()
+        await self._fire_initializing()
 
         driver = get_driver()
         self._engine = create_async_engine(self.conf.pixiv_sql_conn_url,
@@ -59,10 +59,10 @@ class SqlDataSource(DataSourceLifecycleMixin, SessionScopeMixin[AsyncSession]):
         self._sessionmaker = sessionmaker(self._engine, expire_on_commit=False, class_=AsyncSession)
 
         logger.success(f"[data source] SqlDataSource Initialized (dialect: {conf.pixiv_sql_dialect})")
-        await self.fire_initialized()
+        await self._fire_initialized()
 
     async def close(self):
-        await self.fire_closing()
+        await self._fire_closing()
 
         await self._engine.dispose()
 
@@ -70,7 +70,7 @@ class SqlDataSource(DataSourceLifecycleMixin, SessionScopeMixin[AsyncSession]):
         self._sessionmaker = None
 
         logger.success("[data source] SqlDataSource Disposed.")
-        await self.fire_closed()
+        await self._fire_closed()
 
     async def _start_session(self) -> AsyncSession:
         if self._sessionmaker is None:
