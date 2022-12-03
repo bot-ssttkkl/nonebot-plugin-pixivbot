@@ -25,22 +25,22 @@ class DataSourceLifecycleMixin:
     def on_closed(self, func: Callable[[], Union[None, Awaitable[None]]]):
         self._on_closed_callbacks.append(func)
 
-    async def fire_initializing(self):
+    async def _fire_initializing(self):
         logger.trace("[data source] Firing initializing event")
         fut = filter(isawaitable, (x() for x in self._on_initializing_callbacks))
         await asyncio.gather(*fut)
 
-    async def fire_initialized(self):
+    async def _fire_initialized(self):
         logger.trace("[data source] Firing initialized event")
         fut = filter(isawaitable, (x() for x in self._on_initialized_callbacks))
         await asyncio.gather(*fut)
 
-    async def fire_closing(self):
+    async def _fire_closing(self):
         logger.trace("[data source] Firing closing event")
         fut = filter(isawaitable, (x() for x in self._on_closing_callbacks))
         await asyncio.gather(*fut)
 
-    async def fire_closed(self):
+    async def _fire_closed(self):
         logger.trace("[data source] Firing closed event")
         fut = filter(isawaitable, (x() for x in self._on_closed_callbacks))
         await asyncio.gather(*fut)

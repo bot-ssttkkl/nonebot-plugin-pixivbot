@@ -2,7 +2,7 @@ from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
 
 dialect = context.require(Config).pixiv_sql_dialect
-if dialect == 'sql':
+if dialect == 'sqlite':
     from sqlalchemy.dialects.sqlite import insert as _insert
     from sqlalchemy.dialects.sqlite import JSON as _JSON
     from sqlalchemy.dialects.sqlite import BLOB as _BLOB

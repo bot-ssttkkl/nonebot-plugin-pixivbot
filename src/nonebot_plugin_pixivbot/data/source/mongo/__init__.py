@@ -84,6 +84,8 @@ class MongoDataSource(DataSourceLifecycleMixin, SessionScopeMixin[ClientSession]
                 f"Index in {coll_name}: expireAfterSeconds changed to {index.document['expireAfterSeconds']}")
 
     async def initialize(self):
+        await self._fire_initializing()
+
         client = AsyncIOMotorClient(self.conf.pixiv_mongo_conn_url)
         options = CodecOptions(tz_aware=True)
         db = client[self.conf.pixiv_mongo_database_name].with_options(options)
@@ -116,16 +118,18 @@ class MongoDataSource(DataSourceLifecycleMixin, SessionScopeMixin[ClientSession]
         self._client = client
         self._db = db
 
-        await self.fire_initialized()
+        await self._fire_initialized()
         logger.success("MongoDataSource Initialized.")
 
     async def close(self):
+        await self._fire_closing()
+
         if self._client:
             self._client.close()
         self._client = None
         self._db = None
 
-        await self.fire_closed()
+        await self._fire_closed()
         logger.success("MongoDataSource Disposed.")
 
     async def _start_session(self) -> ClientSession:
