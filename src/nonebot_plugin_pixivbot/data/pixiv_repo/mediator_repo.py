@@ -198,9 +198,10 @@ class PixivSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[SharedAgenIde
             raise ValueError("invalid identifier: " + str(identifier))
 
     async def on_agen_next(self, identifier: SharedAgenIdentifier, item: Any):
+        await super().on_agen_next(identifier, item)
         if isinstance(item, PixivRepoMetadata) and not self.get_expires_time(identifier):
             expires_time = self.calc_expires_time(identifier, item.update_time)
-            await self.set_expires_time(identifier, expires_time)
+            await self.set_expires_time(identifier, expires_time.timestamp())
 
 
 @context.inject
@@ -220,9 +221,14 @@ class MediatorPixivRepo:
                     f"cache_strategy={cache_strategy.name}")
         async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.ILLUST_DETAIL, illust_id=illust_id),
                                              cache_strategy) as gen:
+            data = None
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):
-                    yield x
+                    data = x
+
+        # 保证shared_agen能正常结束
+        if data is not None:
+            yield data
 
     async def user_detail(self, user_id: int,
                           cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[User, None]:
@@ -230,9 +236,14 @@ class MediatorPixivRepo:
                     f"cache_strategy={cache_strategy.name}")
         async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.USER_DETAIL, user_id=user_id),
                                              cache_strategy) as gen:
+            data = None
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):
-                    yield x
+                    data = x
+
+        # 保证shared_agen能正常结束
+        if data is not None:
+            yield data
 
     async def search_illust(self, word: str,
                             cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[LazyIllust, None]:
@@ -366,9 +377,14 @@ class MediatorPixivRepo:
                     f"cache_strategy={cache_strategy.name}")
         async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.IMAGE, illust_id=illust.id),
                                              cache_strategy, illust=illust) as gen:
+            data = None
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):
-                    yield x
+                    data = x
+
+        # 保证shared_agen能正常退出
+        if data is not None:
+            yield data
 
 
 __all__ = ('MediatorPixivRepo',)

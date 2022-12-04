@@ -1,15 +1,15 @@
+import time
 from abc import ABC, abstractmethod
 from asyncio import Lock
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from datetime import datetime, timezone
 from types import TracebackType
-from typing import Any, Generic, TypeVar, AsyncGenerator, List, Type, Optional, Dict, \
-    AsyncContextManager
+from typing import Any, Generic, TypeVar, AsyncGenerator, List, Type, Optional, AsyncContextManager
 
+from cachetools import TLRUCache
 from nonebot import logger
 
 from nonebot_plugin_pixivbot.data.pixiv_repo.enums import CacheStrategy
-from nonebot_plugin_pixivbot.utils.expires_lru_dict import AsyncExpiresLruDict
 
 T_ID = TypeVar("T_ID")
 T_ITEM = TypeVar("T_ITEM")
@@ -85,9 +85,12 @@ class SharedAsyncGeneratorManager(ABC, Generic[T_ID, T_ITEM]):
             return await self._origin.aclose()
 
     def __init__(self):
-        self._working_holders = dict[T_ID, self._AgenHolder]()
-        self._paused_holders = AsyncExpiresLruDict[T_ID, self._AgenHolder](1024, self._cleanup)
-        self._expires_time = dict[T_ID, datetime]()
+        self._running_holders = dict[T_ID, self._AgenHolder]()
+        self._expires_time = dict[T_ID, float]()
+
+        self._stopped_holders = TLRUCache[T_ID, self._AgenHolder](maxsize=2048,
+                                                                  ttu=lambda k, v, now: self._expires_time[k],
+                                                                  timer=time.time)
 
     @abstractmethod
     def agen(self, identifier: T_ID,
@@ -99,72 +102,81 @@ class SharedAsyncGeneratorManager(ABC, Generic[T_ID, T_ITEM]):
         pass
 
     async def on_agen_stop(self, identifier: T_ID, items: List[T_ITEM]):
-        pass
+        # 如果用户手动调用invalidate，该holder已不存在于self._running_holders中
+        # 自然也不需要缓存到self._stopped_holders中
+        if identifier in self._running_holders:
+            holder = self._running_holders.pop(identifier)
+            self._stopped_holders[identifier] = holder
+            logger.debug(f"[{self.log_tag}] {identifier} was stopped and cached")
 
     async def on_agen_error(self, identifier: T_ID, e: Exception):
         await self.invalidate(identifier)
 
-    async def _cleanup(self, identifier: T_ID, holder: _AgenHolder):
-        logger.debug(f"[{self.log_tag}] {identifier} was popped")
-        await holder.aclose()
-        if identifier in self._expires_time:
-            del self._expires_time[identifier]
-
     async def _on_consumers_changed(self, identifier: T_ID,
                                     holder: _AgenHolder,
                                     consumers: int):
-        if await self._paused_holders.contains(identifier) and consumers > 0:
-            logger.debug(f"[{self.log_tag}] {identifier} re-started")
-            await self._paused_holders.pop(identifier)
-            self._working_holders[identifier] = holder
-        elif identifier in self._working_holders and consumers == 0:
-            del self._working_holders[identifier]
+        if identifier in self._running_holders and consumers == 0:
+            del self._running_holders[identifier]
+
             if identifier in self._expires_time:
-                logger.debug(f"[{self.log_tag}] {identifier} paused")
-                await self._paused_holders.add(identifier, holder, self._expires_time[identifier])
-            else:
-                await self._cleanup(identifier, holder)
-                logger.debug(f"[{self.log_tag}] {identifier} stopped")
+                del self._expires_time[identifier]
+
+            await holder.aclose()
+            logger.debug(f"[{self.log_tag}] {identifier} cannot be reused "
+                         "(the origin agen hasn't stopped when all consumers exited)")
 
     async def invalidate(self, identifier: T_ID):
-        if await self._paused_holders.contains(identifier):
-            logger.debug(f"[{self.log_tag}] {identifier} was invalidated from paused state")
-            holder = await self._paused_holders.pop(identifier)
-            await holder.aclose()
-        elif identifier in self._working_holders:
+        if identifier in self._stopped_holders:
+            logger.debug(f"[{self.log_tag}] {identifier} was invalidated from cached state")
+            del self._stopped_holders[identifier]
+        elif identifier in self._running_holders:
             logger.debug(f"[{self.log_tag}] {identifier} was invalidated from running state")
-            self._working_holders.pop(identifier)
+            holder = self._running_holders.pop(identifier)
+            await holder.aclose()
 
-        if identifier in self._expires_time:
-            del self._expires_time[identifier]
+            if identifier in self._expires_time:
+                del self._expires_time[identifier]
+        else:
+            logger.warning(f"[{self.log_tag}] {identifier} was not found")
+            return
 
     async def invalidate_all(self):
-        keys = list(x async for x in self._paused_holders.iter())
-        for identifier in keys:
-            logger.debug(f"[{self.log_tag}] {identifier} was invalidated from paused state")
-            holder = await self._paused_holders.pop(identifier)
-            await holder.aclose()
+        keys = {*self._stopped_holders.keys(), *self._running_holders.keys()}
+        for k in keys:
+            await self.invalidate(k)
 
-        keys = list(self._working_holders.keys())
-        for identifier in keys:
-            logger.debug(f"[{self.log_tag}] {identifier} was invalidated from running state")
-            self._working_holders.pop(identifier)
+    def get_expires_time(self, identifier: T_ID) -> Optional[float]:
+        if identifier in self._stopped_holders:
+            t = self._stopped_holders.__getitem(identifier).expires
+            return t
+        elif identifier in self._running_holders:
+            t = self._expires_time.get(identifier, None)
+            return t
+        else:
+            return None
 
-        self._expires_time.clear()
-
-    def get_expires_time(self, identifier: T_ID) -> Optional[datetime]:
-        return self._expires_time.get(identifier, None)
-
-    async def set_expires_time(self, identifier: T_ID, expires_time: datetime):
-        # 即使当前没有该holder也可以设置
-        # 在调用invalidate或者被_paused_holder弹出后从_expires_time中删除
-        if expires_time <= datetime.now(timezone.utc):
+    async def set_expires_time(self, identifier: T_ID, expires_time: float):
+        now = time.time()
+        if expires_time <= now:
             await self.invalidate(identifier)
-        elif identifier not in self._expires_time:
+            logger.debug(f"[{self.log_tag}] {identifier} was expired "
+                         "(due to a past expires time was set)")
+            return
+
+        if identifier in self._stopped_holders:
+            holder = self._stopped_holders.pop(identifier)
+
+            if expires_time > now:
+                self._expires_time[identifier] = expires_time
+                self._stopped_holders[identifier] = holder
+                del self._expires_time[identifier]
+
+                logger.debug(f"[{self.log_tag}] {identifier} will expires at {expires_time}")
+        elif identifier in self._running_holders:
             self._expires_time[identifier] = expires_time
             logger.debug(f"[{self.log_tag}] {identifier} will expire at {expires_time}")
-        elif self._expires_time[identifier] != expires_time:
-            logger.warning(f"[{self.log_tag}] {identifier}'s expires time was already set")
+        else:
+            logger.warning(f"[{self.log_tag}] {identifier} was not found")
 
     @asynccontextmanager
     async def get(self, identifier: Any,
@@ -173,13 +185,14 @@ class SharedAsyncGeneratorManager(ABC, Generic[T_ID, T_ITEM]):
         if cache_strategy == CacheStrategy.FORCE_EXPIRATION:
             await self.invalidate(identifier)
 
-        holder = await self._paused_holders.get(identifier)
+        holder = self._stopped_holders.get(identifier, None)
         if holder is None:
-            holder = self._working_holders.get(identifier, None)
+            holder = self._running_holders.get(identifier, None)
             if holder is None:
                 origin = self.agen(identifier, cache_strategy, **kwargs)
                 holder = self._AgenHolder(origin, identifier, self)
-                self._working_holders[identifier] = holder
+                logger.debug(f"[{self.log_tag}] {identifier} was created")
+                self._running_holders[identifier] = holder
 
         async with holder as x:
             yield x

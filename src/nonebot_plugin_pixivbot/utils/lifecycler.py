@@ -29,40 +29,30 @@ _no_bot_connect.set()
 # 注册回调不加锁是因为没有多线程场景
 
 def on_startup(replay: bool = False):
-    if not replay or not _startup.is_set():
-        def decorator(func):
-            _on_startup_callback.append(func)
-            return func
-
-        return decorator
-    else:
-        def decorator(func):
+    def decorator(func):
+        if replay and _startup.is_set():
             logger.trace("[lifecycler] replaying on_startup")
             x = func()
             if isawaitable(x):
                 asyncio.create_task(x)
-            return func
+        _on_startup_callback.append(func)
+        return func
 
-        return decorator
+    return decorator
 
 
 def on_bot_connect(replay: bool = False):
-    if not replay:
-        def decorator(func):
-            _on_bot_connect_callback.append(func)
-            return func
-
-        return decorator
-    else:
-        def decorator(func):
+    def decorator(func):
+        if replay:
             for bot in _connected_bot:
                 logger.trace(f"[lifecycler] replaying on_bot_connect with {bot}")
                 x = func(bot)
                 if isawaitable(x):
                     asyncio.create_task(x)
-            return func
+        _on_bot_connect_callback.append(func)
+        return func
 
-        return decorator
+    return decorator
 
 
 def on_bot_disconnect():

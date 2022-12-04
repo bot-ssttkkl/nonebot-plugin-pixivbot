@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+import time
 
 from nonebot import logger
 
@@ -24,7 +24,7 @@ class WatchFollowingIllustsSharedAsyncGeneratorManager(SharedAsyncGeneratorManag
     remote_pixiv = Inject(RemotePixivRepo)
 
     async def agen(self, identifier: int, cache_strategy: CacheStrategy, **kwargs):
-        await self.set_expires_time(identifier, datetime.now(timezone.utc) + timedelta(seconds=30))  # 保证每分钟的所有task都能共享
+        await self.set_expires_time(identifier, time.time() + 30)  # 30s过期，保证每分钟的所有task都能共享
         async for x in self.pixiv.user_following_illusts(user_id=identifier,
                                                          cache_strategy=CacheStrategy.FORCE_EXPIRATION):
             yield await x.get()
