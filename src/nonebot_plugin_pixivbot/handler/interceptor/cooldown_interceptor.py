@@ -33,6 +33,7 @@ class CooldownInterceptor(PermissionInterceptor):
 
         if str(post_dest.user_id) in self.conf.pixiv_no_query_cooldown_users \
                 or str(identifier) in self.conf.pixiv_no_query_cooldown_users:
+            logger.debug(f"{identifier} has no query cooldown")
             return True
 
         now = datetime.now(timezone.utc)

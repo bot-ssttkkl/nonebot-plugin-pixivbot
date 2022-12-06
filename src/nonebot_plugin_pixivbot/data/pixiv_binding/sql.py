@@ -24,7 +24,7 @@ class SqlPixivBindingRepo:
     data_source: SqlDataSource = Inject(SqlDataSource)
 
     async def get(self, adapter: str, user_id: T_UID) -> Optional[PixivBinding]:
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             stmt = (select(PixivBindingOrm)
                     .where(PixivBindingOrm.adapter == adapter,
                            PixivBindingOrm.user_id == str(user_id))
@@ -38,7 +38,7 @@ class SqlPixivBindingRepo:
                 return None
 
     async def update(self, binding: PixivBinding[T_UID]):
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             stmt = (insert(PixivBindingOrm)
                     .values(adapter=binding.adapter,
                             user_id=str(binding.user_id),
@@ -51,7 +51,7 @@ class SqlPixivBindingRepo:
             await session.commit()
 
     async def remove(self, adapter: str, user_id: T_UID) -> bool:
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             stmt = (delete(PixivBinding)
                     .where(PixivBindingOrm.adapter == adapter,
                            PixivBindingOrm.user_id == str(user_id)))

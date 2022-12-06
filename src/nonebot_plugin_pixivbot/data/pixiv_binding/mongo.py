@@ -24,10 +24,10 @@ context.require(MongoDataSource).document_models.append(PixivBindingDocument)
 @context.inject
 @context.register_singleton()
 class MongoPixivBindingRepo:
-    mongo: MongoDataSource = Inject(MongoDataSource)
+    data_source: MongoDataSource = Inject(MongoDataSource)
 
     async def get(self, adapter: str, user_id: T_UID) -> Optional[PixivBinding]:
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             result = await PixivBindingDocument.find_one(
                 PixivBindingDocument.adapter == adapter,
                 PixivBindingDocument.user_id == user_id,
@@ -36,7 +36,7 @@ class MongoPixivBindingRepo:
             return result
 
     async def update(self, binding: PixivBinding):
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             await PixivBindingDocument.find_one(
                 PixivBindingDocument.adapter == binding.adapter,
                 PixivBindingDocument.user_id == binding.user_id,
@@ -48,7 +48,7 @@ class MongoPixivBindingRepo:
             )
 
     async def remove(self, adapter: str, user_id: T_UID) -> bool:
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             cnt = await PixivBindingDocument.find_one(
                 PixivBindingDocument.adapter == adapter,
                 PixivBindingDocument.user_id == user_id,

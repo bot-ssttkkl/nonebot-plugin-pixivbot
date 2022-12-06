@@ -28,31 +28,31 @@ context.require(MongoDataSource).document_models.append(WatchTaskDocument)
 @context.inject
 @context.register_singleton()
 class MongoWatchTaskRepo:
-    mongo = Inject(MongoDataSource)
+    data_source = Inject(MongoDataSource)
 
     async def get_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncGenerator[WatchTask, None]:
         subscriber = process_subscriber(subscriber)
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             async for doc in WatchTaskDocument.find(WatchTaskDocument.subscriber == subscriber,
                                                     session=session):
                 yield doc
 
     async def get_by_adapter(self, adapter: str) -> AsyncGenerator[WatchTask, None]:
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             async for doc in WatchTaskDocument.find(WatchTaskDocument.subscriber.adapter == adapter,
                                                     session=session):
                 yield doc
 
     async def get_by_code(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[WatchTask]:
         subscriber = process_subscriber(subscriber)
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             return await WatchTaskDocument.find_one(WatchTaskDocument.subscriber == subscriber,
                                                     WatchTaskDocument.code == code,
                                                     session=session)
 
     async def insert(self, task: WatchTask) -> bool:
         try:
-            async with self.data_source.session_scope() as session:
+            async with self.data_source.start_session() as session:
                 task.subscriber = process_subscriber(task.subscriber)
                 task.code = gen_code()
                 doc = WatchTaskDocument(**task.dict())
@@ -63,7 +63,7 @@ class MongoWatchTaskRepo:
             return False
 
     async def update(self, task: WatchTask) -> bool:
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             if isinstance(task, WatchTaskDocument):
                 await task.save()
             else:
@@ -77,7 +77,7 @@ class MongoWatchTaskRepo:
             return True
 
     async def delete_one(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[WatchTask]:
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             # beanie不支持原子性的find_one_and_delete操作
             subscriber = process_subscriber(subscriber)
             query = {
@@ -91,7 +91,7 @@ class MongoWatchTaskRepo:
                 return None
 
     async def delete_many_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> Collection[WatchTask]:
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             subscriber = process_subscriber(subscriber)
 
             old_doc = await WatchTaskDocument.find(
