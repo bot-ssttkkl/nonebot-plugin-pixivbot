@@ -39,7 +39,7 @@ class SqlWatchTaskRepo:
     async def get_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncIterable[WatchTask]:
         subscriber = process_subscriber(subscriber)
 
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             stmt = (
                 select(WatchTaskOrm)
                 .where(WatchTaskOrm.subscriber == subscriber.dict())
@@ -49,7 +49,7 @@ class SqlWatchTaskRepo:
                 yield WatchTask.from_orm(x)
 
     async def get_by_adapter(self, adapter: str) -> AsyncIterable[WatchTask]:
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             stmt = (
                 select(WatchTaskOrm)
                 .where(WatchTaskOrm.adapter == adapter)
@@ -61,7 +61,7 @@ class SqlWatchTaskRepo:
     async def get_by_code(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[WatchTask]:
         subscriber = process_subscriber(subscriber)
 
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             stmt = (select(WatchTaskOrm)
                     .where(WatchTaskOrm.subscriber == subscriber.dict(),
                            WatchTaskOrm.code == code))
@@ -73,7 +73,7 @@ class SqlWatchTaskRepo:
         task.subscriber = process_subscriber(task.subscriber)
         task.code = gen_code()
 
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             stmt = (insert(WatchTaskOrm)
                     .values(subscriber=task.subscriber.dict(),
                             code=task.code,
@@ -90,7 +90,7 @@ class SqlWatchTaskRepo:
     async def update(self, task: WatchTask) -> bool:
         task.subscriber = process_subscriber(task.subscriber)
 
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             stmt = (update(WatchTaskOrm)
                     .values(type=task.type,
                             kwargs=task.kwargs,
@@ -105,7 +105,7 @@ class SqlWatchTaskRepo:
     async def delete_one(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[WatchTask]:
         subscriber = process_subscriber(subscriber)
 
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             stmt = (select(WatchTaskOrm)
                     .where(WatchTaskOrm.subscriber == subscriber.dict(),
                            WatchTaskOrm.code == code)
@@ -122,7 +122,7 @@ class SqlWatchTaskRepo:
     async def delete_many_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> Collection[WatchTask]:
         subscriber = process_subscriber(subscriber)
 
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             stmt = (select(WatchTaskOrm)
                     .where(WatchTaskOrm.subscriber == subscriber.dict()))
             tasks = (await session.execute(stmt)).scalars().all()

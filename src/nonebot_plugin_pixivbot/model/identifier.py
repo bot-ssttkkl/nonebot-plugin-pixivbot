@@ -17,6 +17,9 @@ class UserIdentifier(GenericModel, Generic[T_UID]):
     def __repr__(self):
         return f"{self.adapter}:{self.user_id}"
 
+    def __str__(self):
+        return self.__repr__()
+
     class Config:
         frozen = True
 

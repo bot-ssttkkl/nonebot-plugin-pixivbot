@@ -26,20 +26,20 @@ context.require(MongoDataSource).document_models.append(LocalTag)
 @context.inject
 @context.register_singleton()
 class MongoLocalTagRepo:
-    mongo: MongoDataSource = Inject(MongoDataSource)
+    data_source: MongoDataSource = Inject(MongoDataSource)
 
     async def find_by_name(self, name: str) -> Optional[Tag]:
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             result = await LocalTag.find_one(LocalTag.name == name, session=session)
             return result
 
     async def find_by_translated_name(self, translated_name: str) -> Optional[Tag]:
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             result = await LocalTag.find_one(LocalTag.translated_name == translated_name, session=session)
             return result
 
     async def update_one(self, tag: Tag):
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             await LocalTag.find_one(LocalTag.name == tag.name, session=session).upsert(
                 SetOnInsert({LocalTag.translated_name: tag.translated_name}),
                 on_insert=LocalTag(**tag.dict()),
@@ -47,7 +47,7 @@ class MongoLocalTagRepo:
             )
 
     async def update_many(self, tags: Collection[Tag]):
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             # BulkWriter存在bug，upsert不生效
             # https://github.com/roman-right/beanie/issues/224
     

@@ -1,4 +1,3 @@
-from contextlib import asynccontextmanager
 from typing import Protocol, Callable, Union, Awaitable, Any
 
 from nonebot_plugin_pixivbot import context
@@ -25,11 +24,7 @@ class DataSource(Protocol):
     def on_closed(self, func: Callable[[], Union[None, Awaitable[None]]]):
         ...
 
-    def session(self) -> Any:
-        ...
-
-    @asynccontextmanager
-    async def session_scope(self):
+    def start_session(self) -> Any:
         ...
 
 

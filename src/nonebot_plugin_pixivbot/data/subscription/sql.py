@@ -39,7 +39,7 @@ class SqlSubscriptionRepo:
     async def get_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncIterable[Subscription]:
         subscriber = process_subscriber(subscriber)
 
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             stmt = (
                 select(SubscriptionOrm)
                 .where(SubscriptionOrm.subscriber == subscriber.dict())
@@ -48,7 +48,7 @@ class SqlSubscriptionRepo:
                 yield Subscription.from_orm(x)
 
     async def get_by_adapter(self, adapter: str) -> AsyncIterable[Subscription]:
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             stmt = (
                 select(SubscriptionOrm)
                 .where(SubscriptionOrm.adapter == adapter)
@@ -60,7 +60,7 @@ class SqlSubscriptionRepo:
         subscription.subscriber = process_subscriber(subscription.subscriber)
         subscription.code = gen_code()
 
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             stmt = (insert(SubscriptionOrm)
                     .values(subscriber=subscription.subscriber.dict(),
                             code=subscription.code,
@@ -75,7 +75,7 @@ class SqlSubscriptionRepo:
     async def delete_one(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[Subscription]:
         subscriber = process_subscriber(subscriber)
 
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             stmt = (select(SubscriptionOrm)
                     .where(SubscriptionOrm.subscriber == subscriber.dict(),
                            SubscriptionOrm.code == code)
@@ -92,7 +92,7 @@ class SqlSubscriptionRepo:
     async def delete_many_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> Collection[Subscription]:
         subscriber = process_subscriber(subscriber)
 
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             stmt = (select(SubscriptionOrm)
                     .where(SubscriptionOrm.subscriber == subscriber.dict()))
             subs = (await session.execute(stmt)).scalars().all()

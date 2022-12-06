@@ -1,4 +1,5 @@
 import json
+from contextlib import asynccontextmanager
 from datetime import datetime, date
 
 from nonebot import get_driver, logger
@@ -10,7 +11,6 @@ from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.errors import DataSourceNotReadyError
 from nonebot_plugin_pixivbot.data.source.lifecycle_mixin import DataSourceLifecycleMixin
-from nonebot_plugin_pixivbot.data.source.session_scope_mixin import SessionScopeMixin
 from nonebot_plugin_pixivbot.enums import DataSourceType
 from nonebot_plugin_pixivbot.utils.lifecycler import on_startup, on_shutdown
 
@@ -27,7 +27,7 @@ def json_serializer(obj):
 
 
 @context.inject
-class SqlDataSource(DataSourceLifecycleMixin, SessionScopeMixin[AsyncSession]):
+class SqlDataSource(DataSourceLifecycleMixin):
     conf: Config = Inject(Config)
 
     def __init__(self):
@@ -72,13 +72,12 @@ class SqlDataSource(DataSourceLifecycleMixin, SessionScopeMixin[AsyncSession]):
         logger.success("[data source] SqlDataSource Disposed.")
         await self._fire_closed()
 
-    async def _start_session(self) -> AsyncSession:
-        if self._sessionmaker is None:
+    @asynccontextmanager
+    async def start_session(self):
+        if self._engine is None:
             raise DataSourceNotReadyError()
-        return self._sessionmaker()
-
-    async def _close_session(self, session: AsyncSession):
-        await session.close()
+        async with self._sessionmaker() as session:
+            yield session
 
     @property
     def engine(self) -> AsyncEngine:

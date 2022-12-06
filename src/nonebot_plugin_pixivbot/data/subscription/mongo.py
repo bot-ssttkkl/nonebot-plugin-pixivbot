@@ -26,24 +26,24 @@ context.require(MongoDataSource).document_models.append(SubscriptionDocument)
 @context.inject
 @context.register_singleton()
 class MongoSubscriptionRepo:
-    mongo: MongoDataSource = Inject(MongoDataSource)
+    data_source: MongoDataSource = Inject(MongoDataSource)
 
     async def get_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncGenerator[Subscription, None]:
         subscriber = process_subscriber(subscriber)
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             async for doc in SubscriptionDocument.find(SubscriptionDocument.subscriber == subscriber,
                                                        session=session):
                 yield doc
 
     async def get_by_adapter(self, adapter: str) -> AsyncGenerator[Subscription, None]:
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             async for doc in SubscriptionDocument.find(SubscriptionDocument.subscriber.adapter == adapter,
                                                        session=session):
                 yield doc
 
     async def get_by_code(self, subscriber: PostIdentifier[T_UID, T_GID], code: str) -> Optional[Subscription]:
         subscriber = process_subscriber(subscriber)
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             return await SubscriptionDocument.find_one(SubscriptionDocument.subscriber == subscriber,
                                                        SubscriptionDocument.code == code,
                                                        session=session)
@@ -51,7 +51,7 @@ class MongoSubscriptionRepo:
     async def insert(self, subscription: Subscription):
         subscription.subscriber = process_subscriber(subscription.subscriber)
         subscription.code = gen_code()
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             await SubscriptionDocument.insert_one(SubscriptionDocument(**subscription.dict()), session=session)
 
     async def delete_one(self, subscriber: PostIdentifier[T_UID, T_GID], code: str) -> Optional[Subscription]:
@@ -61,7 +61,7 @@ class MongoSubscriptionRepo:
             "code": code,
             "subscriber": process_subscriber(subscriber).dict()
         }
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             result = await SubscriptionDocument.get_motor_collection().find_one_and_delete(query, session=session)
             if result:
                 return Subscription.parse_obj(result)
@@ -71,7 +71,7 @@ class MongoSubscriptionRepo:
     async def delete_many_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> Collection[Subscription]:
         subscriber = process_subscriber(subscriber)
 
-        async with self.data_source.session_scope() as session:
+        async with self.data_source.start_session() as session:
             old_doc = await SubscriptionDocument.find(
                 SubscriptionDocument.subscriber == subscriber,
                 session=session
