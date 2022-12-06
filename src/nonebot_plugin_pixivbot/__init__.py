@@ -46,17 +46,24 @@ from . import service
 
 # ============== load custom protocol =============
 from importlib import import_module
-from nonebot import logger
+from nonebot import logger, get_driver
 
-supported_modules = ["nonebot_plugin_pixivbot_onebot_v11",
-                     "nonebot_plugin_pixivbot_kook",
-                     "nonebot_plugin_pixivbot_telegram"]
+supported_modules = {
+    "OneBot V11": "nonebot_plugin_pixivbot_onebot_v11",
+    "Kaiheila": "nonebot_plugin_pixivbot_kook",
+    "Telegram": "nonebot_plugin_pixivbot_telegram"
+}
 
-for p in supported_modules:
-    try:
-        import_module(p)
-        logger.success("Loaded Module: " + p)
-    except ModuleNotFoundError:
-        pass
+loaded_modules = []
+
+driver = get_driver()
+for adapter in driver._adapters:
+    if adapter in supported_modules:
+        import_module(supported_modules[adapter])
+        loaded_modules.append(adapter)
+        logger.debug(f"Succeeded to load PixivBot for {adapter}")
+
+if len(loaded_modules):
+    logger.success(f"Loaded PixivBot for {', '.join(loaded_modules)}")
 
 __all__ = ("context", "__plugin_meta__")
