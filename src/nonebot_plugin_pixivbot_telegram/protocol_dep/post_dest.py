@@ -17,11 +17,15 @@ class PostDestination(BasePostDestination[int, int]):
                  chat_id: Optional[int] = None,
                  chat_type: Optional[str] = None,
                  reply_to_message_id: Optional[int] = None) -> None:
-        self.bot = bot
+        self._bot = bot
         self._user_id = user_id
         self.chat_id = chat_id
         self.chat_type = chat_type
         self.reply_to_message_id = reply_to_message_id
+
+    @property
+    def bot(self) -> Bot:
+        return self._bot
 
     @property
     def identifier(self) -> PostIdentifier[T_UID, T_GID]:

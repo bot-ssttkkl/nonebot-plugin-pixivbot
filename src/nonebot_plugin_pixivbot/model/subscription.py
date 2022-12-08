@@ -43,8 +43,5 @@ class Subscription(IntervalTask[T_UID, T_GID], Generic[T_UID, T_GID]):
     def __str__(self):
         return self.__repr__()
 
-    class Config:
-        orm_mode = True
-
 
 __all__ = ("Subscription", "ScheduleType")

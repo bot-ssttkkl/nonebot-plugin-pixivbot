@@ -3,16 +3,17 @@ from __future__ import annotations
 import re
 from datetime import datetime, timedelta
 from inspect import isawaitable
-from typing import Dict, Sequence, Union, TYPE_CHECKING
+from typing import Dict, Sequence, Union, TYPE_CHECKING, overload
 
 import pytz
 from apscheduler.triggers.interval import IntervalTrigger
 from lazy import lazy
 
+from nonebot_plugin_access_control.utils import get_adapter_name
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.subscription import SubscriptionRepo
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.model import Subscription
+from nonebot_plugin_pixivbot.model import Subscription, UserIdentifier
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.model.subscription import ScheduleType
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
@@ -99,8 +100,22 @@ class Scheduler(IntervalTaskWorker[Subscription[T_UID, T_GID]]):
         if isawaitable(kwargs):
             kwargs = await kwargs
 
-        sub = Subscription(type=type_, kwargs=kwargs, subscriber=post_dest.identifier, schedule=schedule)
+        bot = post_dest.bot
+        sub = Subscription(type=type_, kwargs=kwargs,
+                           subscriber=post_dest.identifier,
+                           bot=UserIdentifier(get_adapter_name(bot), bot.self_id),
+                           schedule=schedule)
         return sub
+
+    @overload
+    async def add_task(self, type_: ScheduleType,
+                       schedule: Union[str, Sequence[int]],
+                       args: Sequence[str],
+                       post_dest: PostDestination[T_UID, T_GID]) -> bool:
+        ...
+
+    async def add_task(self, *args, **kwargs) -> bool:
+        return await super().add_task(*args, **kwargs)
 
 
 __all__ = ("Scheduler",)

@@ -4,7 +4,7 @@ from typing import Sequence
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import GroupAdminInterceptor, \
     AnyPermissionInterceptor, SuperuserInterceptor
-from nonebot_plugin_pixivbot.model import PostIdentifier, WatchType, T_UID, T_GID
+from nonebot_plugin_pixivbot.model import WatchType, T_UID, T_GID
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.service.pixiv_service import PixivService
 from nonebot_plugin_pixivbot.service.watchman import Watchman
@@ -24,9 +24,9 @@ async def parse_and_get_user(raw_user: str):
         return await pixiv.get_user(raw_user)
 
 
-async def build_tasks_msg(identifier: PostIdentifier):
+async def build_tasks_msg(post_dest: PostDestination[T_UID, T_GID]):
     watchman = context.require(Watchman)
-    tasks = [x async for x in watchman.get_by_subscriber(identifier)]
+    tasks = [x async for x in watchman.get_by_subscriber(post_dest)]
     with StringIO() as sio:
         sio.write("当前订阅：\n")
         if len(tasks) > 0:
@@ -138,7 +138,7 @@ class WatchHandler(SubCommandHandler):
             msg += err.message
             msg += '\n\n'
 
-        msg += await build_tasks_msg(post_dest.identifier)
+        msg += await build_tasks_msg(post_dest)
         msg += "\n" \
                f"命令格式：{default_command_start}pixivbot watch <type> [..args]\n" \
                "参数：\n" \
@@ -176,7 +176,7 @@ class UnwatchHandler(SubCommandHandler):
     async def actual_handle(self, *, code: str,
                             post_dest: PostDestination[T_UID, T_GID],
                             silently: bool = False, **kwargs):
-        if await self.watchman.remove_task(post_dest.identifier, code):
+        if await self.watchman.remove_task(post_dest, code):
             await self.post_plain_text(message="取消订阅成功", post_dest=post_dest)
         else:
             raise BadRequestError("取消订阅失败，不存在该订阅")
@@ -189,7 +189,7 @@ class UnwatchHandler(SubCommandHandler):
             msg += err.message
             msg += '\n'
 
-        msg += await build_tasks_msg(post_dest.identifier)
+        msg += await build_tasks_msg(post_dest)
         msg += "\n"
         msg += f"命令格式：{default_command_start}pixivbot unwatch <id>"
         await self.post_plain_text(message=msg, post_dest=post_dest)

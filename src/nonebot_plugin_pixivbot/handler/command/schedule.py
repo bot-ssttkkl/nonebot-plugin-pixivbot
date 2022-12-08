@@ -14,9 +14,9 @@ from ..pkg_context import context
 from ... import default_command_start
 
 
-async def build_subscriptions_msg(subscriber: PostIdentifier[T_UID, T_GID]):
+async def build_subscriptions_msg(post_dest: PostDestination[T_UID, T_GID]):
     scheduler = context.require(Scheduler)
-    subscription = [x async for x in scheduler.get_by_subscriber(subscriber)]
+    subscription = [x async for x in scheduler.get_by_subscriber(post_dest)]
     with StringIO() as sio:
         sio.write("当前订阅：\n")
         if len(subscription) > 0:
@@ -77,7 +77,7 @@ class ScheduleHandler(SubCommandHandler):
             msg += err.message
             msg += '\n'
 
-        msg += await build_subscriptions_msg(post_dest.identifier)
+        msg += await build_subscriptions_msg(post_dest)
         msg += "\n" \
                f"命令格式：{default_command_start}pixivbot schedule <type> <schedule> [..args]\n" \
                "参数：\n" \
@@ -92,7 +92,7 @@ class ScheduleHandler(SubCommandHandler):
 @context.inject
 @context.require(CommandHandler).sub_command("unschedule")
 class UnscheduleHandler(SubCommandHandler):
-    Scheduler = Inject(Scheduler)
+    scheduler: Scheduler = Inject(Scheduler)
 
     def __init__(self):
         super().__init__()
@@ -117,7 +117,7 @@ class UnscheduleHandler(SubCommandHandler):
     async def actual_handle(self, *, code: str,
                             post_dest: PostDestination[T_UID, T_GID],
                             silently: bool = False):
-        if await self.scheduler.remove_task(post_dest.identifier, code):
+        if await self.scheduler.remove_task(post_dest, code):
             await self.post_plain_text(message="取消订阅成功", post_dest=post_dest)
         else:
             raise BadRequestError("取消订阅失败，不存在该订阅")
@@ -130,7 +130,7 @@ class UnscheduleHandler(SubCommandHandler):
             msg += err.message
             msg += '\n'
 
-        msg += await build_subscriptions_msg(post_dest.identifier)
+        msg += await build_subscriptions_msg(post_dest)
         msg += "\n"
         msg += f"命令格式：{default_command_start}pixivbot unschedule <id>"
         await self.post_plain_text(message=msg, post_dest=post_dest)

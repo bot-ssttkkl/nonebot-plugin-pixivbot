@@ -1,11 +1,11 @@
 from typing import Optional, AsyncIterable, Collection
 
 import tzlocal
-from sqlalchemy import Column, Integer, Enum as SqlEnum, String, select, Index, UniqueConstraint
+from sqlalchemy import Column, Integer, Enum as SqlEnum, String, select, UniqueConstraint
 
 from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier, ScheduleType, T_UID, T_GID
+from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier, ScheduleType, T_UID, T_GID, UserIdentifier
 from ..interval_task_repo import process_subscriber
 from ..source.sql import SqlDataSource
 from ..utils.shortuuid import gen_code
@@ -21,14 +21,24 @@ class SubscriptionOrm:
     code = Column(String, nullable=False)
     type = Column(SqlEnum(ScheduleType), nullable=False)
     kwargs = Column(JSON, nullable=False, default=dict)
-    adapter = Column(String, nullable=False)
+    bot = Column(String, nullable=False)
     schedule = Column(JSON, nullable=False)
     tz = Column(String, nullable=False, default=tzlocal.get_localzone_name)
 
     __table_args__ = (
-        Index("ix_subscription_adapter", "adapter"),
-        UniqueConstraint("subscriber", "code"),
+        UniqueConstraint("bot", "subscriber", "code"),
     )
+
+
+def _to_model(item: SubscriptionOrm) -> Subscription:
+    adapter, bot_id = item.bot.split(':')
+    return Subscription(subscriber=PostIdentifier(**item.subscriber),
+                        code=item.code,
+                        type=item.type,
+                        kwargs=item.kwargs,
+                        bot=UserIdentifier(adapter, bot_id),
+                        schedule=item.schedule,
+                        tz=item.tz)
 
 
 @context.inject
@@ -36,27 +46,45 @@ class SubscriptionOrm:
 class SqlSubscriptionRepo:
     data_source: SqlDataSource = Inject(SqlDataSource)
 
-    async def get_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncIterable[Subscription]:
+    async def get_by_subscriber(self, bot: UserIdentifier[T_UID],
+                                subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncIterable[Subscription]:
         subscriber = process_subscriber(subscriber)
 
         async with self.data_source.start_session() as session:
             stmt = (
                 select(SubscriptionOrm)
-                .where(SubscriptionOrm.subscriber == subscriber.dict())
+                .where(SubscriptionOrm.bot == str(bot),
+                       SubscriptionOrm.subscriber == subscriber.dict())
             )
             async for x in await session.stream_scalars(stmt):
-                yield Subscription.from_orm(x)
+                yield _to_model(x)
 
-    async def get_by_adapter(self, adapter: str) -> AsyncIterable[Subscription]:
+    async def get_by_bot(self, bot: UserIdentifier[T_UID]) -> AsyncIterable[Subscription]:
         async with self.data_source.start_session() as session:
             stmt = (
                 select(SubscriptionOrm)
-                .where(SubscriptionOrm.adapter == adapter)
+                .where(SubscriptionOrm.bot == str(bot))
             )
             async for x in await session.stream_scalars(stmt):
-                yield Subscription.from_orm(x)
+                yield _to_model(x)
 
-    async def insert(self, item: Subscription) -> bool:
+    async def get_by_code(self, bot: UserIdentifier[T_UID],
+                          subscriber: PostIdentifier[T_UID, T_GID],
+                          code: str) -> Optional[Subscription]:
+        async with self.data_source.start_session() as session:
+            stmt = (
+                select(SubscriptionOrm)
+                .where(SubscriptionOrm.bot == str(bot),
+                       SubscriptionOrm.subscriber == subscriber.dict(),
+                       SubscriptionOrm.code == code)
+            )
+            x = (await session.execute(stmt)).scalar_one_or_none()
+            if x is not None:
+                return _to_model(x)
+            else:
+                return None
+
+    async def insert(self, item: Subscription[T_UID, T_GID]) -> bool:
         item.subscriber = process_subscriber(item.subscriber)
         item.code = gen_code()
 
@@ -66,19 +94,22 @@ class SqlSubscriptionRepo:
                             code=item.code,
                             type=item.type,
                             kwargs=item.kwargs,
-                            adapter=item.subscriber.adapter,
+                            bot=str(item.bot),
                             schedule=item.schedule,
                             tz=item.tz))
             await session.execute(stmt)
             await session.commit()
         return True
 
-    async def delete_one(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[Subscription]:
+    async def delete_one(self, bot: UserIdentifier[T_UID],
+                         subscriber: PostIdentifier[T_UID, T_GID],
+                         code: int) -> Optional[Subscription]:
         subscriber = process_subscriber(subscriber)
 
         async with self.data_source.start_session() as session:
             stmt = (select(SubscriptionOrm)
-                    .where(SubscriptionOrm.subscriber == subscriber.dict(),
+                    .where(SubscriptionOrm.bot == str(bot),
+                           SubscriptionOrm.subscriber == subscriber.dict(),
                            SubscriptionOrm.code == code)
                     .limit(1))
             sub = (await session.execute(stmt)).scalar_one_or_none()
@@ -88,21 +119,23 @@ class SqlSubscriptionRepo:
 
             await session.delete(sub)
             await session.commit()
-            return Subscription.from_orm(sub)
+            return _to_model(sub)
 
-    async def delete_many_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> Collection[Subscription]:
+    async def delete_many_by_subscriber(self, bot: UserIdentifier[T_UID],
+                                        subscriber: PostIdentifier[T_UID, T_GID]) -> Collection[Subscription]:
         subscriber = process_subscriber(subscriber)
 
         async with self.data_source.start_session() as session:
             stmt = (select(SubscriptionOrm)
-                    .where(SubscriptionOrm.subscriber == subscriber.dict()))
+                    .where(SubscriptionOrm.bot == str(bot),
+                           SubscriptionOrm.subscriber == subscriber.dict()))
             subs = (await session.execute(stmt)).scalars().all()
 
             for t in subs:
                 await session.delete(t)
 
             await session.commit()
-            return subs
+            return [_to_model(x) for x in subs]
 
 
 __all__ = ("SqlSubscriptionRepo",)

@@ -13,6 +13,10 @@ from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
 
 
 class PostDestination(ABC, Generic[T_UID, T_GID]):
+    @property
+    @abstractmethod
+    def bot(self) -> Bot:
+        raise NotImplementedError()
 
     @property
     @abstractmethod
