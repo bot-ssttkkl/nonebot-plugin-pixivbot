@@ -1,6 +1,6 @@
 from typing import Optional
 
-from nonebot import Bot, get_bot, get_driver
+from nonebot import Bot, get_bot, get_driver, get_bots
 
 
 def get_adapter_name(bot: Optional[Bot] = None) -> str:
@@ -10,3 +10,12 @@ def get_adapter_name(bot: Optional[Bot] = None) -> str:
 
 
 default_command_start: str = next(iter(get_driver().config.command_start))
+
+
+def get_bot_by_adapter(adapter: str) -> Optional[Bot]:
+    # TODO: 当同时连接多个同一adapter的bot时插件无法正常工作
+    for b in get_bots().values():
+        if get_adapter_name(b) == adapter:
+            return b
+
+    return None

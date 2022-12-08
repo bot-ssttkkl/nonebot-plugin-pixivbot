@@ -7,8 +7,8 @@ from pymongo.errors import DuplicateKeyError
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import WatchTask, PostIdentifier, T_UID, T_GID
+from ..interval_task_repo import process_subscriber
 from ..source.mongo import MongoDataSource
-from ..utils.process_subscriber import process_subscriber
 from ..utils.shortuuid import gen_code
 
 
@@ -50,29 +50,29 @@ class MongoWatchTaskRepo:
                                                     WatchTaskDocument.code == code,
                                                     session=session)
 
-    async def insert(self, task: WatchTask) -> bool:
+    async def insert(self, item: WatchTask) -> bool:
         try:
             async with self.data_source.start_session() as session:
-                task.subscriber = process_subscriber(task.subscriber)
-                task.code = gen_code()
-                doc = WatchTaskDocument(**task.dict())
+                item.subscriber = process_subscriber(item.subscriber)
+                item.code = gen_code()
+                doc = WatchTaskDocument(**item.dict())
                 await doc.save(session=session)
 
                 return True
         except DuplicateKeyError:
             return False
 
-    async def update(self, task: WatchTask) -> bool:
+    async def update(self, item: WatchTask) -> bool:
         async with self.data_source.start_session() as session:
-            if isinstance(task, WatchTaskDocument):
-                await task.save()
+            if isinstance(item, WatchTaskDocument):
+                await item.save()
             else:
-                task.subscriber = process_subscriber(task.subscriber)
+                item.subscriber = process_subscriber(item.subscriber)
                 await WatchTaskDocument.find_one(
-                    WatchTaskDocument.subscriber == task.subscriber,
-                    WatchTaskDocument.code == task.code,
+                    WatchTaskDocument.subscriber == item.subscriber,
+                    WatchTaskDocument.code == item.code,
                     session=session
-                ).update(**task.dict(exclude={"subscriber", "code"}),
+                ).update(**item.dict(exclude={"subscriber", "code"}),
                          session=session)
             return True
 

@@ -34,7 +34,7 @@ async def build_subscriptions_msg(subscriber: PostIdentifier[T_UID, T_GID]):
 @context.inject
 @context.require(CommandHandler).sub_command("schedule")
 class ScheduleHandler(SubCommandHandler):
-    scheduler = Inject(Scheduler)
+    scheduler: Scheduler = Inject(Scheduler)
 
     def __init__(self):
         super().__init__()
@@ -66,7 +66,7 @@ class ScheduleHandler(SubCommandHandler):
                             args: Sequence[str],
                             post_dest: PostDestination[T_UID, T_GID],
                             silently: bool = False, **kwargs):
-        await self.scheduler.schedule(type, schedule, args, post_dest)
+        await self.scheduler.add_task(type, schedule, args, post_dest)
         await self.post_plain_text(message="订阅成功", post_dest=post_dest)
 
     async def actual_handle_bad_request(self, err: BadRequestError,
@@ -92,7 +92,7 @@ class ScheduleHandler(SubCommandHandler):
 @context.inject
 @context.require(CommandHandler).sub_command("unschedule")
 class UnscheduleHandler(SubCommandHandler):
-    scheduler = Inject(Scheduler)
+    Scheduler = Inject(Scheduler)
 
     def __init__(self):
         super().__init__()
@@ -117,7 +117,7 @@ class UnscheduleHandler(SubCommandHandler):
     async def actual_handle(self, *, code: str,
                             post_dest: PostDestination[T_UID, T_GID],
                             silently: bool = False):
-        if await self.scheduler.unschedule(post_dest.identifier, code):
+        if await self.scheduler.remove_task(post_dest.identifier, code):
             await self.post_plain_text(message="取消订阅成功", post_dest=post_dest)
         else:
             raise BadRequestError("取消订阅失败，不存在该订阅")

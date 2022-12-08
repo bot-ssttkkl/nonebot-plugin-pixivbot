@@ -1,11 +1,9 @@
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Generic, Dict
+from typing import Any, Dict, Generic
 
-from pydantic.generics import GenericModel
-
-from nonebot_plugin_pixivbot.model import PostIdentifier
-from nonebot_plugin_pixivbot.model import T_UID, T_GID
+from . import T_UID, T_GID
+from .interval_task import IntervalTask
 
 
 class WatchType(str, Enum):
@@ -13,11 +11,9 @@ class WatchType(str, Enum):
     following_illusts = "following_illusts"
 
 
-class WatchTask(GenericModel, Generic[T_UID, T_GID]):
-    code: str = ""
+class WatchTask(IntervalTask[T_UID, T_GID], Generic[T_UID, T_GID]):
     type: WatchType
     kwargs: Dict[str, Any]
-    subscriber: PostIdentifier[T_UID, T_GID]
     checkpoint: datetime = datetime.now(timezone.utc)
 
     @property

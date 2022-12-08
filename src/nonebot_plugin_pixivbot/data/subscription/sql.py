@@ -5,11 +5,11 @@ from sqlalchemy import Column, Integer, Enum as SqlEnum, String, select, Index, 
 
 from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
-from nonebot_plugin_pixivbot.data.utils.process_subscriber import process_subscriber
-from nonebot_plugin_pixivbot.data.utils.shortuuid import gen_code
-from nonebot_plugin_pixivbot.data.utils.sql import insert, JSON
 from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier, ScheduleType, T_UID, T_GID
+from ..interval_task_repo import process_subscriber
+from ..source.sql import SqlDataSource
+from ..utils.shortuuid import gen_code
+from ..utils.sql import insert, JSON
 
 
 @context.require(SqlDataSource).registry.mapped
@@ -56,21 +56,22 @@ class SqlSubscriptionRepo:
             async for x in await session.stream_scalars(stmt):
                 yield Subscription.from_orm(x)
 
-    async def insert(self, subscription: Subscription):
-        subscription.subscriber = process_subscriber(subscription.subscriber)
-        subscription.code = gen_code()
+    async def insert(self, item: Subscription) -> bool:
+        item.subscriber = process_subscriber(item.subscriber)
+        item.code = gen_code()
 
         async with self.data_source.start_session() as session:
             stmt = (insert(SubscriptionOrm)
-                    .values(subscriber=subscription.subscriber.dict(),
-                            code=subscription.code,
-                            type=subscription.type,
-                            kwargs=subscription.kwargs,
-                            adapter=subscription.subscriber.adapter,
-                            schedule=subscription.schedule,
-                            tz=subscription.tz))
+                    .values(subscriber=item.subscriber.dict(),
+                            code=item.code,
+                            type=item.type,
+                            kwargs=item.kwargs,
+                            adapter=item.subscriber.adapter,
+                            schedule=item.schedule,
+                            tz=item.tz))
             await session.execute(stmt)
             await session.commit()
+        return True
 
     async def delete_one(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[Subscription]:
         subscriber = process_subscriber(subscriber)
