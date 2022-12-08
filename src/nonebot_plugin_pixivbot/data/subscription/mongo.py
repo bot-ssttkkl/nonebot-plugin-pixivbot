@@ -6,8 +6,8 @@ from pymongo import IndexModel, DeleteOne
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier, T_UID, T_GID
+from ..interval_task_repo import process_subscriber
 from ..source.mongo import MongoDataSource
-from ..utils.process_subscriber import process_subscriber
 from ..utils.shortuuid import gen_code
 
 
@@ -48,11 +48,12 @@ class MongoSubscriptionRepo:
                                                        SubscriptionDocument.code == code,
                                                        session=session)
 
-    async def insert(self, subscription: Subscription):
-        subscription.subscriber = process_subscriber(subscription.subscriber)
-        subscription.code = gen_code()
+    async def insert(self, item: Subscription) -> bool:
+        item.subscriber = process_subscriber(item.subscriber)
+        item.code = gen_code()
         async with self.data_source.start_session() as session:
-            await SubscriptionDocument.insert_one(SubscriptionDocument(**subscription.dict()), session=session)
+            await SubscriptionDocument.insert_one(SubscriptionDocument(**item.dict()), session=session)
+        return True
 
     async def delete_one(self, subscriber: PostIdentifier[T_UID, T_GID], code: str) -> Optional[Subscription]:
         # beanie不支持原子性的find_one_and_delete操作

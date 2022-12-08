@@ -5,11 +5,11 @@ from sqlalchemy import Column, Integer, Enum as SqlEnum, String, select, UniqueC
 
 from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
-from nonebot_plugin_pixivbot.data.utils.process_subscriber import process_subscriber
-from nonebot_plugin_pixivbot.data.utils.shortuuid import gen_code
-from nonebot_plugin_pixivbot.data.utils.sql import insert, JSON, UTCDateTime
 from nonebot_plugin_pixivbot.model import PostIdentifier, WatchType, WatchTask, T_UID, T_GID
+from ..interval_task_repo import process_subscriber
+from ..source.sql import SqlDataSource
+from ..utils.shortuuid import gen_code
+from ..utils.sql import insert, JSON, UTCDateTime
 
 
 @context.require(SqlDataSource).registry.mapped
@@ -69,35 +69,35 @@ class SqlWatchTaskRepo:
             result.checkpoint = result.checkpoint.replace(tzinfo=utc)
             return WatchTask.from_orm(result)
 
-    async def insert(self, task: WatchTask) -> bool:
-        task.subscriber = process_subscriber(task.subscriber)
-        task.code = gen_code()
+    async def insert(self, item: WatchTask) -> bool:
+        item.subscriber = process_subscriber(item.subscriber)
+        item.code = gen_code()
 
         async with self.data_source.start_session() as session:
             stmt = (insert(WatchTaskOrm)
-                    .values(subscriber=task.subscriber.dict(),
-                            code=task.code,
-                            type=task.type,
-                            kwargs=task.kwargs,
-                            adapter=task.subscriber.adapter,
-                            checkpoint=task.checkpoint))
+                    .values(subscriber=item.subscriber.dict(),
+                            code=item.code,
+                            type=item.type,
+                            kwargs=item.kwargs,
+                            adapter=item.subscriber.adapter,
+                            checkpoint=item.checkpoint))
             stmt.on_conflict_do_nothing(index_elements=[WatchTaskOrm.type, WatchTaskOrm.kwargs])
             result = await session.execute(stmt)
             await session.commit()
 
             return result.rowcount == 1
 
-    async def update(self, task: WatchTask) -> bool:
-        task.subscriber = process_subscriber(task.subscriber)
+    async def update(self, item: WatchTask) -> bool:
+        item.subscriber = process_subscriber(item.subscriber)
 
         async with self.data_source.start_session() as session:
             stmt = (update(WatchTaskOrm)
-                    .values(type=task.type,
-                            kwargs=task.kwargs,
-                            adapter=task.subscriber.adapter,
-                            checkpoint=task.checkpoint)
-                    .where(WatchTaskOrm.subscriber == task.subscriber.dict(),
-                           WatchTaskOrm.code == task.code))
+                    .values(type=item.type,
+                            kwargs=item.kwargs,
+                            adapter=item.subscriber.adapter,
+                            checkpoint=item.checkpoint)
+                    .where(WatchTaskOrm.subscriber == item.subscriber.dict(),
+                           WatchTaskOrm.code == item.code))
             result = await session.execute(stmt)
             await session.commit()
             return result.rowcount == 1
