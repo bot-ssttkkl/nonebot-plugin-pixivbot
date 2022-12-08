@@ -3,7 +3,7 @@ from typing import Any
 from beanie import Document
 from pymongo import IndexModel
 
-from nonebot_plugin_pixivbot import context
+from nonebot_plugin_pixivbot.global_context import context
 from . import MongoDataSource
 
 
