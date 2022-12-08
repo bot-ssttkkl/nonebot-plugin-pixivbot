@@ -57,7 +57,7 @@ class SqlLocalTagRepo:
 
             await session.execute(stmt)
             await session.commit()
-            logger.info(f"[local_tag_repo] added {len(tags)} local tags")
+            logger.debug(f"[local_tag_repo] added {len(tags)} local tags")
 
     async def update_from_illusts(self, illusts: Collection[Illust]):
         tags = {}

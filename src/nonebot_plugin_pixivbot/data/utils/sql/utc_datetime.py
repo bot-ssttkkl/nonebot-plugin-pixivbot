@@ -7,6 +7,7 @@ from sqlalchemy import TypeDecorator, DateTime
 class UTCDateTime(TypeDecorator):
     impl = DateTime
     LOCAL_TIMEZONE = tzlocal.get_localzone()
+    cache_ok = True
 
     def process_bind_param(self, value: datetime, dialect):
         if value is None:

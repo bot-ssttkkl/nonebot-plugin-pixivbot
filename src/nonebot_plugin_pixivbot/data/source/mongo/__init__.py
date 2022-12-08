@@ -15,14 +15,13 @@ from nonebot_plugin_pixivbot.data.errors import DataSourceNotReadyError
 from nonebot_plugin_pixivbot.enums import DataSourceType
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.utils.lifecycler import on_shutdown, on_startup
-from .migration.mongo_migration import mongo_migration_manager
 from ..lifecycle_mixin import DataSourceLifecycleMixin
 
 
 @context.inject
 class MongoDataSource(DataSourceLifecycleMixin):
     conf = Inject(Config)
-    app_db_version = 5
+    app_db_version = 6
 
     def __init__(self):
         super().__init__()
@@ -49,17 +48,21 @@ class MongoDataSource(DataSourceLifecycleMixin):
 
         return self._db
 
-    @staticmethod
-    async def _raw_get_db_version(db: AsyncIOMotorDatabase) -> int:
-        version = await db["meta_info"].find_one({"key": "db_version"})
-        if version is None:
-            await db["meta_info"].insert_one({"key": "db_version", "value": 1})
-            return 1
+    async def _raw_get_db_version(self, db: AsyncIOMotorDatabase) -> int:
+        blank_database = "subscription" not in (await db.list_collection_names())
+        if blank_database:
+            await db["meta_info"].insert_one({"key": "db_version", "value": self.app_db_version})
+            return self.app_db_version
         else:
-            return version["value"]
+            version = await db["meta_info"].find_one({"key": "db_version"})
+            if version is None:
+                await db["meta_info"].insert_one({"key": "db_version", "value": 1})
+                return 1
+            else:
+                return version["value"]
 
-    @staticmethod
-    async def _raw_set_db_version(db: AsyncIOMotorDatabase, db_version: int):
+
+    async def _raw_set_db_version(self, db: AsyncIOMotorDatabase, db_version: int):
         await db["meta_info"].update_one({"key": "db_version"},
                                          {"$set": {
                                              "value": db_version
@@ -82,6 +85,8 @@ class MongoDataSource(DataSourceLifecycleMixin):
                 f"Index in {coll_name}: expireAfterSeconds changed to {index.document['expireAfterSeconds']}")
 
     async def initialize(self):
+        from .migration import mongo_migration_manager
+
         await self._fire_initializing()
 
         client = AsyncIOMotorClient(self.conf.pixiv_mongo_conn_url)

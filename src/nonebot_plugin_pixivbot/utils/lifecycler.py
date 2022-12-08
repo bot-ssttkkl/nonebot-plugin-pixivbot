@@ -28,20 +28,23 @@ _no_bot_connect.set()
 
 # 注册回调不加锁是因为没有多线程场景
 
-def on_startup(replay: bool = False):
+def on_startup(replay: bool = False, first: bool = False):
     def decorator(func):
         if replay and _startup.is_set():
             logger.trace("[lifecycler] replaying on_startup")
             x = func()
             if isawaitable(x):
                 asyncio.create_task(x)
-        _on_startup_callback.append(func)
+        if first:
+            _on_startup_callback.insert(0, func)
+        else:
+            _on_startup_callback.append(func)
         return func
 
     return decorator
 
 
-def on_bot_connect(replay: bool = False):
+def on_bot_connect(replay: bool = False, first: bool = False):
     def decorator(func):
         if replay:
             for bot in _connected_bot:
@@ -49,23 +52,32 @@ def on_bot_connect(replay: bool = False):
                 x = func(bot)
                 if isawaitable(x):
                     asyncio.create_task(x)
-        _on_bot_connect_callback.append(func)
+        if first:
+            _on_bot_connect_callback.insert(0, func)
+        else:
+            _on_bot_connect_callback.append(func)
         return func
 
     return decorator
 
 
-def on_bot_disconnect():
+def on_bot_disconnect(first: bool = False):
     def decorator(func):
-        _on_bot_disconnect_callback.append(func)
+        if first:
+            _on_bot_disconnect_callback.insert(0, func)
+        else:
+            _on_bot_disconnect_callback.append(func)
         return func
 
     return decorator
 
 
-def on_shutdown():
+def on_shutdown(first: bool = False):
     def decorator(func):
-        _on_shutdown_callback.append(func)
+        if first:
+            _on_shutdown_callback.append(func)
+        else:
+            _on_shutdown_callback.append(func)
         return func
 
     return decorator

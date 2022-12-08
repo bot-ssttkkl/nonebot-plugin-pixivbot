@@ -30,7 +30,7 @@ class MigrationManager(Generic[T_Migration]):
         while from_db_version < to_db_version:
             from_migrations = self._mapping.get(from_db_version, [])
 
-            choice: Optional[T_Migration] = None
+            choice: Optional[Type[T_Migration]] = None
             for mig in from_migrations:
                 if choice is None or (choice.to_db_version < mig.to_db_version <= to_db_version):
                     choice = mig
@@ -38,7 +38,7 @@ class MigrationManager(Generic[T_Migration]):
             if choice is None:
                 raise NoMigrationError(from_db_version, to_db_version)
 
-            await choice.migrate(conn)
+            await choice().migrate(conn)
             logger.success(f"migrated from {from_db_version} to {choice.to_db_version}")
             from_db_version = choice.to_db_version
 

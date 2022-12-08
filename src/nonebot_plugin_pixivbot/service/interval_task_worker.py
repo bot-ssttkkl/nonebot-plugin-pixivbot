@@ -4,18 +4,18 @@ from typing import Generic, TypeVar, AsyncIterable
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.base import BaseTrigger
-from nonebot import logger, Bot
+from nonebot import logger, Bot, get_bot
 from nonebot.exception import ActionFailed
 
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.interval_task_repo import IntervalTaskRepo
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.model import PostIdentifier, T_UID, T_GID
+from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.model.interval_task import IntervalTask
 from nonebot_plugin_pixivbot.protocol_dep.authenticator import AuthenticatorManager
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestinationFactoryManager, PostDestination
 from nonebot_plugin_pixivbot.utils.lifecycler import on_bot_connect, on_bot_disconnect
-from nonebot_plugin_pixivbot.utils.nonebot import get_bot_by_adapter, get_adapter_name
+from nonebot_plugin_pixivbot.utils.nonebot import get_bot_user_identifier
 
 T = TypeVar("T", bound=IntervalTask)
 
@@ -33,8 +33,7 @@ class IntervalTaskWorker(ABC, Generic[T]):
     def __init__(self):
         @on_bot_connect(replay=True)
         async def _(bot: Bot):
-            adapter = get_adapter_name(bot)
-            async for task in self.repo.get_by_adapter(adapter):
+            async for task in self.repo.get_by_bot(get_bot_user_identifier(bot)):
                 try:
                     self._add_job(task)
                 except Exception as e:
@@ -43,8 +42,7 @@ class IntervalTaskWorker(ABC, Generic[T]):
 
         @on_bot_disconnect()
         async def _(bot: Bot):
-            adapter = get_adapter_name(bot)
-            async for task in self.repo.get_by_adapter(adapter):
+            async for task in self.repo.get_by_bot(get_bot_user_identifier(bot)):
                 try:
                     self._remove_job(task)
                 except Exception as e:
@@ -62,7 +60,7 @@ class IntervalTaskWorker(ABC, Generic[T]):
     async def _on_trigger(self, item: T):
         logger.info(f"[{self.tag}] triggered \"{item}\"")
 
-        bot = get_bot_by_adapter(item.subscriber.adapter)
+        bot = get_bot(item.bot.user_id)
         post_dest = self.pd_factory_mgr.build(bot, item.subscriber.user_id, item.subscriber.group_id)
 
         try:
@@ -106,7 +104,7 @@ class IntervalTaskWorker(ABC, Generic[T]):
     async def _build_task(self, *args, **kwargs) -> T:
         ...
 
-    async def add_task(self, *args, **kwargs):
+    async def add_task(self, *args, **kwargs) -> bool:
         item = await self._build_task(*args, **kwargs)
         ok = await self.repo.insert(item)
         if ok:
@@ -114,8 +112,9 @@ class IntervalTaskWorker(ABC, Generic[T]):
             self._add_job(item)
         return ok
 
-    async def remove_task(self, subscriber: PostIdentifier[T_UID, T_GID], code: str) -> bool:
-        item = await self.repo.delete_one(subscriber, code)
+    async def remove_task(self, post_dest: PostDestination[T_UID, T_GID], code: str) -> bool:
+        item = await self.repo.delete_one(get_bot_user_identifier(post_dest.bot),
+                                          post_dest.identifier, code)
         if item:
             logger.success(f"[{self.tag}] removed task \"{item}\"")
             self._remove_job(item)
@@ -123,12 +122,14 @@ class IntervalTaskWorker(ABC, Generic[T]):
         else:
             return False
 
-    async def unschedule_all_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]):
-        old = await self.repo.delete_many_by_subscriber(subscriber)
+    async def unschedule_all_by_subscriber(self, post_dest: PostDestination[T_UID, T_GID]):
+        old = await self.repo.delete_many_by_subscriber(get_bot_user_identifier(post_dest.bot),
+                                                        post_dest.identifier)
         for item in old:
             logger.success(f"[{self.tag}] removed task \"{item}\"")
             self._remove_job(item)
 
-    async def get_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncIterable[T]:
-        async for x in self.repo.get_by_subscriber(subscriber):
+    async def get_by_subscriber(self, post_dest: PostDestination[T_UID, T_GID]) -> AsyncIterable[T]:
+        async for x in self.repo.get_by_subscriber(get_bot_user_identifier(post_dest.bot),
+                                                   post_dest.identifier):
             yield x

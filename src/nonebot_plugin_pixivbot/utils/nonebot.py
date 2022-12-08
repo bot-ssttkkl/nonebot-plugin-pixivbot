@@ -2,6 +2,8 @@ from typing import Optional
 
 from nonebot import Bot, get_bot, get_driver, get_bots
 
+from nonebot_plugin_pixivbot.model import UserIdentifier
+
 
 def get_adapter_name(bot: Optional[Bot] = None) -> str:
     if not bot:
@@ -19,3 +21,7 @@ def get_bot_by_adapter(adapter: str) -> Optional[Bot]:
             return b
 
     return None
+
+
+def get_bot_user_identifier(bot: Bot) -> UserIdentifier[str]:
+    return UserIdentifier(get_adapter_name(bot), bot.self_id)

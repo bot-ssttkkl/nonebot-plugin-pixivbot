@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Dict, Any
+from typing import Dict, Any, overload
 
 from apscheduler.triggers.interval import IntervalTrigger
 
@@ -15,6 +15,7 @@ from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.protocol_dep.postman import PostmanManager
 from nonebot_plugin_pixivbot.service.interval_task_worker import IntervalTaskWorker
 from nonebot_plugin_pixivbot.service.pixiv_account_binder import PixivAccountBinder
+from nonebot_plugin_pixivbot.utils.nonebot import get_bot_user_identifier
 
 
 @context.root.register_eager_singleton()
@@ -60,11 +61,23 @@ class Watchman(IntervalTaskWorker[WatchTask[T_UID, T_GID]]):
 
     async def _build_task(self, type_: WatchType,
                           kwargs: Dict[str, Any],
-                          subscriber: PostDestination[T_UID, T_GID]) -> WatchTask:
-        return WatchTask(type=type_, kwargs=kwargs, subscriber=subscriber.identifier)
+                          post_dest: PostDestination[T_UID, T_GID]) -> WatchTask:
+        return WatchTask(type=type_, kwargs=kwargs,
+                         subscriber=post_dest.identifier,
+                         bot=get_bot_user_identifier(post_dest.bot))
+
+    @overload
+    async def add_task(self, type_: WatchType,
+                       kwargs: Dict[str, Any],
+                       post_dest: PostDestination[T_UID, T_GID]) -> bool:
+        ...
+
+    async def add_task(self, *args, **kwargs) -> bool:
+        return await super().add_task(*args, **kwargs)
 
     async def fetch(self, code: str, post_dest: PostDestination[T_UID, T_GID]) -> bool:
-        task = await self.repo.get_by_code(post_dest.identifier, code)
+        task = await self.repo.get_by_code(get_bot_user_identifier(post_dest.bot),
+                                           post_dest.identifier, code)
         if task is not None:
             await self._handle_trigger(task, post_dest, manually=True)
             return True

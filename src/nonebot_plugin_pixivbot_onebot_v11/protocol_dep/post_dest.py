@@ -15,9 +15,13 @@ class PostDestination(BasePostDestination[int, int]):
                  user_id: Optional[int] = None,
                  group_id: Optional[int] = None,
                  reply_to_message_id: Optional[int] = None):
-        self.bot = bot
+        self._bot = bot
         self._identifier = PostIdentifier("onebot", user_id, group_id)
         self.reply_to_message_id = reply_to_message_id
+
+    @property
+    def bot(self) -> Bot:
+        return self._bot
 
     @property
     def identifier(self):

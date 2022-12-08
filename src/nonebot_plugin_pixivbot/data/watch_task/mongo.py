@@ -6,7 +6,7 @@ from pymongo.errors import DuplicateKeyError
 
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.model import WatchTask, PostIdentifier, T_UID, T_GID
+from nonebot_plugin_pixivbot.model import WatchTask, PostIdentifier, T_UID, T_GID, UserIdentifier
 from ..interval_task_repo import process_subscriber
 from ..source.mongo import MongoDataSource
 from ..utils.shortuuid import gen_code
@@ -16,9 +16,8 @@ class WatchTaskDocument(WatchTask[Any, Any], Document):
     class Settings:
         name = "watch_task"
         indexes = [
-            IndexModel([("subscriber.adapter", 1)]),
-            IndexModel([("subscriber", 1), ("code", 1)], unique=True),
-            IndexModel([("subscriber", 1), ("type", 1), ("kwargs", 1)], unique=True)
+            IndexModel([("bot", 1), ("subscriber", 1), ("code", 1)], unique=True),
+            IndexModel([("bot", 1), ("subscriber", 1), ("type", 1), ("kwargs", 1)], unique=True)
         ]
 
 
@@ -30,25 +29,32 @@ context.require(MongoDataSource).document_models.append(WatchTaskDocument)
 class MongoWatchTaskRepo:
     data_source = Inject(MongoDataSource)
 
-    async def get_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncGenerator[WatchTask, None]:
+    async def get_by_subscriber(self, bot: UserIdentifier[T_UID],
+                                subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncGenerator[WatchTask, None]:
         subscriber = process_subscriber(subscriber)
         async with self.data_source.start_session() as session:
-            async for doc in WatchTaskDocument.find(WatchTaskDocument.subscriber == subscriber,
+            async for doc in WatchTaskDocument.find(
+                    WatchTaskDocument.bot == bot,
+                    WatchTaskDocument.subscriber == subscriber,
+                    session=session):
+                yield doc
+
+    async def get_by_bot(self, bot: UserIdentifier[T_UID]) -> AsyncGenerator[WatchTask, None]:
+        async with self.data_source.start_session() as session:
+            async for doc in WatchTaskDocument.find(WatchTaskDocument.bot == bot,
                                                     session=session):
                 yield doc
 
-    async def get_by_adapter(self, adapter: str) -> AsyncGenerator[WatchTask, None]:
-        async with self.data_source.start_session() as session:
-            async for doc in WatchTaskDocument.find(WatchTaskDocument.subscriber.adapter == adapter,
-                                                    session=session):
-                yield doc
-
-    async def get_by_code(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[WatchTask]:
+    async def get_by_code(self, bot: UserIdentifier[T_UID],
+                          subscriber: PostIdentifier[T_UID, T_GID],
+                          code: int) -> Optional[WatchTask]:
         subscriber = process_subscriber(subscriber)
         async with self.data_source.start_session() as session:
-            return await WatchTaskDocument.find_one(WatchTaskDocument.subscriber == subscriber,
-                                                    WatchTaskDocument.code == code,
-                                                    session=session)
+            return await WatchTaskDocument.find_one(
+                WatchTaskDocument.bot == bot,
+                WatchTaskDocument.subscriber == subscriber,
+                WatchTaskDocument.code == code,
+                session=session)
 
     async def insert(self, item: WatchTask) -> bool:
         try:
@@ -76,11 +82,14 @@ class MongoWatchTaskRepo:
                          session=session)
             return True
 
-    async def delete_one(self, subscriber: PostIdentifier[T_UID, T_GID], code: int) -> Optional[WatchTask]:
+    async def delete_one(self, bot: UserIdentifier[T_UID],
+                         subscriber: PostIdentifier[T_UID, T_GID],
+                         code: int) -> Optional[WatchTask]:
         async with self.data_source.start_session() as session:
             # beanie不支持原子性的find_one_and_delete操作
             subscriber = process_subscriber(subscriber)
             query = {
+                "bot": bot.dict(),
                 "code": code,
                 "subscriber": process_subscriber(subscriber).dict()
             }
@@ -90,11 +99,13 @@ class MongoWatchTaskRepo:
             else:
                 return None
 
-    async def delete_many_by_subscriber(self, subscriber: PostIdentifier[T_UID, T_GID]) -> Collection[WatchTask]:
+    async def delete_many_by_subscriber(self, bot: UserIdentifier[T_UID],
+                                        subscriber: PostIdentifier[T_UID, T_GID]) -> Collection[WatchTask]:
         async with self.data_source.start_session() as session:
             subscriber = process_subscriber(subscriber)
 
             old_doc = await WatchTaskDocument.find(
+                WatchTaskDocument.bot == bot,
                 WatchTaskDocument.subscriber == subscriber,
                 session=session
             ).to_list()
