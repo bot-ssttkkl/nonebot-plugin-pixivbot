@@ -1,18 +1,13 @@
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from nonebot_plugin_pixivbot.data.source.mongo.migration.mongo_migration import MongoMigration
-from nonebot_plugin_pixivbot.data.source.mongo.migration.mongo_migration_manager import MongoMigrationManager
-from nonebot_plugin_pixivbot.global_context import context
 
-
-@context.require(MongoMigrationManager).register
-class MongoV1ToV2(MongoMigration):
+class MongoV1ToV2:
     from_db_version = 1
     to_db_version = 2
 
-    async def migrate(self, db: AsyncIOMotorDatabase):
-        await self.migrate_pixiv_binding(db)
-        await self.migrate_subscription(db)
+    async def migrate(self, conn: AsyncIOMotorDatabase):
+        await self.migrate_pixiv_binding(conn)
+        await self.migrate_subscription(conn)
 
     async def migrate_pixiv_binding(self, db: AsyncIOMotorDatabase):
         try:

@@ -15,14 +15,13 @@ from nonebot_plugin_pixivbot.data.errors import DataSourceNotReadyError
 from nonebot_plugin_pixivbot.enums import DataSourceType
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.utils.lifecycler import on_shutdown, on_startup
-from .migration import MongoMigrationManager
+from .migration.mongo_migration import mongo_migration_manager
 from ..lifecycle_mixin import DataSourceLifecycleMixin
 
 
 @context.inject
 class MongoDataSource(DataSourceLifecycleMixin):
     conf = Inject(Config)
-    mongo_migration_mgr = Inject(MongoMigrationManager)
     app_db_version = 5
 
     def __init__(self):
@@ -91,7 +90,7 @@ class MongoDataSource(DataSourceLifecycleMixin):
 
         # migrate
         db_version = await self._raw_get_db_version(db)
-        await self.mongo_migration_mgr.perform_migration(db, db_version, self.app_db_version)
+        await mongo_migration_manager.perform_migration(db, db_version, self.app_db_version)
         await self._raw_set_db_version(db, self.app_db_version)
 
         # ensure ttl indexes (before init beanie)
