@@ -30,7 +30,7 @@ def json_serializer(obj):
 @context.inject
 class SqlDataSource(DataSourceLifecycleMixin):
     conf: Config = Inject(Config)
-    app_db_version = 2
+    app_db_version = 3
 
     def __init__(self):
         super().__init__()
@@ -93,8 +93,9 @@ class SqlDataSource(DataSourceLifecycleMixin):
 
             # migrate
             db_version = await self._raw_get_db_version(conn)
-            await sql_migration_manager.perform_migration(conn, db_version, self.app_db_version)
-            await self._raw_set_db_version(conn, self.app_db_version)
+            # 用于deferred迁移
+            new_db_version = await sql_migration_manager.perform_migration(conn, db_version, self.app_db_version)
+            await self._raw_set_db_version(conn, new_db_version)
 
             await conn.run_sync(self._registry.metadata.create_all)
 

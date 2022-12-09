@@ -1,5 +1,5 @@
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from nonebot import Bot
+from nonebot import Bot, logger
 
 from nonebot_plugin_pixivbot.data.source.mongo import MongoDataSource
 from nonebot_plugin_pixivbot.global_context import context
@@ -10,6 +10,7 @@ from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
 class MongoV5ToV6:
     from_db_version = 5
     to_db_version = 6
+    deffered = True
 
     async def migrate(self, conn: AsyncIOMotorDatabase):
         data_source = context.require(MongoDataSource)
@@ -46,3 +47,41 @@ class MongoV5ToV6:
                     ],
                     session=session
                 )
+
+        @data_source.on_closing
+        async def _():
+            async with data_source.start_session() as session:
+                async for x in data_source.db["subscription"].aggregate(
+                        {
+                            "$group": {
+                                "_id": {
+                                    "$gt": ["$bot", None]
+                                }
+                            },
+                            "count": {
+                                "$sum": 1
+                            }
+                        },
+                        session=session
+                ):
+                    if (not x["_id"]) and x["count"] > 0:
+                        return
+
+                async for x in data_source.db["watch_task"].aggregate(
+                        {
+                            "$group": {
+                                "_id": {
+                                    "$gt": ["$bot", None]
+                                }
+                            },
+                            "count": {
+                                "$sum": 1
+                            }
+                        },
+                        session=session
+                ):
+                    if (not x["_id"]) and x["count"] > 0:
+                        return
+
+            await data_source._raw_set_db_version(data_source.db, 6)
+            logger.success("set db_version=6")
