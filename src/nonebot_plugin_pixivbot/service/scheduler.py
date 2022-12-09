@@ -9,7 +9,6 @@ import pytz
 from apscheduler.triggers.interval import IntervalTrigger
 from lazy import lazy
 
-from nonebot_plugin_access_control.utils import get_adapter_name
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.subscription import SubscriptionRepo
 from nonebot_plugin_pixivbot.global_context import context
@@ -19,6 +18,7 @@ from nonebot_plugin_pixivbot.model.subscription import ScheduleType
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.service.interval_task_worker import IntervalTaskWorker
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
+from nonebot_plugin_pixivbot.utils.nonebot import get_bot_user_identifier
 
 if TYPE_CHECKING:
     from nonebot_plugin_pixivbot.handler.base import Handler
@@ -103,7 +103,7 @@ class Scheduler(IntervalTaskWorker[Subscription[T_UID, T_GID]]):
         bot = post_dest.bot
         sub = Subscription(type=type_, kwargs=kwargs,
                            subscriber=post_dest.identifier,
-                           bot=UserIdentifier(get_adapter_name(bot), bot.self_id),
+                           bot=get_bot_user_identifier(bot),
                            schedule=schedule)
         return sub
 
