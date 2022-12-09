@@ -1,12 +1,9 @@
-from nonebot import Bot
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.utils.lifecycler import on_bot_connect
-from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
 
 
 class SqlV1ToV2:
@@ -14,8 +11,6 @@ class SqlV1ToV2:
     to_db_version = 2
 
     async def migrate(self, conn: AsyncConnection):
-        data_source = context.require(SqlDataSource)
-
         conf = context.require(Config)
         if conf.pixiv_sql_dialect == 'sqlite':
             await conn.execute(text("""
@@ -74,15 +69,3 @@ class SqlV1ToV2:
             await conn.execute(text("alter table subscription rename column adapter to bot;"))
             await conn.execute(text("alter table subscription add constraint subscription_bot_subscriber_code_key "
                                     "unique (bot, subscriber, code);"))
-
-        @on_bot_connect(replay=True, first=True)
-        async def _(bot: Bot):
-            async with AsyncConnection(data_source.engine) as conn:
-                adapter = get_adapter_name(bot)
-                await conn.execute(
-                    text(f"update watch_task set bot=bot || '\:{bot.self_id}' where bot = '{adapter}'; ")
-                )
-                await conn.execute(
-                    text(f"update subscription set bot=bot || '\:{bot.self_id}' where bot = '{adapter}'; ")
-                )
-                await conn.commit()

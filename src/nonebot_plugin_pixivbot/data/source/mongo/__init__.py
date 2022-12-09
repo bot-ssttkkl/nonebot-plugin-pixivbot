@@ -95,8 +95,9 @@ class MongoDataSource(DataSourceLifecycleMixin):
 
         # migrate
         db_version = await self._raw_get_db_version(db)
-        await mongo_migration_manager.perform_migration(db, db_version, self.app_db_version)
-        await self._raw_set_db_version(db, self.app_db_version)
+        # 用于deferred迁移
+        new_db_version = await mongo_migration_manager.perform_migration(db, db_version, self.app_db_version)
+        await self._raw_set_db_version(db, new_db_version)
 
         # ensure ttl indexes (before init beanie)
         index_tasks = []

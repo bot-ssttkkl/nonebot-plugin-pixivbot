@@ -26,7 +26,7 @@ class MigrationManager(Generic[T_Migration]):
         self._mapping[migration.from_db_version].append(migration)
         return migration
 
-    async def perform_migration(self, conn: T_Conn, from_db_version: int, to_db_version: int):
+    async def perform_migration(self, conn: T_Conn, from_db_version: int, to_db_version: int) -> int:
         while from_db_version < to_db_version:
             from_migrations = self._mapping.get(from_db_version, [])
 
@@ -38,9 +38,18 @@ class MigrationManager(Generic[T_Migration]):
             if choice is None:
                 raise NoMigrationError(from_db_version, to_db_version)
 
-            await choice().migrate(conn)
-            logger.success(f"migrated from {from_db_version} to {choice.to_db_version}")
-            from_db_version = choice.to_db_version
+            if getattr(choice, "deferred", False):
+                if to_db_version != choice.to_db_version:
+                    raise RuntimeError("only the last migration can be deferred")
+                await choice().migrate(conn)
+                logger.success(f"migrated from {from_db_version} to {choice.to_db_version}  (deferred)")
+                return from_db_version
+            else:
+                await choice().migrate(conn)
+                logger.success(f"migrated from {from_db_version} to {choice.to_db_version}")
+                from_db_version = choice.to_db_version
+
+        return to_db_version
 
 
 class NoMigrationError(Exception):
