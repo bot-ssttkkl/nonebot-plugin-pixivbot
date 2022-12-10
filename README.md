@@ -29,9 +29,9 @@ NoneBot插件，支持发送随机Pixiv插画、画师更新推送、定时订�
 
 适配协议：
 
-- [Onebot V11](https://github.com/ssttkkl/nonebot-plugin-pixivbot-onebot-v11)：`pip install nonebot-plugin-pixivbot[onebot]`
-- [KOOK / 开黑啦](https://github.com/ssttkkl/nonebot-plugin-pixivbot-kook)：`pip install nonebot-plugin-pixivbot[kook]`
-- [Telegram](https://github.com/ssttkkl/nonebot-plugin-pixivbot-telegram)：`pip install nonebot-plugin-pixivbot[telegram]`
+- [Onebot V11](https://onebot.adapters.nonebot.dev/)
+- [KOOK / 开黑啦](https://github.com/Tian-que/nonebot-adapter-kaiheila)
+- [Telegram](https://github.com/nonebot/adapter-telegram)
 
 没有找到需要的协议？欢迎适配。[适配指南](https://github.com/ssttkkl/nonebot-plugin-pixivbot/wiki/%E9%80%82%E9%85%8D%E6%8C%87%E5%8D%97)
 
