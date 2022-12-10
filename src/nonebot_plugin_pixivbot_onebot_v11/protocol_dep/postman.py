@@ -1,3 +1,5 @@
+from io import StringIO
+
 from nonebot.adapters.onebot.v11 import Message, MessageSegment
 
 from nonebot_plugin_pixivbot import context
@@ -34,15 +36,19 @@ class Postman(BasePostman[int, int]):
 
         msg.append(MessageSegment.image(model.image))
 
-        if model.number is not None:
-            msg.append(f"#{model.number}")
-        msg.append(f"「{model.title}」\n"
-                   f"作者：{model.author}\n"
-                   f"发布时间：{model.create_time}\n")
-        if self.conf.pixiv_onebot_with_link:
-            msg.append(model.link)
-        else:
-            msg.append(f"Pixiv ID：{model.id}")
+        with StringIO() as sio:
+            sio.write('\n')
+            if model.number is not None:
+                sio.write(f"#{model.number}")
+            sio.write(f"「{model.title}」\n"
+                      f"作者：{model.author}\n"
+                      f"发布时间：{model.create_time}\n")
+            if self.conf.pixiv_onebot_with_link:
+                sio.write(model.link)
+            else:
+                sio.write(f"Pixiv ID：{model.id}")
+
+            msg.append(MessageSegment.text(sio.getvalue()))
         return msg
 
     async def send_plain_text(self, message: str,
@@ -54,7 +60,7 @@ class Postman(BasePostman[int, int]):
                           *, post_dest: PostDestination):
         message = Message()
         if model.header is not None:
-            message.append(MessageSegment.text(model.header))
+            message.append(MessageSegment.text(model.header + '\n'))
 
         message.extend(self.make_illust_msg(model))
         await post_dest.post(message)
