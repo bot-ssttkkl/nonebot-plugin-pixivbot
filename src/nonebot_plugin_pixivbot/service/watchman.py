@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, overload
 
 from apscheduler.triggers.interval import IntervalTrigger
+from nonebot import logger
 
 from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
@@ -11,6 +12,7 @@ from nonebot_plugin_pixivbot.handler.watch.following_illusts import WatchFollowi
 from nonebot_plugin_pixivbot.handler.watch.user_illusts import WatchUserIllustsHandler
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.model import WatchTask, WatchType
+from nonebot_plugin_pixivbot.plugin_service import receive_watch_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.protocol_dep.postman import PostmanManager
 from nonebot_plugin_pixivbot.service.interval_task_worker import IntervalTaskWorker
@@ -41,14 +43,17 @@ class Watchman(IntervalTaskWorker[WatchTask[T_UID, T_GID]]):
 
     async def _handle_trigger(self, task: WatchTask[T_UID, T_GID], post_dest: PostDestination[T_UID, T_GID],
                               manually: bool = False):
-        try:
-            await self._handlers[task.type].handle_with_parsed_args(post_dest=post_dest, silently=not manually,
-                                                                    task=task, disabled_interceptors=manually)
-        finally:
-            # 保存checkpoint，避免一次异常后下一次重复推送
-            # 但是会存在丢失推送的问题
-            task.checkpoint = datetime.now(timezone.utc)
-            await self.repo.update(task)
+        if await receive_watch_service.get_permission(*post_dest.extract_subjects()):
+            try:
+                await self._handlers[task.type].handle_with_parsed_args(post_dest=post_dest, silently=not manually,
+                                                                        task=task, disabled_interceptors=manually)
+            finally:
+                # 保存checkpoint，避免一次异常后下一次重复推送
+                # 但是会存在丢失推送的问题
+                task.checkpoint = datetime.now(timezone.utc)
+                await self.repo.update(task)
+        else:
+            logger.info(f"[{self.tag}] job cancelled")
 
     def _make_job_trigger(self, item: WatchTask[T_UID, T_GID]) -> IntervalTrigger:
         hasher = self._trigger_hasher_mapper[item.type]

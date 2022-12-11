@@ -9,10 +9,12 @@ from nonebot.typing import T_State
 
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
+from nonebot_plugin_pixivbot.plugin_service import random_related_illust_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .base import RecordCommonHandler
 from ..base import post_destination
+from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
 from ..recorder import Recorder
 from ..utils import get_common_query_rule
@@ -22,6 +24,10 @@ from ..utils import get_common_query_rule
 @context.root.register_eager_singleton()
 class RandomRelatedIllustHandler(RecordCommonHandler):
     recorder = Inject(Recorder)
+
+    def __init__(self):
+        super().__init__()
+        self.add_interceptor(ServiceInterceptor(random_related_illust_service))
 
     @classmethod
     def type(cls) -> str:

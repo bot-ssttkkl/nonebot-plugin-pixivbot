@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 from nonebot.adapters.telegram import Bot
 from nonebot.adapters.telegram.event import Event, EventWithChat
@@ -33,6 +33,16 @@ class PostDestination(BasePostDestination[int, int]):
 
     def normalized(self) -> "PostDestination[T_UID, T_GID]":
         return PostDestination(self.bot, self._user_id, self.chat_id, self.chat_type)
+
+    def extract_subjects(self) -> List[str]:
+        li = []
+        if self.user_id is not None:
+            li.append(f"telegram:{self.user_id}")
+        if self.chat_id is not None:
+            li.append(f"telegram:c{self.chat_id}")
+        li.append("telegram")
+        li.append("all")
+        return li
 
     @property
     def real_chat_id(self) -> int:

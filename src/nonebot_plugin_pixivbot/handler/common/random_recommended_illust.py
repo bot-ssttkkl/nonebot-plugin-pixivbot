@@ -6,15 +6,21 @@ from nonebot.internal.params import Depends
 from nonebot.typing import T_State
 
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
+from nonebot_plugin_pixivbot.plugin_service import random_recommended_illust_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .base import RecordCommonHandler
 from ..base import post_destination
+from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
 from ..utils import get_common_query_rule, get_count
 
 
 @context.root.register_eager_singleton()
 class RandomRecommendedIllustHandler(RecordCommonHandler):
+    def __init__(self):
+        super().__init__()
+        self.add_interceptor(ServiceInterceptor(random_recommended_illust_service))
+
     @classmethod
     def type(cls) -> str:
         return "random_recommended_illust"

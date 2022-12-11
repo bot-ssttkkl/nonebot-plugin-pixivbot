@@ -1,8 +1,8 @@
 import dataclasses
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence, Union, List
 
 from nonebot import logger
-from nonebot.adapters.onebot.v11 import Bot, Message, Event, MessageSegment, GroupMessageEvent, PrivateMessageEvent
+from nonebot.adapters.onebot.v11 import Bot, Message, Event, MessageSegment
 
 from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.model import PostIdentifier
@@ -29,6 +29,16 @@ class PostDestination(BasePostDestination[int, int]):
 
     def normalized(self) -> "PostDestination":
         return PostDestination(self.bot, self.user_id, self.group_id)
+
+    def extract_subjects(self) -> List[str]:
+        li = []
+        if self.user_id is not None:
+            li.append(f"onebot:{self.user_id}")
+        if self.group_id is not None:
+            li.append(f"onebot:g{self.group_id}")
+        li.append("onebot")
+        li.append("all")
+        return li
 
     async def post(self, message: Union[Message, Sequence[Message]]):
         if len(message) == 0:

@@ -158,21 +158,19 @@ class MatcherEntryHandler(EntryHandler, ABC):
 
 
 class DelegationHandler(Handler, ABC):
+    def __init__(self):
+        super().__init__()
+        self.interceptor = self.delegation.interceptor
+
     @property
     @abstractmethod
     def delegation(self) -> Handler:
         raise NotImplementedError()
 
-    async def handle(self, *args,
-                     post_dest: PostDestination[T_UID, T_GID],
-                     silently: bool = False,
-                     disabled_interceptors: bool = False,
-                     **kwargs):
-        if not self.enabled():
-            return
+    def parse_args(self, args: Sequence[str], post_dest: PostDestination[T_UID, T_GID]) -> Union[dict, Awaitable[dict]]:
+        return self.delegation.parse_args(args, post_dest)
 
-        await self.delegation.handle(*args, post_dest=post_dest, silently=silently,
-                                     disabled_interceptors=disabled_interceptors, **kwargs)
-
-    async def actual_handle(self, *args, **kwargs):
-        raise RuntimeError("unexpected call here")
+    async def actual_handle(self, *, post_dest: PostDestination[T_UID, T_GID],
+                            silently: bool = False,
+                            **kwargs):
+        return self.delegation.actual_handle(post_dest=post_dest, silently=silently, **kwargs)

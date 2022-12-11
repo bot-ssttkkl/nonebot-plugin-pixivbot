@@ -5,13 +5,15 @@ from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import GroupAdminInterceptor, \
     AnyPermissionInterceptor, SuperuserInterceptor
 from nonebot_plugin_pixivbot.model import WatchType, T_UID, T_GID
+from nonebot_plugin_pixivbot.plugin_service import manage_watch_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.service.pixiv_service import PixivService
 from nonebot_plugin_pixivbot.service.watchman import Watchman
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
+from nonebot_plugin_pixivbot.utils.nonebot import default_command_start
 from .command import CommandHandler, SubCommandHandler
+from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
-from ... import default_command_start
 
 
 async def parse_and_get_user(raw_user: str):
@@ -79,6 +81,7 @@ class WatchHandler(SubCommandHandler):
             context.require(SuperuserInterceptor),
             context.require(GroupAdminInterceptor)
         ))
+        self.add_interceptor(ServiceInterceptor(manage_watch_service))
 
     @classmethod
     def type(cls) -> str:
@@ -159,6 +162,7 @@ class UnwatchHandler(SubCommandHandler):
             context.require(SuperuserInterceptor),
             context.require(GroupAdminInterceptor)
         ))
+        self.add_interceptor(ServiceInterceptor(manage_watch_service))
 
     @classmethod
     def type(cls) -> str:

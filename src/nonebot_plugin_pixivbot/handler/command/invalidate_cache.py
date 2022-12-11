@@ -4,8 +4,10 @@ from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.pixiv_repo import PixivRepo
 from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import SuperuserInterceptor
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
+from nonebot_plugin_pixivbot.plugin_service import invalidate_cache_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .command import SubCommandHandler, CommandHandler
+from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
 
 
@@ -17,6 +19,7 @@ class InvalidateCacheHandler(SubCommandHandler):
     def __init__(self):
         super().__init__()
         self.add_interceptor(context.require(SuperuserInterceptor))
+        self.add_interceptor(ServiceInterceptor(invalidate_cache_service))
 
     @classmethod
     def type(cls) -> str:

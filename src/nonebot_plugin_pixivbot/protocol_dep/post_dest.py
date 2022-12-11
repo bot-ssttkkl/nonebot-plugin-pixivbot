@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from contextvars import ContextVar
-from typing import Generic, Optional
+from typing import Generic, Optional, List
 
 from nonebot import Bot
 from nonebot.internal.adapter import Event
@@ -44,6 +44,10 @@ class PostDestination(ABC, Generic[T_UID, T_GID]):
         返回一个不含任何附加信息（如引用消息）的PostDestination
         :return:
         """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def extract_subjects(self) -> List[str]:
         raise NotImplementedError()
 
 

@@ -11,17 +11,23 @@ from nonebot.typing import T_State
 
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
+from nonebot_plugin_pixivbot.plugin_service import ranking_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.decode_integer import decode_integer
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .base import CommonHandler
 from ..base import post_destination
+from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
 from ..utils import get_common_query_rule
 
 
 @context.root.register_eager_singleton()
 class RankingHandler(CommonHandler):
+    def __init__(self):
+        super().__init__()
+        self.add_interceptor(ServiceInterceptor(ranking_service))
+
     @classmethod
     def type(cls) -> str:
         return "ranking"

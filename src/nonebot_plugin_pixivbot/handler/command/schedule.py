@@ -6,12 +6,14 @@ from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import G
     AnyPermissionInterceptor, SuperuserInterceptor
 from nonebot_plugin_pixivbot.model import PostIdentifier, ScheduleType
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
+from nonebot_plugin_pixivbot.plugin_service import manage_schedule_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.service.scheduler import Scheduler
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
+from nonebot_plugin_pixivbot.utils.nonebot import default_command_start
 from .command import CommandHandler, SubCommandHandler
+from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
-from ... import default_command_start
 
 
 async def build_subscriptions_msg(post_dest: PostDestination[T_UID, T_GID]):
@@ -42,6 +44,7 @@ class ScheduleHandler(SubCommandHandler):
             context.require(SuperuserInterceptor),
             context.require(GroupAdminInterceptor)
         ))
+        self.add_interceptor(ServiceInterceptor(manage_schedule_service))
 
     @classmethod
     def type(cls) -> str:
@@ -100,6 +103,7 @@ class UnscheduleHandler(SubCommandHandler):
             context.require(SuperuserInterceptor),
             context.require(GroupAdminInterceptor)
         ))
+        self.add_interceptor(ServiceInterceptor(manage_schedule_service))
 
     @classmethod
     def type(cls) -> str:

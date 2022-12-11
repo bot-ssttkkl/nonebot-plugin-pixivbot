@@ -635,6 +635,19 @@ aiofiles = ">=0.8.0,<0.9.0"
 nonebot2 = ">=2.0.0b1,<3.0.0"
 
 [[package]]
+name = "nonebot-plugin-access-control"
+version = "0.0.5"
+description = ""
+category = "main"
+optional = false
+python-versions = ">=3.9,<4.0"
+
+[package.dependencies]
+aiosqlite = ">=0.17.0,<0.18.0"
+nonebot2 = ">=2.0.0rc1,<3.0.0"
+sqlalchemy = {version = ">=1.4.42,<2.0.0", extras = ["asyncio"]}
+
+[[package]]
 name = "nonebot-plugin-apscheduler"
 version = "0.2.0"
 description = "APScheduler Support for NoneBot2"
@@ -1250,7 +1263,7 @@ telegram = ["nonebot-adapter-telegram"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "7db095ae7cebc77dfd8891036c5431ca8c74666aff1dc9bc9fccd4abf1da8ed0"
+content-hash = "720f06fefa928161156db8bfd65f7f99e279873cf1019c4f04da4c4699c1713e"
 
 [metadata.files]
 aiofiles = [
@@ -1967,6 +1980,10 @@ nonebot-adapter-telegram = [
     {file = "nonebot-adapter-telegram-0.1.0b3.tar.gz", hash = "sha256:84e23ceb880545dba1cdf8dcfdb8988ea9b42c6eaa2501fb60250a72e7f65c6b"},
     {file = "nonebot_adapter_telegram-0.1.0b3-py3-none-any.whl", hash = "sha256:5bf8199355e28f70baad33f848e903e7ef856ee16454657009b04c3ab15d8228"},
 ]
+nonebot-plugin-access-control = [
+    {file = "nonebot_plugin_access_control-0.0.5-py3-none-any.whl", hash = "sha256:dbfa2d84c70d12c1c8f739225663e16084c13b46bd54004b3cd82a70363341f3"},
+    {file = "nonebot_plugin_access_control-0.0.5.tar.gz", hash = "sha256:3f19f0e1cde2c1e1d7eb08c81d03a584149d0ef4a7a240eb0eb7216437c1fc68"},
+]
 nonebot-plugin-apscheduler = [
     {file = "nonebot-plugin-apscheduler-0.2.0.tar.gz", hash = "sha256:7b63e99a611b657533b48fcf1f8c6627c18c2eb3fa820a906cd4ec4666c0ceb0"},
     {file = "nonebot_plugin_apscheduler-0.2.0-py3-none-any.whl", hash = "sha256:9285ee84ca1cfa4db73c86cedb5911bbbd25a21ec0cd5f22447cd12f89e48fb4"},
@@ -2014,8 +2031,6 @@ packaging = [
     {file = "packaging-22.0.tar.gz", hash = "sha256:2198ec20bd4c017b8f9717e00f0c8714076fc2fd93816750ab48e2c41de2cfd3"},
 ]
 pillow = [
-    {file = "Pillow-9.3.0-1-cp37-cp37m-win32.whl", hash = "sha256:e6ea6b856a74d560d9326c0f5895ef8050126acfdc7ca08ad703eb0081e82b74"},
-    {file = "Pillow-9.3.0-1-cp37-cp37m-win_amd64.whl", hash = "sha256:32a44128c4bdca7f31de5be641187367fe2a450ad83b833ef78910397db491aa"},
     {file = "Pillow-9.3.0-cp310-cp310-macosx_10_10_x86_64.whl", hash = "sha256:0b7257127d646ff8676ec8a15520013a698d1fdc48bc2a79ba4e53df792526f2"},
     {file = "Pillow-9.3.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:b90f7616ea170e92820775ed47e136208e04c967271c9ef615b6fbd08d9af0e3"},
     {file = "Pillow-9.3.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:68943d632f1f9e3dce98908e873b3a090f6cba1cbb1b892a9e8d97c938871fbe"},

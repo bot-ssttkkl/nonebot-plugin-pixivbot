@@ -9,20 +9,26 @@ from nonebot.typing import T_State
 
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
+from nonebot_plugin_pixivbot.plugin_service import more_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
+from nonebot_plugin_pixivbot.utils.decode_integer import decode_integer
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .base import CommonHandler
 from ..base import post_destination
+from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
 from ..recorder import Recorder
 from ..utils import get_common_query_rule
-from ...utils.decode_integer import decode_integer
 
 
 @context.inject
 @context.root.register_eager_singleton()
 class MoreHandler(CommonHandler):
     recorder = Inject(Recorder)
+
+    def __init__(self):
+        super().__init__()
+        self.add_interceptor(ServiceInterceptor(more_service))
 
     @classmethod
     def type(cls) -> str:

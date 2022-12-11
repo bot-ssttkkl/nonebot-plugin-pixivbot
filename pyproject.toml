@@ -15,6 +15,7 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.9"
 nonebot_plugin_apscheduler = "^0.2.0"
+nonebot-plugin-access-control = "^0.0.5"
 PixivPy-Async = "^1.2.14"
 Pillow = "^9.2.0"
 numpy = "^1.23.1"

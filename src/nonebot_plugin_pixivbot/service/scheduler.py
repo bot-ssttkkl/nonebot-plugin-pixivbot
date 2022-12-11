@@ -8,13 +8,15 @@ from typing import Dict, Sequence, Union, TYPE_CHECKING, overload
 import pytz
 from apscheduler.triggers.interval import IntervalTrigger
 from lazy import lazy
+from nonebot import logger
 
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.subscription import SubscriptionRepo
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.model import Subscription, UserIdentifier
+from nonebot_plugin_pixivbot.model import Subscription
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.model.subscription import ScheduleType
+from nonebot_plugin_pixivbot.plugin_service import receive_schedule_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.service.interval_task_worker import IntervalTaskWorker
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
@@ -75,7 +77,10 @@ class Scheduler(IntervalTaskWorker[Subscription[T_UID, T_GID]]):
         }
 
     async def _handle_trigger(self, sub: Subscription[T_UID, T_GID], post_dest: PostDestination[T_UID, T_GID]):
-        await self._handlers[sub.type].handle_with_parsed_args(post_dest=post_dest, silently=True, **sub.kwargs)
+        if await receive_schedule_service.get_permission(*post_dest.extract_subjects()):
+            await self._handlers[sub.type].handle_with_parsed_args(post_dest=post_dest, silently=True, **sub.kwargs)
+        else:
+            logger.info(f"[{self.tag}] permission denied")
 
     def _make_job_trigger(self, item: Subscription[T_UID, T_GID]) -> IntervalTrigger:
         offset_hour, offset_minute, hours, minutes = item.schedule

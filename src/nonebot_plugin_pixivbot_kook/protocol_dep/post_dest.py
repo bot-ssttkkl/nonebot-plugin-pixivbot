@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, List
 
 from nonebot.adapters.kaiheila import Message, Bot
 from nonebot.adapters.kaiheila.event import ChannelMessageEvent, PrivateMessageEvent, Event
@@ -39,6 +39,9 @@ class PrivatePostDestination(PostDestination):
     def normalized(self) -> "PrivatePostDestination":
         return PrivatePostDestination(self.bot, user_id=self.user_id)
 
+    def extract_subjects(self) -> List[str]:
+        return [f"kaiheila:{self.user_id}", "kaiheila", "all"]
+
     async def post(self, message: Message):
         await self.bot.send_private_msg(user_id=self.user_id, message=message, quote=self.quote_message_id)
 
@@ -62,6 +65,17 @@ class ChannelPostDestination(PostDestination):
 
     def normalized(self) -> "ChannelPostDestination":
         return ChannelPostDestination(self.bot, user_id=self.user_id, channel_id=self.channel_id)
+
+    def extract_subjects(self) -> List[str]:
+        li = []
+        if self.user_id is not None:
+            li.append(f"kaiheila:{self.user_id}")
+        li.append(f"kaiheila:c{self.channel_id}")
+        if self.guild_id is not None:
+            li.append(f"kaiheila:g{self.guild_id}")
+        li.append("kaiheila")
+        li.append("all")
+        return li
 
     async def post(self, message: Message):
         await self.bot.send_channel_msg(channel_id=self.channel_id, message=message, quote=self.quote_message_id)

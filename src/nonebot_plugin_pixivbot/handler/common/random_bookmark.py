@@ -9,11 +9,13 @@ from nonebot.typing import T_State
 
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
+from nonebot_plugin_pixivbot.plugin_service import random_bookmark_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.service.pixiv_account_binder import PixivAccountBinder
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .base import RecordCommonHandler
 from ..base import post_destination
+from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
 from ..utils import get_common_query_rule, get_count, get_post_dest
 
@@ -22,6 +24,10 @@ from ..utils import get_common_query_rule, get_count, get_post_dest
 @context.root.register_eager_singleton()
 class RandomBookmarkHandler(RecordCommonHandler):
     binder = Inject(PixivAccountBinder)
+
+    def __init__(self):
+        super().__init__()
+        self.add_interceptor(ServiceInterceptor(random_bookmark_service))
 
     @classmethod
     def type(cls) -> str:

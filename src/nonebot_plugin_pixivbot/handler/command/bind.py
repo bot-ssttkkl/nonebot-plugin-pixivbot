@@ -2,18 +2,24 @@ from typing import Sequence
 
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
+from nonebot_plugin_pixivbot.plugin_service import bind_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.service.pixiv_account_binder import PixivAccountBinder
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
+from nonebot_plugin_pixivbot.utils.nonebot import default_command_start
 from .command import SubCommandHandler, CommandHandler
+from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
-from ... import default_command_start
 
 
 @context.inject
 @context.require(CommandHandler).sub_command("bind")
 class BindHandler(SubCommandHandler):
     binder = Inject(PixivAccountBinder)
+
+    def __init__(self):
+        super().__init__()
+        self.add_interceptor(ServiceInterceptor(bind_service))
 
     @classmethod
     def type(cls) -> str:
@@ -60,6 +66,10 @@ class BindHandler(SubCommandHandler):
 @context.require(CommandHandler).sub_command("unbind")
 class UnbindHandler(SubCommandHandler):
     binder = Inject(PixivAccountBinder)
+
+    def __init__(self):
+        super().__init__()
+        self.add_interceptor(ServiceInterceptor(bind_service))
 
     @classmethod
     def type(cls) -> str:
