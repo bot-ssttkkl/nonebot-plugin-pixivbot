@@ -134,44 +134,49 @@ class SqlPixivRepo:
                 # commit to get cache id
                 await tx2.commit()
 
+            row_count = 0
             if ranked:
-                stmt = insert(IllustSetCacheIllust).values([
-                    {"cache_id": cache.id, "illust_id": x.id, "rank": cache.size + i}
-                    for i, x in enumerate(content)
-                ]).on_conflict_do_nothing(index_elements=[
-                    IllustSetCacheIllust.cache_id, IllustSetCacheIllust.illust_id
-                ])
+                for i, x in enumerate(content):
+                    stmt = insert(IllustSetCacheIllust).values(
+                        cache_id=cache.id, illust_id=x.id, rank=cache.size + i
+                    ).on_conflict_do_nothing(index_elements=[
+                        IllustSetCacheIllust.cache_id, IllustSetCacheIllust.illust_id
+                    ])
+                    row_count += (await session.execute(stmt)).rowcount
             else:
-                stmt = insert(IllustSetCacheIllust).values([
-                    {"cache_id": cache.id, "illust_id": x.id}
-                    for i, x in enumerate(content)
-                ]).on_conflict_do_nothing(index_elements=[
-                    IllustSetCacheIllust.cache_id, IllustSetCacheIllust.illust_id
-                ])
+                for i, x in enumerate(content):
+                    stmt = insert(IllustSetCacheIllust).values(
+                        cache_id=cache.id, illust_id=x.id
+                    ).on_conflict_do_nothing(index_elements=[
+                        IllustSetCacheIllust.cache_id, IllustSetCacheIllust.illust_id
+                    ])
+                    row_count += (await session.execute(stmt)).rowcount
 
-            row_count = (await session.execute(stmt)).rowcount
             if ranked:
                 cache.size += row_count
 
             await tx1.commit()
 
         # insert illust detail
-        values = []
         for x in content:
             if isinstance(x, LazyIllust):
                 if not x.loaded:
                     continue
                 x = x.content
-            values.append(dict(illust_id=x.id, illust=x.dict(), update_time=metadata.update_time))
-        if len(values) != 0:
-            stmt = insert(IllustDetailCache).values(values)
-            stmt = stmt.on_conflict_do_update(index_elements=[IllustDetailCache.illust_id],
-                                              set_={
-                                                  IllustDetailCache.illust: stmt.excluded.illust,
-                                                  IllustDetailCache.update_time: stmt.excluded.update_time
-                                              })
+
+            stmt = insert(IllustDetailCache).values(
+                illust_id=x.id, illust=x.dict(), update_time=metadata.update_time
+            )
+            stmt = stmt.on_conflict_do_update(
+                index_elements=[IllustDetailCache.illust_id],
+                set_={
+                    IllustDetailCache.illust: stmt.excluded.illust,
+                    IllustDetailCache.update_time: stmt.excluded.update_time
+                }
+            )
             await session.execute(stmt)
-            await session.commit()
+
+        await session.commit()
 
         # insert local tags
         li = []
@@ -253,20 +258,29 @@ class SqlPixivRepo:
                 # commit to get cache id
                 await tx2.commit()
 
-            stmt = insert(UserSetCacheUser).values([
-                {"cache_id": cache.id, "user_id": x.id}
-                for i, x in enumerate(content)
-            ]).on_conflict_do_nothing(index_elements=[
-                UserSetCacheUser.cache_id, UserSetCacheUser.user_id
-            ])
+            row_count = 0
+            for x in content:
+                stmt = insert(UserSetCacheUser).values(
+                    cache_id=cache.id, user_id=x.id
+                ).on_conflict_do_nothing(index_elements=[
+                    UserSetCacheUser.cache_id, UserSetCacheUser.user_id
+                ])
+                row_count += (await session.execute(stmt)).rowcount
 
-            row_count = (await session.execute(stmt)).rowcount
             await tx1.commit()
 
         # insert user detail
-        if len(content) != 0:
-            values = [dict(user_id=x.id, user=x.dict(), update_time=metadata.update_time) for x in content]
-            stmt = insert(UserDetailCache).values(values)
+        for x in content:
+            stmt = insert(UserDetailCache).values(
+                user_id=x.id, user=x.dict(), update_time=metadata.update_time
+            )
+            stmt = stmt.on_conflict_do_update(
+                index_elements=[UserDetailCache.user_id],
+                set_={
+                    UserDetailCache.user: stmt.excluded.user,
+                    UserDetailCache.update_time: stmt.excluded.update_time
+                }
+            )
             await session.execute(stmt)
             await session.commit()
 
