@@ -160,7 +160,8 @@ class MatcherEntryHandler(EntryHandler, ABC):
 class DelegationHandler(Handler, ABC):
     def __init__(self):
         super().__init__()
-        self.interceptor = self.delegation.interceptor
+        if self.enabled():
+            self.interceptor = self.delegation.interceptor
 
     @property
     @abstractmethod

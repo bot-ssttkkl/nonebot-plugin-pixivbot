@@ -36,7 +36,7 @@ class PokeHandler(DelegationHandler, MatcherEntryHandler):
         return "poke"
 
     def enabled(self) -> bool:
-        return self.adapter_conf.pixiv_poke_action is not None
+        return bool(self.adapter_conf.pixiv_poke_action)
 
     @lazy
     def matcher(self):
