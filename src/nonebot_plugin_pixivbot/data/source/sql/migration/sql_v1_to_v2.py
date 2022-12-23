@@ -2,11 +2,11 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
+from nonebot_plugin_pixivbot.data.source.migration_manager import Migration
 from nonebot_plugin_pixivbot.global_context import context
 
 
-class SqlV1ToV2:
+class SqlV1ToV2(Migration):
     from_db_version = 1
     to_db_version = 2
 
