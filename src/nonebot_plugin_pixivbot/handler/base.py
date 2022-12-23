@@ -180,4 +180,4 @@ class DelegationHandler(Handler, ABC):
     async def actual_handle(self, *, post_dest: PostDestination[T_UID, T_GID],
                             silently: bool = False,
                             **kwargs):
-        return self.delegation.actual_handle(post_dest=post_dest, silently=silently, **kwargs)
+        return await self.delegation.actual_handle(post_dest=post_dest, silently=silently, **kwargs)
