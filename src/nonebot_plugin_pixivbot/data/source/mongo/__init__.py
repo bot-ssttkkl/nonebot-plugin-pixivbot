@@ -21,7 +21,7 @@ from ..lifecycle_mixin import DataSourceLifecycleMixin
 @context.inject
 class MongoDataSource(DataSourceLifecycleMixin):
     conf = Inject(Config)
-    app_db_version = 6
+    app_db_version = 7
 
     def __init__(self):
         super().__init__()
@@ -85,7 +85,7 @@ class MongoDataSource(DataSourceLifecycleMixin):
                 f"Index in {coll_name}: expireAfterSeconds changed to {index.document['expireAfterSeconds']}")
 
     async def initialize(self):
-        from .migration import mongo_migration_manager
+        from .migration import MongoMigrationManager
 
         await self._fire_initializing()
 
@@ -94,10 +94,9 @@ class MongoDataSource(DataSourceLifecycleMixin):
         db = client[self.conf.pixiv_mongo_database_name].with_options(options)
 
         # migrate
+        mig_mgr = MongoMigrationManager(lambda prev, cur: self._raw_set_db_version(db, cur))
         db_version = await self._raw_get_db_version(db)
-        # 用于deferred迁移
-        new_db_version = await mongo_migration_manager.perform_migration(db, db_version, self.app_db_version)
-        await self._raw_set_db_version(db, new_db_version)
+        await mig_mgr.perform_migration(db, db_version, self.app_db_version)
 
         # ensure ttl indexes (before init beanie)
         index_tasks = []

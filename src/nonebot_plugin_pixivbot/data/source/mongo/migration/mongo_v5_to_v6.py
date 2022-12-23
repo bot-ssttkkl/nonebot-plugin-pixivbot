@@ -1,18 +1,20 @@
-from motor.motor_asyncio import AsyncIOMotorDatabase
-from nonebot import Bot, logger
+from typing import Callable, Awaitable
 
-from nonebot_plugin_pixivbot.data.source.mongo import MongoDataSource
+from motor.motor_asyncio import AsyncIOMotorDatabase
+from nonebot import Bot
+
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.utils.lifecycler import on_bot_connect
 from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
+from .. import MongoDataSource
+from ...migration_manager import DeferrableMigration
 
 
-class MongoV5ToV6:
+class MongoV5ToV6(DeferrableMigration):
     from_db_version = 5
     to_db_version = 6
-    deffered = True
 
-    async def migrate(self, conn: AsyncIOMotorDatabase):
+    async def migrate(self, conn: AsyncIOMotorDatabase, on_migrated: Callable[[], Awaitable[None]]):
         data_source = context.require(MongoDataSource)
 
         @on_bot_connect(replay=True, first=True)
@@ -83,5 +85,4 @@ class MongoV5ToV6:
                     if (not x["_id"]) and x["count"] > 0:
                         return
 
-            await data_source._raw_set_db_version(data_source.db, 6)
-            logger.success("set db_version=6")
+            await on_migrated()

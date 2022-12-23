@@ -30,7 +30,7 @@ def json_serializer(obj):
 @context.inject
 class SqlDataSource(DataSourceLifecycleMixin):
     conf: Config = Inject(Config)
-    app_db_version = 3
+    app_db_version = 4
 
     def __init__(self):
         super().__init__()
@@ -43,37 +43,45 @@ class SqlDataSource(DataSourceLifecycleMixin):
         on_startup(replay=True)(self.initialize)
         on_shutdown()(self.close)
 
-    async def _raw_get_db_version(self, conn: AsyncConnection) -> int:
-        async with AsyncSession(conn, expire_on_commit=False) as session:
-            from .meta_info import MetaInfo
+    async def _raw_get_db_version(self) -> int:
+        async with self._engine.begin() as conn:
+            async with AsyncSession(conn, expire_on_commit=False) as session:
+                from .meta_info import MetaInfo
 
-            blank_database = not await conn.run_sync(lambda conn: inspect(conn).has_table("subscription"))  # 判断是否初次建库
-            if blank_database:
-                result = MetaInfo(key="db_version", value=str(self.app_db_version))
-                session.add(result)
-                await session.commit()
-                return self.app_db_version
-            else:
+                # 判断是否初次建库
+                blank_database = not await conn.run_sync(lambda conn: inspect(conn).has_table("subscription"))
+                if blank_database:
+                    result = MetaInfo(key="db_version", value=str(self.app_db_version))
+                    session.add(result)
+                    await session.commit()
+                    v = self.app_db_version
+                else:
+                    stmt = select(MetaInfo).where(MetaInfo.key == "db_version")
+                    result = (await session.execute(stmt)).scalar_one_or_none()
+                    if result is None:
+                        result = MetaInfo(key="db_version", value="1")
+                        session.add(result)
+                        await session.commit()
+
+                    v = int(result.value)
+
+            await conn.commit()
+            return v
+
+    async def _raw_set_db_version(self, db_version: int):
+        from .meta_info import MetaInfo
+        async with self._engine.begin() as conn:
+            async with AsyncSession(conn, expire_on_commit=False) as session:
                 stmt = select(MetaInfo).where(MetaInfo.key == "db_version")
                 result = (await session.execute(stmt)).scalar_one_or_none()
                 if result is None:
                     result = MetaInfo(key="db_version", value="1")
                     session.add(result)
-                    await session.commit()
 
-                return int(result.value)
+                result.value = str(db_version)
+                await session.commit()
 
-    async def _raw_set_db_version(self, conn: AsyncConnection, db_version: int):
-        from .meta_info import MetaInfo
-        async with AsyncSession(conn, expire_on_commit=False) as session:
-            stmt = select(MetaInfo).where(MetaInfo.key == "db_version")
-            result = (await session.execute(stmt)).scalar_one_or_none()
-            if result is None:
-                result = MetaInfo(key="db_version", value="1")
-                session.add(result)
-
-            result.value = str(db_version)
-            await session.commit()
+            await conn.commit()
 
     async def initialize(self):
         await self._fire_initializing()
@@ -86,18 +94,17 @@ class SqlDataSource(DataSourceLifecycleMixin):
                                            json_serializer=json_serializer)
 
         async with self._engine.begin() as conn:
-            from .migration import sql_migration_manager
+            from .migration import SqlMigrationManager
             from .meta_info import MetaInfo
 
             await conn.run_sync(lambda conn: MetaInfo.__table__.create(conn, checkfirst=True))
 
             # migrate
-            db_version = await self._raw_get_db_version(conn)
-            # 用于deferred迁移
-            new_db_version = await sql_migration_manager.perform_migration(conn, db_version, self.app_db_version)
-            await self._raw_set_db_version(conn, new_db_version)
+            mig_mgr = SqlMigrationManager(lambda prev, cur: self._raw_set_db_version(cur))
+            db_version = await self._raw_get_db_version()
+            await mig_mgr.perform_migration(conn, db_version, self.app_db_version)
 
-            await conn.run_sync(self._registry.metadata.create_all)
+            await conn.run_sync(lambda conn: self._registry.metadata.create_all(conn))
 
         # expire_on_commit=False will prevent attributes from being expired
         # after commit.
