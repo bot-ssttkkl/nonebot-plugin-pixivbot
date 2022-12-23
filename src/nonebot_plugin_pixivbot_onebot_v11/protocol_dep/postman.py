@@ -75,7 +75,9 @@ class Postman(BasePostman[int, int]):
         if len(model.messages) == 1:
             await self.send_illust(model.flat_first(), post_dest=post_dest)
         else:
-            messages = [Message([MessageSegment.text(model.header)])]
+            messages = []
+            if model.header:
+                messages.append(Message([MessageSegment.text(model.header)]))
             for sub_model in model.messages:
                 messages.append(self.make_illust_msg(sub_model))
 
