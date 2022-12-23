@@ -38,7 +38,7 @@ class IllustMessagesModel(BaseModel):
                           max_page: Optional[int] = 2 ** 31 - 1) -> Optional["IllustMessagesModel"]:
         tasks = [
             create_task(
-                IllustMessageModel.from_illust(illust, page=i, number=number + i if number is not None else None)
+                IllustMessageModel.from_illust(illust, page=i, number=number)
             ) for i in range(min(illust.page_count, max_page))
         ]
         await gather(*tasks)

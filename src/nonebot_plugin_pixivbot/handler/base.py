@@ -52,9 +52,12 @@ class Handler(ABC):
                            header: Optional[str] = None,
                            number: Optional[int] = None,
                            post_dest: PostDestination[T_UID, T_GID]):
-        model = await IllustMessagesModel.from_illusts(illusts, header=header, number=number)
-        if model:
-            await self.postman_manager.send_illusts(model, post_dest=post_dest)
+        if len(illusts) == 1:
+            await self.post_illust(illusts[0], header=header, number=number, post_dest=post_dest)
+        else:
+            model = await IllustMessagesModel.from_illusts(illusts, header=header, number=number)
+            if model:
+                await self.postman_manager.send_illusts(model, post_dest=post_dest)
 
     @classmethod
     @abstractmethod
