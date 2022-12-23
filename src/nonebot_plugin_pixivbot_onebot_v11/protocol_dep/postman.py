@@ -40,8 +40,13 @@ class Postman(BasePostman[int, int]):
             sio.write('\n')
             if model.number is not None:
                 sio.write(f"#{model.number}")
-            sio.write(f"「{model.title}」\n"
-                      f"作者：{model.author}\n"
+
+            sio.write(f"「{model.title}」")
+            if model.total != 1:
+                sio.write(f"（{model.page + 1}/{model.total}）")
+            sio.write("\n")
+
+            sio.write(f"作者：{model.author}\n"
                       f"发布时间：{model.create_time}\n")
             if self.conf.pixiv_onebot_with_link:
                 sio.write(model.link)

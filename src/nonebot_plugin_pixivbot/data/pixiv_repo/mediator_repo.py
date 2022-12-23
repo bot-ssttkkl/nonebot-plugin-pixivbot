@@ -11,6 +11,7 @@ from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User, UserPreview
 from nonebot_plugin_pixivbot.utils.shared_agen import SharedAsyncGeneratorManager
+from .base import PixivRepo
 from .enums import PixivResType, CacheStrategy
 from .lazy_illust import LazyIllust
 from .local_repo import LocalPixivRepo
@@ -146,13 +147,13 @@ class PixivSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[SharedAgenIde
             force_expiration=cache_strategy == CacheStrategy.FORCE_EXPIRATION,
         )
 
-    def image_factory(self, illust_id: int, illust: Illust,
+    def image_factory(self, illust_id: int, illust: Illust, page: int,
                       cache_strategy: CacheStrategy) -> AsyncGenerator[bytes, None]:
         return mediate_single(
             cache_factory=self.local.image,
             remote_factory=self.remote.image,
-            query_kwargs={"illust": illust},
-            cache_updater=lambda data, metadata: self.local.update_image(illust.id, data, metadata),
+            query_kwargs={"illust": illust, "page": page},
+            cache_updater=lambda data, metadata: self.local.update_image(illust.id, page, data, metadata),
             force_expiration=cache_strategy == CacheStrategy.FORCE_EXPIRATION,
         )
 
@@ -169,8 +170,8 @@ class PixivSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[SharedAgenIde
         PixivResType.IMAGE: image_factory,
     }
 
-    def agen(self, identifier: SharedAgenIdentifier, cache_strategy: CacheStrategy, **kwargs) -> AsyncGenerator[
-        Any, None]:
+    def agen(self, identifier: SharedAgenIdentifier,
+             cache_strategy: CacheStrategy, **kwargs) -> AsyncGenerator[Any, None]:
         if identifier.type in self.factories:
             merged_kwargs = identifier.kwargs | kwargs
             # noinspection PyTypeChecker
@@ -206,7 +207,7 @@ class PixivSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[SharedAgenIde
 
 @context.inject
 @context.root.register_singleton()
-class MediatorPixivRepo:
+class MediatorPixivRepo(PixivRepo):
     _shared_agen_mgr: PixivSharedAsyncGeneratorManager = Inject(PixivSharedAsyncGeneratorManager)
     _local: LocalPixivRepo = Inject(LocalPixivRepo)
     _remote: RemotePixivRepo = Inject(RemotePixivRepo)
@@ -371,11 +372,11 @@ class MediatorPixivRepo:
                 if not isinstance(x, PixivRepoMetadata):
                     yield x
 
-    async def image(self, illust: Illust,
+    async def image(self, illust: Illust, page: int = 0,
                     cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[bytes, None]:
-        logger.info(f"[mediator] image {illust.id} "
+        logger.info(f"[mediator] image {illust.id}[{page}] "
                     f"cache_strategy={cache_strategy.name}")
-        async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.IMAGE, illust_id=illust.id),
+        async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.IMAGE, illust_id=illust.id, page=page),
                                              cache_strategy, illust=illust) as gen:
             data = None
             async for x in gen:

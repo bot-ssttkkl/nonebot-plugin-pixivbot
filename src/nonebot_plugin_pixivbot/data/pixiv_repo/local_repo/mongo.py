@@ -15,6 +15,7 @@ from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User
+from .base import LocalPixivRepo
 from .mongo_models import UserDetailCache, PixivRepoCache, IllustDetailCache, IllustSetCache, UserSetCache, \
     SearchIllustCache, SearchUserCache, UserIllustsCache, UserBookmarksCache, OtherIllustCache, RelatedIllustsCache, \
     IllustRankingCache, DownloadCache
@@ -32,7 +33,7 @@ def _handle_expires_in(metadata: PixivRepoMetadata, expires_in: int):
 
 @context.inject
 @context.register_singleton()
-class MongoPixivRepo:
+class MongoPixivRepo(LocalPixivRepo):
     conf: Config = Inject(Config)
     data_source: MongoDataSource = Inject(MongoDataSource)
     local_tag_repo: LocalTagRepo = Inject(LocalTagRepo)
@@ -602,10 +603,12 @@ class MongoPixivRepo:
                                                         content=content, metadata=metadata)
 
     # ================ image ================
-    async def image(self, illust: Illust) -> AsyncGenerator[Union[bytes, PixivRepoMetadata], None]:
+    async def image(self, illust: Illust, page: int = 0) -> AsyncGenerator[Union[bytes, PixivRepoMetadata], None]:
         logger.info(f"[local] image {illust.id}")
         async with self.data_source.start_session() as session:
-            doc = await DownloadCache.find_one(DownloadCache.illust_id == illust.id, session=session)
+            doc = await DownloadCache.find_one(DownloadCache.illust_id == illust.id,
+                                               DownloadCache.page == page,
+                                               session=session)
             if doc is not None:
                 _handle_expires_in(doc.metadata, self.conf.pixiv_download_cache_expires_in)
                 yield doc.metadata
@@ -613,14 +616,15 @@ class MongoPixivRepo:
             else:
                 raise NoSuchItemError()
 
-    async def update_image(self, illust_id: int, content: bytes,
-                           metadata: PixivRepoMetadata):
+    async def update_image(self, illust_id: int, page: int,
+                           content: bytes, metadata: PixivRepoMetadata):
         logger.info(f"[local] update image {illust_id} "
                     f"{metadata}")
 
         async with self.data_source.start_session() as session:
             await DownloadCache.find_one(
                 DownloadCache.illust_id == illust_id,
+                DownloadCache.page == page,
                 session=session
             ).update(
                 Set({

@@ -31,6 +31,27 @@ class IllustMessagesModel(BaseModel):
         model = IllustMessagesModel(header=header, messages=messages)
         return model
 
+    @staticmethod
+    async def from_illust(illust: Illust, *,
+                          header: Optional[str] = None,
+                          number: Optional[int] = None,
+                          max_page: Optional[int] = 2 ** 31 - 1) -> Optional["IllustMessagesModel"]:
+        tasks = [
+            create_task(
+                IllustMessageModel.from_illust(illust, page=i, number=number + i if number is not None else None)
+            ) for i in range(min(illust.page_count, max_page))
+        ]
+        await gather(*tasks)
+
+        messages = []
+        for t in tasks:
+            result = await t
+            if result:
+                messages.append(result)
+
+        model = IllustMessagesModel(header=header, messages=messages)
+        return model
+
     def flat(self):
         for x in self.messages:
             yield x.copy(update={"header": self.header})

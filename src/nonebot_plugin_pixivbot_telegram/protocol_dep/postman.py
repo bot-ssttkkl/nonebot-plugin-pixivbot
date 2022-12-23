@@ -37,11 +37,15 @@ class Postman(BasePostman[int, int]):
                     return
 
             if model.number is not None:
-                caption.write("#")
-                caption.write(str(model.number))
-                caption.write(" ")
+                caption.write(f"#{model.number}")
 
-            caption.write(f"「{model.title}」\n作者：{model.author}\n发布时间：{model.create_time}\n")
+            caption.write(f"「{model.title}」")
+            if model.total != 1:
+                caption.write(f"（{model.page + 1}/{model.total}）")
+            caption.write("\n")
+
+            caption.write(f"作者：{model.author}\n"
+                          f"发布时间：{model.create_time}\n")
             caption.write(model.link)
 
             await post_dest.bot.send_photo(chat_id=post_dest.real_chat_id, photo=model.image,

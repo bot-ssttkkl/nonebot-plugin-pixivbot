@@ -11,17 +11,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.data.local_tag import LocalTagRepo
-from nonebot_plugin_pixivbot.data.pixiv_repo import LazyIllust
-from nonebot_plugin_pixivbot.data.pixiv_repo.errors import CacheExpiredError, NoSuchItemError
-from nonebot_plugin_pixivbot.data.pixiv_repo.local_repo.sql_models import IllustDetailCache, UserDetailCache, \
-    DownloadCache, IllustSetCache, IllustSetCacheIllust, UserSetCache, UserSetCacheUser
-from nonebot_plugin_pixivbot.data.pixiv_repo.models import PixivRepoMetadata
-from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
-from nonebot_plugin_pixivbot.data.utils.sql import insert
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User
 from nonebot_plugin_pixivbot.utils.lifecycler import on_startup
+from .base import LocalPixivRepo
+from .sql_models import IllustDetailCache, UserDetailCache, DownloadCache, IllustSetCache, IllustSetCacheIllust, \
+    UserSetCache, UserSetCacheUser
+from ..errors import CacheExpiredError, NoSuchItemError
+from ..lazy_illust import LazyIllust
+from ..models import PixivRepoMetadata
+from ...local_tag import LocalTagRepo
+from ...source.sql import SqlDataSource
+from ...utils.sql import insert
 
 
 def _handle_expires_in(metadata: PixivRepoMetadata, expires_in: int):
@@ -41,7 +42,7 @@ def _extract_metadata(cache, is_set_cache):
 
 @context.inject
 @context.register_singleton()
-class SqlPixivRepo:
+class SqlPixivRepo(LocalPixivRepo):
     conf: Config = Inject(Config)
     data_source: SqlDataSource = Inject(SqlDataSource)
     local_tag_repo: LocalTagRepo = Inject(LocalTagRepo)
@@ -356,11 +357,12 @@ class SqlPixivRepo:
             await session.commit()
 
     # ================ image ================
-    async def image(self, illust: Illust) -> AsyncGenerator[Union[bytes, PixivRepoMetadata], None]:
+    async def image(self, illust: Illust, page: int = 0) -> AsyncGenerator[Union[bytes, PixivRepoMetadata], None]:
         logger.info(f"[local] image {illust.id}")
 
         async with self.data_source.start_session() as session:
-            stmt = select(DownloadCache).where(DownloadCache.illust_id == illust.id).limit(1)
+            stmt = select(DownloadCache).where(DownloadCache.illust_id == illust.id,
+                                               DownloadCache.page == page).limit(1)
             cache = (await session.execute(stmt)).scalar_one_or_none()
 
             if cache is not None:
@@ -372,14 +374,14 @@ class SqlPixivRepo:
             else:
                 raise NoSuchItemError()
 
-    async def update_image(self, illust_id: int, content: bytes,
-                           metadata: PixivRepoMetadata):
+    async def update_image(self, illust_id: int, page: int,
+                           content: bytes, metadata: PixivRepoMetadata):
         logger.info(f"[local] update image {illust_id} {metadata}")
 
         async with self.data_source.start_session() as session:
             stmt = (insert(DownloadCache)
-                    .values(illust_id=illust_id, content=content, update_time=metadata.update_time))
-            stmt = stmt.on_conflict_do_update(index_elements=[DownloadCache.illust_id],
+                    .values(illust_id=illust_id, page=page, content=content, update_time=metadata.update_time))
+            stmt = stmt.on_conflict_do_update(index_elements=[DownloadCache.illust_id, DownloadCache.page],
                                               set_={
                                                   DownloadCache.content: stmt.excluded.content,
                                                   DownloadCache.update_time: stmt.excluded.update_time

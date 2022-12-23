@@ -14,6 +14,7 @@ class DownloadCache:
     __tablename__ = "download_cache"
 
     illust_id: int = Column(Integer, primary_key=True, nullable=False)
+    page: int = Column(Integer, primary_key=True, nullable=False, default=0)
     content: bytes = Column(BLOB, nullable=False)
 
     update_time: datetime = Column(UTCDateTime, nullable=False, index=True)
@@ -67,7 +68,8 @@ class IllustSetCache:
 class IllustSetCacheIllust:
     __tablename__ = "illust_set_cache_illust"
 
-    cache_id: int = Column(Integer, ForeignKey("illust_set_cache.id", ondelete="cascade"), primary_key=True, nullable=False)
+    cache_id: int = Column(Integer, ForeignKey("illust_set_cache.id", ondelete="cascade"), primary_key=True,
+                           nullable=False)
     illust_id: int = Column(Integer, primary_key=True, nullable=False)
     rank: int = Column(Integer, nullable=False, default=0)
 
@@ -98,5 +100,6 @@ class UserSetCache:
 class UserSetCacheUser:
     __tablename__ = "user_set_cache_user"
 
-    cache_id: int = Column(Integer, ForeignKey("user_set_cache.id", ondelete="cascade"), primary_key=True, nullable=False)
+    cache_id: int = Column(Integer, ForeignKey("user_set_cache.id", ondelete="cascade"), primary_key=True,
+                           nullable=False)
     user_id: int = Column(Integer, primary_key=True, nullable=False)
