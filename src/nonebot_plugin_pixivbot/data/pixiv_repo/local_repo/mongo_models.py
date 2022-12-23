@@ -34,12 +34,13 @@ class UserSetCache(PixivRepoCache):
 
 class DownloadCache(Document, PixivRepoCache):
     illust_id: int
+    page: int
     content: bytes
 
     class Settings:
         name = "download_cache"
         indexes = [
-            IndexModel([("illust_id", 1)], unique=True),
+            IndexModel([("illust_id", 1), ("page", 1)], unique=True),
             IndexModel([("metadata.update_time", 1)], expireAfterSeconds=conf.pixiv_download_cache_expires_in)
         ]
 

@@ -13,25 +13,28 @@ from nonebot_plugin_pixivbot.model import Illust
 conf = context.require(Config)
 
 
-async def download_image(illust: Illust):
+async def download_image(illust: Illust, page: int):
     with BytesIO() as bio:
         repo = context.require(PixivRepo)
-        async for x in repo.image(illust):
+        async for x in repo.image(illust, page):
             bio.write(x)
             break
         return bio.getvalue()
 
 
 class IllustMessageModel(BaseModel):
-    id: int = 0
+    id: int
     title: str = ""
     author: str = ""
     create_time: str = ""
     link: str = ""
     image: bytes = bytes(0)
 
-    header: Optional[str] = None
-    number: Optional[int] = None
+    header: Optional[str]
+    number: Optional[int]
+
+    page: int
+    total: int
 
     block_action: Optional[BlockAction] = None
     block_message: str = ""
@@ -39,8 +42,9 @@ class IllustMessageModel(BaseModel):
     @staticmethod
     async def from_illust(illust: Illust, *,
                           header: Optional[str] = None,
-                          number: Optional[int] = None) -> Optional["IllustMessageModel"]:
-        model = IllustMessageModel(id=illust.id, header=header, number=number)
+                          number: Optional[int] = None,
+                          page: int = 0) -> Optional["IllustMessageModel"]:
+        model = IllustMessageModel(id=illust.id, header=header, number=number, page=page, total=illust.page_count)
 
         if illust.has_tags(conf.pixiv_block_tags):
             model.block_action = conf.pixiv_block_action
@@ -52,7 +56,7 @@ class IllustMessageModel(BaseModel):
             elif conf.pixiv_block_action == BlockAction.no_reply:
                 return None
         else:
-            model.image = await download_image(illust)
+            model.image = await download_image(illust, page)
         model.title = illust.title
         model.author = f"{illust.user.name} ({illust.user.id})"
         model.create_time = illust.create_date.astimezone(get_localzone()).strftime('%Y-%m-%d %H:%M:%S')

@@ -85,7 +85,6 @@ class Config(BaseSettings):
     pixiv_block_tags: List[str] = []
     pixiv_block_action: BlockAction = BlockAction.no_image
 
-    pixiv_download_quantity: DownloadQuantity = DownloadQuantity.original
     pixiv_download_custom_domain: Optional[str]
 
     pixiv_compression_enabled: bool = False

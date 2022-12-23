@@ -11,7 +11,7 @@ from pixivpy_async.error import TokenError
 from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.enums import DownloadQuantity, RankingMode
+from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.model import Illust, User, UserPreview
 from nonebot_plugin_pixivbot.utils.errors import QueryError, RateLimitError
 from nonebot_plugin_pixivbot.utils.lifecycler import on_startup, on_shutdown
@@ -400,18 +400,10 @@ class RemotePixivRepo(PixivRepo):
                                  block_tags=self._conf.pixiv_block_tags,
                                  mode=mode.name, **kwargs)
 
-    async def _raw_image(self, illust: Illust, **kwargs) -> bytes:
-        download_quantity = self._conf.pixiv_download_quantity
+    async def _raw_image(self, illust: Illust, page: int, **kwargs) -> bytes:
         custom_domain = self._conf.pixiv_download_custom_domain
 
-        if download_quantity == DownloadQuantity.original:
-            if len(illust.meta_pages) > 0:
-                url = illust.meta_pages[0].image_urls.original
-            else:
-                url = illust.meta_single_page.original_image_url
-        else:
-            url = getattr(illust.image_urls, download_quantity.name)
-
+        url = illust.page_image_url(page)
         if custom_domain is not None:
             url = url.replace("i.pximg.net", custom_domain)
 
@@ -421,10 +413,10 @@ class RemotePixivRepo(PixivRepo):
                 content = bio.getvalue()
                 return content
 
-    async def image(self, illust: Illust, **kwargs) \
+    async def image(self, illust: Illust, page: int = 0, **kwargs) \
             -> AsyncGenerator[Union[bytes, PixivRepoMetadata], None]:
         logger.info(f"[remote] image {illust.id}")
-        content = await self._raw_image(illust, **kwargs)
+        content = await self._raw_image(illust, page, **kwargs)
         content = await self._compressor.compress(content)
         yield PixivRepoMetadata()
         yield content

@@ -24,8 +24,8 @@ from .pkg_context import context
 
 @context.inject
 class Handler(ABC):
-    conf = Inject(Config)
-    postman_manager = Inject(PostmanManager)
+    conf: Config = Inject(Config)
+    postman_manager: PostmanManager = Inject(PostmanManager)
 
     def __init__(self):
         self.interceptor = None
@@ -38,9 +38,15 @@ class Handler(ABC):
                           header: Optional[str] = None,
                           number: Optional[int] = None,
                           post_dest: PostDestination[T_UID, T_GID]):
-        model = await IllustMessageModel.from_illust(illust, header=header, number=number)
-        if model is not None:
-            await self.postman_manager.send_illust(model, post_dest=post_dest)
+        if illust.page_count == 1:
+            model = await IllustMessageModel.from_illust(illust, header=header, number=number)
+            if model is not None:
+                await self.postman_manager.send_illust(model, post_dest=post_dest)
+        else:
+            model = await IllustMessagesModel.from_illust(illust, header=header, number=number,
+                                                          max_page=self.conf.pixiv_max_item_per_query)
+            if model:
+                await self.postman_manager.send_illusts(model, post_dest=post_dest)
 
     async def post_illusts(self, illusts: Sequence[Illust], *,
                            header: Optional[str] = None,

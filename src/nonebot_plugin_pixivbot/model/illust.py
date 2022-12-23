@@ -57,5 +57,14 @@ class Illust(BaseModel):
                 return True
         return False
 
+    def page_image_url(self, page: int) -> str:
+        if len(self.meta_pages) > 0:
+            return self.meta_pages[page].image_urls.original
+        else:
+            if page == 0:
+                return self.meta_single_page.original_image_url
+            else:
+                raise IndexError(page)
+
 
 __all__ = ("Illust",)

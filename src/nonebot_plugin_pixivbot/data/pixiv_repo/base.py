@@ -35,7 +35,7 @@ class PixivRepo(Protocol):
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
         ...
 
-    def image(self, illust: Illust) -> AsyncGenerator[Union[bytes, PixivRepoMetadata], None]:
+    def image(self, illust: Illust, page: int = 0) -> AsyncGenerator[Union[bytes, PixivRepoMetadata], None]:
         ...
 
 
