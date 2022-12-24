@@ -14,10 +14,13 @@ class IllustMessagesModel(BaseModel):
     @staticmethod
     async def from_illusts(illusts: Sequence[Illust], *,
                            header: Optional[str] = None,
-                           number: Optional[int] = None) -> Optional["IllustMessagesModel"]:
+                           number: Optional[int] = None,
+                           block_r18: bool = False,
+                           block_r18g: bool = False) -> Optional["IllustMessagesModel"]:
         tasks = [
             create_task(
-                IllustMessageModel.from_illust(x, number=number + i if number is not None else None)
+                IllustMessageModel.from_illust(x, number=number + i if number is not None else None,
+                                               block_r18=block_r18, block_r18g=block_r18g)
             ) for i, x in enumerate(illusts)
         ]
         await gather(*tasks)
@@ -35,10 +38,13 @@ class IllustMessagesModel(BaseModel):
     async def from_illust(illust: Illust, *,
                           header: Optional[str] = None,
                           number: Optional[int] = None,
-                          max_page: Optional[int] = 2 ** 31 - 1) -> Optional["IllustMessagesModel"]:
+                          max_page: Optional[int] = 2 ** 31 - 1,
+                          block_r18: bool = False,
+                          block_r18g: bool = False) -> Optional["IllustMessagesModel"]:
         tasks = [
             create_task(
-                IllustMessageModel.from_illust(illust, page=i, number=number)
+                IllustMessageModel.from_illust(illust, page=i, number=number,
+                                               block_r18=block_r18, block_r18g=block_r18g)
             ) for i in range(min(illust.page_count, max_page))
         ]
         await gather(*tasks)

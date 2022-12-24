@@ -145,3 +145,4 @@ dmypy.json
 .env.prod
 .env.dev
 bot.py
+*.db

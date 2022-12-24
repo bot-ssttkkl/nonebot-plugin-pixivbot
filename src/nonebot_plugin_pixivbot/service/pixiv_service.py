@@ -1,4 +1,4 @@
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Iterable, Sequence
 
 from nonebot import logger
 
@@ -20,7 +20,26 @@ class PixivService:
     repo = Inject(PixivRepo)
     local_tag_repo = Inject(LocalTagRepo)
 
-    async def _choice_and_load(self, illusts: List[LazyIllust], random_method: RandomIllustMethod, count: int) \
+    @staticmethod
+    def _handle_r18(illusts: Iterable[LazyIllust],
+                    exclude_r18: bool = False,
+                    exclude_r18g: bool = False) -> Iterable[LazyIllust]:
+        if not exclude_r18 and not exclude_r18g:
+            return illusts
+        else:
+            def _():
+                for x in illusts:
+                    if not x.loaded:
+                        continue
+                    if x.content.has_tag("R-18") and exclude_r18:
+                        continue
+                    if x.content.has_tag("R-18G") and exclude_r18g:
+                        continue
+                    yield x
+
+            return _()
+
+    async def _choice_and_load(self, illusts: Sequence[LazyIllust], random_method: RandomIllustMethod, count: int) \
             -> List[Illust]:
         if count <= 0:
             raise BadRequestError("不合法的请求数量")
@@ -49,7 +68,10 @@ class PixivService:
         async for x in self.repo.illust_detail(illust):
             return x
 
-    async def random_illust(self, word: str, *, count: int = 1) -> List[Illust]:
+    async def random_illust(self, word: str,
+                            *, count: int = 1,
+                            exclude_r18: bool = False,
+                            exclude_r18g: bool = False) -> List[Illust]:
         if self.conf.pixiv_tag_translation_enabled:
             # 只有原word不是标签时获取翻译（例子：唐可可）
             tag = await self.local_tag_repo.find_by_name(word)
@@ -60,7 +82,8 @@ class PixivService:
                     word = tag.name
 
         illusts = [x async for x in self.repo.search_illust(word)]
-        return await self._choice_and_load(illusts, self.conf.pixiv_random_illust_method, count)
+        illusts = self._handle_r18(illusts, exclude_r18, exclude_r18g)
+        return await self._choice_and_load(list(illusts), self.conf.pixiv_random_illust_method, count)
 
     async def get_user(self, user: Union[str, int]) -> User:
         if isinstance(user, str):
@@ -72,26 +95,41 @@ class PixivService:
             async for x in self.repo.user_detail(user):
                 return x
 
-    async def random_user_illust(self, user: Union[str, int], *, count: int = 1) -> Tuple[User, List[Illust]]:
+    async def random_user_illust(self, user: Union[str, int],
+                                 *, count: int = 1,
+                                 exclude_r18: bool = False,
+                                 exclude_r18g: bool = False) -> Tuple[User, List[Illust]]:
         user = await self.get_user(user)
+
         illusts = [x async for x in self.repo.user_illusts(user.id)]
-        illust = await self._choice_and_load(illusts, self.conf.pixiv_random_user_illust_method, count)
+        illusts = self._handle_r18(illusts, exclude_r18, exclude_r18g)
+        illust = await self._choice_and_load(list(illusts), self.conf.pixiv_random_user_illust_method, count)
         return user, illust
 
-    async def random_recommended_illust(self, *, count: int = 1) -> List[Illust]:
+    async def random_recommended_illust(self, *, count: int = 1,
+                                        exclude_r18: bool = False,
+                                        exclude_r18g: bool = False) -> List[Illust]:
         illusts = [x async for x in self.repo.recommended_illusts()]
         return await self._choice_and_load(illusts, self.conf.pixiv_random_recommended_illust_method, count)
 
-    async def random_bookmark(self, pixiv_user_id: int = 0, *, count: int = 1) -> List[Illust]:
+    async def random_bookmark(self, pixiv_user_id: int = 0,
+                              *, count: int = 1,
+                              exclude_r18: bool = False,
+                              exclude_r18g: bool = False) -> List[Illust]:
         illusts = [x async for x in self.repo.user_bookmarks(pixiv_user_id)]
-        return await self._choice_and_load(illusts, self.conf.pixiv_random_bookmark_method, count)
+        illusts = self._handle_r18(illusts, exclude_r18, exclude_r18g)
+        return await self._choice_and_load(list(illusts), self.conf.pixiv_random_bookmark_method, count)
 
-    async def random_related_illust(self, illust_id: int, *, count: int = 1) -> List[Illust]:
+    async def random_related_illust(self, illust_id: int,
+                                    *, count: int = 1,
+                                    exclude_r18: bool = False,
+                                    exclude_r18g: bool = False) -> List[Illust]:
         if illust_id == 0:
             raise BadRequestError("你还没有发送过请求")
 
         illusts = [x async for x in self.repo.related_illusts(illust_id)]
-        return await self._choice_and_load(illusts, self.conf.pixiv_random_related_illust_method, count)
+        illusts = self._handle_r18(illusts, exclude_r18, exclude_r18g)
+        return await self._choice_and_load(list(illusts), self.conf.pixiv_random_related_illust_method, count)
 
 
 __all__ = ("PixivService",)
