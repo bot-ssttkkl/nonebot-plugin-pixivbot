@@ -1,6 +1,5 @@
 from nonebot import require
 
-from nonebot_plugin_access_control.service import PluginService
 from nonebot_plugin_pixivbot.context import Context
 
 
@@ -22,6 +21,7 @@ def base_scheduler_provider(context: Context):
 
 def plugin_service_provider(context: Context):
     from .plugin_service import plugin_service
+    from nonebot_plugin_access_control.service import PluginService
     context.register(PluginService, plugin_service)
 
 

@@ -31,3 +31,6 @@ invalidate_cache_service = plugin_service.create_subservice("invalidate_cache")
 bind_service = plugin_service.create_subservice("bind")
 
 help_service = plugin_service.create_subservice("help")
+
+r18_service = plugin_service.create_subservice("r18")
+r18g_service = plugin_service.create_subservice("r18g")
