@@ -43,10 +43,18 @@ class IllustMessageModel(BaseModel):
     async def from_illust(illust: Illust, *,
                           header: Optional[str] = None,
                           number: Optional[int] = None,
-                          page: int = 0) -> Optional["IllustMessageModel"]:
+                          page: int = 0,
+                          block_r18: bool = False,
+                          block_r18g: bool = False) -> Optional["IllustMessageModel"]:
         model = IllustMessageModel(id=illust.id, header=header, number=number, page=page, total=illust.page_count)
 
-        if illust.has_tags(conf.pixiv_block_tags):
+        block_tags = [*conf.pixiv_block_tags]
+        if block_r18:
+            block_tags.append("R-18")
+        if block_r18g:
+            block_tags.append("R-18G")
+
+        if illust.has_tags(block_tags):
             model.block_action = conf.pixiv_block_action
             if conf.pixiv_block_action == BlockAction.no_image:
                 model.block_message = "该画像因含有不可描述的tag而被自主规制"

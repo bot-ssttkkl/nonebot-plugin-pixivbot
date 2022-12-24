@@ -9,7 +9,7 @@ from nonebot.typing import T_State
 
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
-from nonebot_plugin_pixivbot.plugin_service import random_bookmark_service
+from nonebot_plugin_pixivbot.plugin_service import random_bookmark_service, r18_service, r18g_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.service.pixiv_account_binder import PixivAccountBinder
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
@@ -72,7 +72,12 @@ class RandomBookmarkHandler(RecordCommonHandler):
         if not pixiv_user_id:
             raise BadRequestError("无效的Pixiv账号，或未绑定Pixiv账号")
 
-        illusts = await self.service.random_bookmark(pixiv_user_id, count=count)
+        exclude_r18 = not await r18_service.get_permission(*post_dest.extract_subjects())
+        exclude_r18g = not await r18g_service.get_permission(*post_dest.extract_subjects())
+
+        illusts = await self.service.random_bookmark(pixiv_user_id, count=count,
+                                                     exclude_r18=exclude_r18,
+                                                     exclude_r18g=exclude_r18g)
 
         await self.post_illusts(illusts,
                                 header="这是您点的私家车",

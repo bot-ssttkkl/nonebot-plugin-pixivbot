@@ -6,7 +6,7 @@ from nonebot.internal.params import Depends
 from nonebot.typing import T_State
 
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
-from nonebot_plugin_pixivbot.plugin_service import random_recommended_illust_service
+from nonebot_plugin_pixivbot.plugin_service import random_recommended_illust_service, r18_service, r18g_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .base import RecordCommonHandler
 from ..base import post_destination
@@ -39,7 +39,12 @@ class RandomRecommendedIllustHandler(RecordCommonHandler):
     async def actual_handle(self, *, count: int = 1,
                             post_dest: PostDestination[T_UID, T_GID],
                             silently: bool = False):
-        illusts = await self.service.random_recommended_illust(count=count)
+        exclude_r18 = not await r18_service.get_permission(*post_dest.extract_subjects())
+        exclude_r18g = not await r18g_service.get_permission(*post_dest.extract_subjects())
+
+        illusts = await self.service.random_recommended_illust(count=count,
+                                                               exclude_r18=exclude_r18,
+                                                               exclude_r18g=exclude_r18g)
 
         await self.post_illusts(illusts,
                                 header="这是您点的图",

@@ -1,4 +1,5 @@
 from time import time
+from typing import Sequence
 
 import numpy as np
 
@@ -6,13 +7,13 @@ from nonebot_plugin_pixivbot.data.pixiv_repo import LazyIllust
 from nonebot_plugin_pixivbot.enums import RandomIllustMethod
 
 
-def uniform(illusts: list[LazyIllust]) -> np.ndarray:
+def uniform(illusts: Sequence[LazyIllust]) -> np.ndarray:
     # 概率相等
     n = len(illusts)
     return np.ones(n) / n
 
 
-def bookmark_proportion(illusts: list[LazyIllust]) -> np.ndarray:
+def bookmark_proportion(illusts: Sequence[LazyIllust]) -> np.ndarray:
     # 概率正比于书签数
     n = len(illusts)
     p = np.zeros(n)
@@ -27,7 +28,7 @@ def bookmark_proportion(illusts: list[LazyIllust]) -> np.ndarray:
     return p / np.sum(p)
 
 
-def view_proportion(illusts: list[LazyIllust]) -> np.ndarray:
+def view_proportion(illusts: Sequence[LazyIllust]) -> np.ndarray:
     # 概率正比于查看人数
     n = len(illusts)
     p = np.zeros(n)
@@ -42,7 +43,7 @@ def view_proportion(illusts: list[LazyIllust]) -> np.ndarray:
     return p / np.sum(p)
 
 
-def timedelta_proportion(illusts: list[LazyIllust]) -> np.ndarray:
+def timedelta_proportion(illusts: Sequence[LazyIllust]) -> np.ndarray:
     # 概率正比于 exp(归一化后的画像发布时间差)
     n = len(illusts)
     p = np.zeros(n)
@@ -73,7 +74,7 @@ p_gen = {
 }
 
 
-def roulette(illusts: list[LazyIllust], random_method: RandomIllustMethod, k: int) -> list[LazyIllust]:
+def roulette(illusts: Sequence[LazyIllust], random_method: RandomIllustMethod, k: int) -> Sequence[LazyIllust]:
     n = len(illusts)
     p = p_gen[random_method](illusts)
 

@@ -9,7 +9,7 @@ from nonebot.typing import T_State
 
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
-from nonebot_plugin_pixivbot.plugin_service import random_related_illust_service
+from nonebot_plugin_pixivbot.plugin_service import random_related_illust_service, r18_service, r18g_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .base import RecordCommonHandler
@@ -50,11 +50,17 @@ class RandomRelatedIllustHandler(RecordCommonHandler):
             raise BadRequestError("你还没有发送过请求")
         return {"illust_id": illust_id}
 
+    # noinspection PyMethodOverriding
     async def actual_handle(self, *, illust_id: int,
                             count: int = 1,
                             post_dest: PostDestination[T_UID, T_GID],
                             silently: bool = False):
-        illusts = await self.service.random_related_illust(illust_id, count=count)
+        exclude_r18 = not await r18_service.get_permission(*post_dest.extract_subjects())
+        exclude_r18g = not await r18g_service.get_permission(*post_dest.extract_subjects())
+
+        illusts = await self.service.random_related_illust(illust_id, count=count,
+                                                           exclude_r18=exclude_r18,
+                                                           exclude_r18g=exclude_r18g)
 
         await self.post_illusts(illusts,
                                 header=f"这是您点的[{illust_id}]的相关图片",

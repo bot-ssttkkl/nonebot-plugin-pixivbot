@@ -20,6 +20,7 @@ from .interceptor.combined_interceptor import CombinedInterceptor
 from .interceptor.default_error_interceptor import DefaultErrorInterceptor
 from .interceptor.permission_interceptor import BlacklistInterceptor
 from .pkg_context import context
+from ..plugin_service import r18_service, r18g_service
 
 
 @context.inject
@@ -38,13 +39,18 @@ class Handler(ABC):
                           header: Optional[str] = None,
                           number: Optional[int] = None,
                           post_dest: PostDestination[T_UID, T_GID]):
+        block_r18 = not await r18_service.get_permission(*post_dest.extract_subjects())
+        block_r18g = not await r18g_service.get_permission(*post_dest.extract_subjects())
+
         if illust.page_count == 1:
-            model = await IllustMessageModel.from_illust(illust, header=header, number=number)
+            model = await IllustMessageModel.from_illust(illust, header=header, number=number,
+                                                         block_r18=block_r18, block_r18g=block_r18g)
             if model is not None:
                 await self.postman_manager.send_illust(model, post_dest=post_dest)
         else:
             model = await IllustMessagesModel.from_illust(illust, header=header, number=number,
-                                                          max_page=self.conf.pixiv_max_item_per_query)
+                                                          max_page=self.conf.pixiv_max_item_per_query,
+                                                          block_r18=block_r18, block_r18g=block_r18g)
             if model:
                 await self.postman_manager.send_illusts(model, post_dest=post_dest)
 
@@ -52,10 +58,14 @@ class Handler(ABC):
                            header: Optional[str] = None,
                            number: Optional[int] = None,
                            post_dest: PostDestination[T_UID, T_GID]):
+        block_r18 = not await r18_service.get_permission(*post_dest.extract_subjects())
+        block_r18g = not await r18g_service.get_permission(*post_dest.extract_subjects())
+
         if len(illusts) == 1:
             await self.post_illust(illusts[0], header=header, number=number, post_dest=post_dest)
         else:
-            model = await IllustMessagesModel.from_illusts(illusts, header=header, number=number)
+            model = await IllustMessagesModel.from_illusts(illusts, header=header, number=number,
+                                                           block_r18=block_r18, block_r18g=block_r18g)
             if model:
                 await self.postman_manager.send_illusts(model, post_dest=post_dest)
 
