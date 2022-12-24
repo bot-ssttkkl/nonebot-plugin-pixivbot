@@ -1,7 +1,7 @@
 from nonebot import get_driver
 from pydantic import BaseSettings
 
-from nonebot_plugin_pixivbot import context
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot_kook.enums import KookAdminStrategy
 
 

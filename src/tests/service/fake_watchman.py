@@ -8,7 +8,7 @@ from tests import MyTest
 class FakeWatchmanMixin(MyTest):
     @pytest.fixture(autouse=True)
     async def FakeWatchman(self, load_pixivbot):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
         from nonebot_plugin_pixivbot.model import PostIdentifier, WatchType, WatchTask
         from nonebot_plugin_pixivbot.service.watchman import Watchman
         from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination

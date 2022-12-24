@@ -2,10 +2,10 @@ from abc import ABC, abstractmethod
 from inspect import isawaitable
 from typing import Generic, TypeVar, AsyncIterable
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.base import BaseTrigger
 from nonebot import logger, Bot, get_bot
 from nonebot.exception import ActionFailed
+from nonebot_plugin_apscheduler import scheduler as apscheduler
 
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.interval_task_repo import IntervalTaskRepo
@@ -24,7 +24,6 @@ T = TypeVar("T", bound=IntervalTask)
 class IntervalTaskWorker(ABC, Generic[T]):
     tag: str = ""
 
-    apscheduler: AsyncIOScheduler = Inject(AsyncIOScheduler)
     pd_factory_mgr: PostDestinationFactoryManager = Inject(PostDestinationFactoryManager)
     auth_mgr: AuthenticatorManager = Inject(AuthenticatorManager)
 
@@ -82,20 +81,20 @@ class IntervalTaskWorker(ABC, Generic[T]):
 
     def _add_job(self, item: T):
         job_id = self._make_job_id(item)
-        job_exists = self.apscheduler.get_job(job_id) is not None
+        job_exists = apscheduler.get_job(job_id) is not None
 
         if not job_exists:
             trigger = self._make_job_trigger(item)
 
-            self.apscheduler.add_job(self._on_trigger, id=job_id, trigger=trigger,
-                                     args=[item])
+            apscheduler.add_job(self._on_trigger, id=job_id, trigger=trigger,
+                                args=[item])
             logger.success(f"[{self.tag}] added job \"{job_id}\"")
         else:
             logger.debug(f"[{self.tag}] job \"{job_id}\" already exists")
 
     def _remove_job(self, item: T):
         job_id = self._make_job_id(item)
-        self.apscheduler.remove_job(job_id)
+        apscheduler.remove_job(job_id)
         logger.success(f"[{self.tag}] removed job \"{item}\"")
 
     async def _get_permission(self, item: T) -> bool:

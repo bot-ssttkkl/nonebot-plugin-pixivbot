@@ -8,7 +8,7 @@ from tests import MyTest
 class FakePostmanManagerMixin(MyTest):
     @pytest.fixture(autouse=True)
     def FakePostmanManager(self, load_pixivbot):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
         from nonebot_plugin_pixivbot.model.message import IllustMessageModel, IllustMessagesModel
         from nonebot_plugin_pixivbot.protocol_dep.postman import PostmanManager
         from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination

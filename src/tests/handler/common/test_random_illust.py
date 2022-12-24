@@ -19,7 +19,7 @@ class TestRandomIllustHandle(RandomIllustHandlerTester):
 
     @pytest.mark.asyncio
     async def test(self, tester, FakePixivService):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
         from nonebot_plugin_pixivbot.model.message import IllustMessagesModel
 
         async def except_message():
@@ -34,7 +34,7 @@ class TestRandomIllustHandleNoData(RandomIllustHandlerTester):
 
     @pytest.mark.asyncio
     async def test(self, tester, FakePixivService):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
         from nonebot_plugin_pixivbot.utils.errors import QueryError
 
         context.require(FakePixivService).no_data = True

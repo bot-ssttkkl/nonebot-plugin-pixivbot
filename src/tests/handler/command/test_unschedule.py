@@ -32,7 +32,7 @@
 #
 #     @pytest.mark.asyncio
 #     async def test(self, tester, FakeScheduler, FakePostDestination):
-#         from nonebot_plugin_pixivbot import context
+#         from nonebot_plugin_pixivbot.global_context import context
 #         from nonebot_plugin_pixivbot.model import ScheduleType
 #
 #         post_dest = FakePostDestination(1234, 56789)
@@ -50,7 +50,7 @@
 #
 #     @pytest.mark.asyncio
 #     async def test(self, tester, FakeScheduler, FakePostDestination):
-#         from nonebot_plugin_pixivbot import context
+#         from nonebot_plugin_pixivbot.global_context import context
 #         from nonebot_plugin_pixivbot.model import ScheduleType
 #
 #         post_dest = FakePostDestination(1234, 56789)

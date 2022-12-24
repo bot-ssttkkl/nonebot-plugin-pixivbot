@@ -2,7 +2,7 @@ from io import StringIO
 
 from nonebot.adapters.onebot.v11 import Message, MessageSegment
 
-from nonebot_plugin_pixivbot import context
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.enums import BlockAction
 from nonebot_plugin_pixivbot.model.message import IllustMessageModel, IllustMessagesModel

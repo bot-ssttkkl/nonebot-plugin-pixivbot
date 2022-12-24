@@ -1,5 +1,5 @@
-from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
+from nonebot_plugin_pixivbot.global_context import context
 
 dialect = context.require(Config).pixiv_sql_dialect
 if dialect == 'sqlite':

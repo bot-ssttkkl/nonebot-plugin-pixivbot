@@ -2,7 +2,7 @@ import json
 from typing import Optional
 
 from nonebot.adapters.kaiheila import MessageSegment, Bot, Message
-from nonebot_plugin_pixivbot import context
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.enums import BlockAction
 from nonebot_plugin_pixivbot.model.message import IllustMessageModel, IllustMessagesModel
 from nonebot_plugin_pixivbot.protocol_dep.postman import Postman as BasePostman, PostmanManager

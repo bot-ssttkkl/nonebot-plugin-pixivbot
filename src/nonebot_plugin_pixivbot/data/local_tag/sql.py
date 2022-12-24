@@ -3,10 +3,10 @@ from typing import Optional, Collection
 from nonebot import logger
 from sqlalchemy import Column, String, select
 
-from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
 from nonebot_plugin_pixivbot.data.utils.sql import insert
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Tag, Illust
 
 

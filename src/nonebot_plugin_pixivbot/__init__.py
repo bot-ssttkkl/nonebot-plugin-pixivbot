@@ -34,11 +34,11 @@ __plugin_meta__ = PluginMetadata(
     extra={'version': '1.4.0'}
 )
 
-# ================= provide beans =================
-from .global_context import context
-from .nb_providers import provide
+# =========== require dependency ============
+from nonebot import require
 
-provide(context)
+require("nonebot_plugin_apscheduler")
+require("nonebot_plugin_access_control")
 
 # =========== register handler & service ============
 from . import handler

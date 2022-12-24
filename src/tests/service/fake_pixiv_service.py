@@ -25,7 +25,7 @@ class FakePixivServiceMixin(MyTest):
 
     @pytest.fixture(autouse=True)
     def FakePixivService(self, load_pixivbot, sample_illusts, mocker):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
         from nonebot_plugin_pixivbot.enums import RankingMode
         from nonebot_plugin_pixivbot.model import User, Illust
         from nonebot_plugin_pixivbot.service.pixiv_service import PixivService

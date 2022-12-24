@@ -3,7 +3,7 @@ from typing import Optional, List
 from nonebot.adapters.telegram import Bot
 from nonebot.adapters.telegram.event import Event, EventWithChat
 
-from nonebot_plugin_pixivbot import context
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import PostIdentifier, T_UID, T_GID
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination as BasePostDestination, \
     PostDestinationFactory as BasePostDestinationFactory, PostDestinationFactoryManager

@@ -10,7 +10,7 @@ __all__ = ("LazyIllust",)
 
 def _get_src():
     from .base import PixivRepo
-    from nonebot_plugin_pixivbot import context
+    from nonebot_plugin_pixivbot.global_context import context
     return context.require(PixivRepo)
 
 

@@ -21,7 +21,7 @@ class TestMoreHandle(MoreHandlerTester):
     async def test(self, tester,
                    FakeRecorder,
                    FakePostDestination):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
         from nonebot_plugin_pixivbot.handler.recorder import Req
 
         post_dest = FakePostDestination(123456, 56789)

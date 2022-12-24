@@ -1,4 +1,4 @@
-from nonebot_plugin_pixivbot import context
+from nonebot_plugin_pixivbot.global_context import context
 
 from .base import PixivRepo
 from .lazy_illust import LazyIllust

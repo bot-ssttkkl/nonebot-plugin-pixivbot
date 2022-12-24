@@ -4,9 +4,9 @@ from typing import Optional, List
 from sqlalchemy import Column, Integer, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import relationship
 
-from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
 from nonebot_plugin_pixivbot.data.utils.sql import BLOB, JSON, UTCDateTime
+from nonebot_plugin_pixivbot.global_context import context
 
 
 @context.require(SqlDataSource).registry.mapped

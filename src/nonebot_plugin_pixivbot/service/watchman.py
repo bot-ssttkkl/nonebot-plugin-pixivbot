@@ -4,10 +4,10 @@ from typing import Dict, Any, overload
 from apscheduler.triggers.interval import IntervalTrigger
 from nonebot import logger
 
-from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.watch_task import WatchTaskRepo
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.watch.following_illusts import WatchFollowingIllustsHandler
 from nonebot_plugin_pixivbot.handler.watch.user_illusts import WatchUserIllustsHandler
 from nonebot_plugin_pixivbot.model import T_UID, T_GID

@@ -19,7 +19,7 @@ class TestRankingHandle(RandomRankingHandlerTester):
 
     @pytest.mark.asyncio
     async def test(self, tester, FakePixivService):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
         from nonebot_plugin_pixivbot.model.message import IllustMessagesModel
 
         async def except_message():
@@ -34,7 +34,7 @@ class TestRankingHandleWithoutRange(RandomRankingHandlerTester):
 
     @pytest.mark.asyncio
     async def test(self, tester, FakePixivService):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
         from nonebot_plugin_pixivbot.model.message import IllustMessagesModel
 
         async def except_message():
