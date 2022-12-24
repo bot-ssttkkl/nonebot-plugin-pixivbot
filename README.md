@@ -132,6 +132,39 @@ PixivBot需要使用数据库存放订阅以及缓存，默认使用SQLite。
 
 并且安装`nonebot-plugin-pixivbot[mongo]`
 
+## 权限控制
+
+插件接入了[nonebot-plugin-access-control](https://github.com/ssttkkl/nonebot-plugin-access-control)实现细粒度的权限控制：
+
+```
+nonebot_plugin_pixivbot
+├── common
+│   ├── illust  （看看图）
+│   ├── ranking  （看看榜）
+│   ├── more  （还要）
+│   ├── random_bookmark  （来张私家车）
+│   ├── random_illust  （来张xx图）
+│   ├── random_recommended_illust  （来张图）
+│   ├── random_related_illust  （不够色）
+│   └── random_user_illust  （来张xx老师的图）
+├── illust_link  （P站链接嗅探）
+├── schedule
+│   ├── receive  （接收定时推送）
+│   └── manage  （管理定时推送）
+├── watch
+│   ├── receive  （接收更新推送）
+│   └── manage  （管理定时推送）
+├── invalidate_cache  （清除缓存）
+├── bind  （绑定P站账号）
+├── help  （帮助文本）
+└── r18  （显示R-18内容）
+    └── g  （显示R-18G内容）
+```
+
+超级用户可以通过发送`/ac subject all deny service nonebot_plugin_pixivbot.r18`全局拦截R-18。
+
+具体可以参考[nonebot-plugin-access-control](https://github.com/ssttkkl/nonebot-plugin-access-control)的文档进行权限控制。
+
 ## 配置项一览
 
 最小配置：
@@ -143,7 +176,6 @@ pixiv_refresh_token=  # 前面获取的REFRESH_TOKEN
 
 ```
 superuser=[]  # 能够发送超级命令的用户（JSON数组，格式为["onebot:123456", "kaiheila:1919810"]，下同）
-blocklist=[]  # Bot不响应的用户，可以避免Bot之间相互调用（JSON数组）
 
 pixiv_data_source=  # 使用的数据库类型，可选值：sql，mongo。若未设置，则根据是否设置了pixiv_mongo_conn_url自动判断。
 pixiv_sql_conn_url=sqlite+aiosqlite:///pixiv_bot.db  # SQL连接URL，仅支持SQLite与PostgreSQL（通过SQLAlchemy进行连接，必须使用异步的DBAPI）
@@ -175,7 +207,6 @@ pixiv_other_cache_expires_in=21600
 pixiv_block_tags=[]  # 当插画含有指定tag时会被过滤
 pixiv_block_action=no_image  # 过滤时的动作，可选值：no_image(不显示插画，回复插画信息), completely_block(只回复过滤提示), no_reply(无回复)
 
-pixiv_download_quantity=original  # 插画下载品质，可选值：original, square_medium, medium, large
 pixiv_download_custom_domain=None  # 使用反向代理下载插画的域名
 
 pixiv_compression_enabled=False  # 启用插画压缩
