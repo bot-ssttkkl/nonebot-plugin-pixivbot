@@ -2,16 +2,16 @@ from datetime import datetime, timezone, timedelta
 from functools import partial
 from typing import AsyncGenerator, Union, Optional, List
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from nonebot import logger
+from nonebot_plugin_apscheduler import scheduler as apscheduler
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.enums import RankingMode
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Illust, User
 from nonebot_plugin_pixivbot.utils.lifecycler import on_startup
 from .base import LocalPixivRepo
@@ -46,12 +46,11 @@ class SqlPixivRepo(LocalPixivRepo):
     conf: Config = Inject(Config)
     data_source: SqlDataSource = Inject(SqlDataSource)
     local_tag_repo: LocalTagRepo = Inject(LocalTagRepo)
-    apscheduler: AsyncIOScheduler = Inject(AsyncIOScheduler)
 
     def __init__(self):
         on_startup(replay=True)(
             partial(
-                self.apscheduler.add_job,
+                apscheduler.add_job,
                 self.clean_expired,
                 id='pixivbot_sql_pixiv_repo_clean_expired',
                 trigger=IntervalTrigger(hours=2),

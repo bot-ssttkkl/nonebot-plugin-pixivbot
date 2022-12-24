@@ -4,7 +4,7 @@ from typing import Optional, List
 from nonebot.adapters.kaiheila import Message, Bot
 from nonebot.adapters.kaiheila.event import ChannelMessageEvent, PrivateMessageEvent, Event
 
-from nonebot_plugin_pixivbot import context
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import PostIdentifier
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination as BasePostDestination, \
     PostDestinationFactory as BasePostDestinationFactory, PostDestinationFactoryManager

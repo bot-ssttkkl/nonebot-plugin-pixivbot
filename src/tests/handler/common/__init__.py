@@ -17,14 +17,14 @@ class HandlerTester(FakePostDestinationMixin,
 
     @pytest.fixture(autouse=True)
     def remove_interceptor(self, load_pixivbot, Handler):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
 
         context.require(Handler).interceptor = None
 
     @pytest.fixture
     def tester(self, Handler, FakePostDestination, FakePostmanManager):
         async def test(*, except_msg=None, post_dest: Optional[FakePostDestination] = None):
-            from nonebot_plugin_pixivbot import context
+            from nonebot_plugin_pixivbot.global_context import context
 
             if post_dest is None:
                 post_dest = FakePostDestination(1234, 56789)

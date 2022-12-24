@@ -38,7 +38,7 @@
 #
 #     @pytest.mark.asyncio
 #     async def test(self, tester, FakeWatchman, FakePostDestination):
-#         from nonebot_plugin_pixivbot import context
+#         from nonebot_plugin_pixivbot.global_context import context
 #         from nonebot_plugin_pixivbot.model import WatchType
 #
 #         post_dest = FakePostDestination(1234, 56789)
@@ -59,7 +59,7 @@
 #
 #     @pytest.mark.asyncio
 #     async def test(self, tester, FakeWatchman, FakePostDestination):
-#         from nonebot_plugin_pixivbot import context
+#         from nonebot_plugin_pixivbot.global_context import context
 #         from nonebot_plugin_pixivbot.model import WatchTask, WatchType
 #
 #         post_dest = FakePostDestination(1234, 56789)
@@ -80,7 +80,7 @@
 #
 #     @pytest.mark.asyncio
 #     async def test(self, tester, FakeWatchman, FakePostDestination):
-#         from nonebot_plugin_pixivbot import context
+#         from nonebot_plugin_pixivbot.global_context import context
 #         from nonebot_plugin_pixivbot.model import WatchTask, WatchType
 #
 #         post_dest = FakePostDestination(1234, 56789)
@@ -100,7 +100,7 @@
 #
 #     @pytest.mark.asyncio
 #     async def test(self, tester, FakePixivService):
-#         from nonebot_plugin_pixivbot import context
+#         from nonebot_plugin_pixivbot.global_context import context
 #         from nonebot_plugin_pixivbot.utils.errors import QueryError
 #
 #         context.require(FakePixivService).no_data = True
@@ -116,7 +116,7 @@
 #
 #     @pytest.mark.asyncio
 #     async def test(self, tester, FakeWatchman, FakePostDestination):
-#         from nonebot_plugin_pixivbot import context
+#         from nonebot_plugin_pixivbot.global_context import context
 #         from nonebot_plugin_pixivbot.model import WatchTask, WatchType
 #
 #         post_dest = FakePostDestination(1234, 56789)
@@ -137,7 +137,7 @@
 #
 #     @pytest.mark.asyncio
 #     async def test(self, tester, FakeWatchman, FakePostDestination):
-#         from nonebot_plugin_pixivbot import context
+#         from nonebot_plugin_pixivbot.global_context import context
 #         from nonebot_plugin_pixivbot.model import WatchTask, WatchType
 #
 #         post_dest = FakePostDestination(1234, 56789)
@@ -157,7 +157,7 @@
 #
 #     @pytest.mark.asyncio
 #     async def test(self, tester, FakePixivService):
-#         from nonebot_plugin_pixivbot import context
+#         from nonebot_plugin_pixivbot.global_context import context
 #         from nonebot_plugin_pixivbot.utils.errors import QueryError
 #
 #         context.require(FakePixivService).no_data = True
@@ -176,7 +176,7 @@
 #
 #     @pytest.mark.asyncio
 #     async def test(self, tester, FakeWatchman):
-#         from nonebot_plugin_pixivbot import context
+#         from nonebot_plugin_pixivbot.global_context import context
 #
 #         await tester()
 #
@@ -190,7 +190,7 @@
 #
 #     @pytest.mark.asyncio
 #     async def test(self, tester, FakeWatchman):
-#         from nonebot_plugin_pixivbot import context
+#         from nonebot_plugin_pixivbot.global_context import context
 #
 #         await tester()
 #

@@ -1,8 +1,8 @@
 from typing import Protocol, Callable, Union, Awaitable, Any
 
-from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.enums import DataSourceType
+from nonebot_plugin_pixivbot.global_context import context
 
 
 class DataSource(Protocol):

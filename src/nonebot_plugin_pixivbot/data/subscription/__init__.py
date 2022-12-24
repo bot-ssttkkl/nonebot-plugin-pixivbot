@@ -1,5 +1,5 @@
-from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Subscription
 from ..interval_task_repo import IntervalTaskRepo
 from ...enums import DataSourceType

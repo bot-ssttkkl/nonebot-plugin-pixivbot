@@ -8,7 +8,7 @@ from tests import MyTest
 class FakeSchedulerMixin(MyTest):
     @pytest.fixture(autouse=True)
     async def FakeScheduler(self, load_pixivbot):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
         from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
         from nonebot_plugin_pixivbot.model import PostIdentifier, Subscription, ScheduleType
         from nonebot_plugin_pixivbot.service.scheduler import Scheduler

@@ -5,7 +5,7 @@ from cachetools import TTLCache
 from nonebot import get_bot
 from nonebot.adapters.telegram.exception import TelegramAdapterException
 
-from nonebot_plugin_pixivbot import context
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.authenticator import AuthenticatorManager, \
     Authenticator as BaseAuthenticator
 from .post_dest import PostDestination

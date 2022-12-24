@@ -1,7 +1,7 @@
 from typing import Optional, Protocol, Collection
 
-from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Tag, Illust
 from ...enums import DataSourceType
 

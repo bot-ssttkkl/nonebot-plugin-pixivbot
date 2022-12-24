@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 from functools import wraps
 from typing import Callable
 
-from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.context import Inject
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.protocol_dep.postman import PostmanManager

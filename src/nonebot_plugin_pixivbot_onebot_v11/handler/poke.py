@@ -8,7 +8,7 @@ from nonebot.internal.matcher import Matcher
 from nonebot.internal.params import Depends
 from nonebot.typing import T_State
 
-from nonebot_plugin_pixivbot import context
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.base import Handler, DelegationHandler, post_destination, \
     MatcherEntryHandler
 from nonebot_plugin_pixivbot.handler.common import RandomBookmarkHandler, RandomRecommendedIllustHandler, RankingHandler

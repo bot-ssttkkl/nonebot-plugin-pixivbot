@@ -4,13 +4,13 @@ from datetime import datetime, date
 
 from nonebot import get_driver, logger
 from sqlalchemy import select, inspect
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine, AsyncConnection
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine
 from sqlalchemy.orm import registry, sessionmaker
 
-from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.enums import DataSourceType
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.utils.lifecycler import on_startup, on_shutdown
 from ..lifecycle_mixin import DataSourceLifecycleMixin
 from ...errors import DataSourceNotReadyError

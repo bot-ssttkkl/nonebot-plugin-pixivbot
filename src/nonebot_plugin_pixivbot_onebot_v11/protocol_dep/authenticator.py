@@ -2,7 +2,7 @@ from typing import Union, Awaitable
 
 from nonebot.adapters.onebot.v11 import ActionFailed
 
-from nonebot_plugin_pixivbot import context
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.authenticator import Authenticator as BaseAuthenticator, \
     AuthenticatorManager
 from nonebot_plugin_pixivbot_onebot_v11.protocol_dep.post_dest import PostDestination

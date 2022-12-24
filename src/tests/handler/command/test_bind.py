@@ -22,7 +22,7 @@ class TestBindHandlerBind(BindHandlerTester):
 
     @pytest.mark.asyncio
     async def test(self, tester, FakePixivAccountBinder):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
         from nonebot_plugin_pixivbot.model import PixivBinding
 
         await tester()
@@ -38,7 +38,7 @@ class TestBindHandlerInvalidArg(BindHandlerTester):
 
     @pytest.mark.asyncio
     async def test(self, tester, FakePixivAccountBinder):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
 
         await tester()
 

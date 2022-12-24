@@ -2,7 +2,6 @@ import time
 from abc import ABC, abstractmethod
 from asyncio import Lock
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
-from datetime import datetime, timezone
 from types import TracebackType
 from typing import Any, Generic, TypeVar, AsyncGenerator, List, Type, Optional, AsyncContextManager
 

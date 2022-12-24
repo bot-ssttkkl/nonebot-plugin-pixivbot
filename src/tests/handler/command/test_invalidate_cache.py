@@ -15,7 +15,7 @@ class TestInvalidateCache(HandlerTester,
 
     @pytest.mark.asyncio
     async def test(self, tester, FakePixivRepo):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
 
         await tester()
 

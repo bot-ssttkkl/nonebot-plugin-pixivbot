@@ -8,7 +8,7 @@ from tests import MyTest
 class FakeRecorderMixin(MyTest):
     @pytest.fixture(autouse=True)
     def FakeRecorder(self):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
         from nonebot_plugin_pixivbot.handler.recorder import Recorder, Req
         from nonebot_plugin_pixivbot.model import PostIdentifier
 

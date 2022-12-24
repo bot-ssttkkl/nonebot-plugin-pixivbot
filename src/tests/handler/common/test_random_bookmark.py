@@ -22,7 +22,7 @@ class TestRandomBookmarkHandle(RandomBookmarkHandlerTester):
                    mock_illust_message_model,
                    FakePostDestination,
                    FakePixivAccountBinder):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
         from nonebot_plugin_pixivbot.model.message import IllustMessagesModel
 
         post_dest = FakePostDestination(123456, 56789)
@@ -53,7 +53,7 @@ class TestRandomBookmarkHandleArg(RandomBookmarkHandlerTester):
                    mock_illust_message_model,
                    FakePostDestination,
                    FakePixivAccountBinder):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
         from nonebot_plugin_pixivbot.model.message import IllustMessagesModel
 
         post_dest = FakePostDestination(123456, 56789)
@@ -81,7 +81,7 @@ class TestRandomBookmarkHandleInvalidArg(RandomBookmarkHandlerTester):
 class TestRandomBookmarkHandleNoData(RandomBookmarkHandlerTester):
     @pytest.mark.asyncio
     async def test(self, tester, FakePixivService, FakePostDestination, FakePixivAccountBinder):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
         from nonebot_plugin_pixivbot.utils.errors import QueryError
 
         post_dest = FakePostDestination(123456, 56789)

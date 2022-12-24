@@ -19,7 +19,7 @@ class RandomRelatedIllustHandlerTester(HandlerTester,
 class TestRandomRecommendedIllustHandle(RandomRelatedIllustHandlerTester):
     @pytest.mark.asyncio
     async def test(self, tester, FakePixivService, FakeRecorder, FakePostDestination):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
         from nonebot_plugin_pixivbot.model.message import IllustMessagesModel
 
         post_dest = FakePostDestination(123456, 56789)
@@ -35,7 +35,7 @@ class TestRandomRecommendedIllustHandle(RandomRelatedIllustHandlerTester):
 class TestRandomRecommendedIllustHandleNoData(RandomRelatedIllustHandlerTester):
     @pytest.mark.asyncio
     async def test(self, tester, FakePixivService, FakeRecorder, FakePostDestination):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
         from nonebot_plugin_pixivbot.utils.errors import QueryError
 
         context.require(FakePixivService).no_data = True

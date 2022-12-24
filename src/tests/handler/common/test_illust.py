@@ -20,7 +20,7 @@ class TestIllustHandle(IllustHandlerTester):
     @pytest.mark.asyncio
     async def test(self, tester, FakePixivService,
                    mock_illust_message_model):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
 
         async def except_message():
             illusts = context.require(FakePixivService).spy_illust_detail.spy_return
@@ -35,7 +35,7 @@ class TestIllustHandleNoData(IllustHandlerTester):
     @pytest.mark.asyncio
     async def test(self, tester, FakePixivService,
                    mock_illust_message_model):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
         from nonebot_plugin_pixivbot.utils.errors import QueryError
 
         context.require(FakePixivService).no_data = True

@@ -3,8 +3,8 @@ from typing import Optional, AsyncIterable, Collection
 from pytz import utc
 from sqlalchemy import Column, Integer, Enum as SqlEnum, String, select, UniqueConstraint, update
 
-from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.context import Inject
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import PostIdentifier, WatchType, WatchTask, T_UID, T_GID, UserIdentifier
 from ..interval_task_repo import process_subscriber
 from ..source.sql import SqlDataSource

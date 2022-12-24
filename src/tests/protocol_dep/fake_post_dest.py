@@ -28,7 +28,7 @@ class FakePostDestinationMixin(MyTest):
 class FakePostDestinationFactoryManagerMixin(FakePostDestinationMixin, MyTest):
     @pytest.fixture(autouse=True)
     def FakePostDestinationFactoryManager(self, load_pixivbot, FakePostDestination):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
         from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination, PostDestinationFactoryManager
 
         from nonebot import Bot

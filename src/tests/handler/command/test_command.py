@@ -8,7 +8,7 @@ from tests.handler.common import HandlerTester
 class CommandHandlerTester(HandlerTester):
     @pytest.fixture
     def stub_help_handler(self, load_pixivbot, FakePostmanManager):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
         from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
         from nonebot_plugin_pixivbot.handler.command.command import SubCommandHandler, CommandHandler
 
@@ -32,7 +32,7 @@ class CommandHandlerTester(HandlerTester):
 
     @pytest.fixture
     def stub_handler(self, load_pixivbot, FakePostmanManager):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
         from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
         from nonebot_plugin_pixivbot.handler.command.command import SubCommandHandler, CommandHandler
 

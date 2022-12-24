@@ -18,7 +18,7 @@ class TestUnbindHandlerBind(UnBindHandlerTester):
 
     @pytest.mark.asyncio
     async def test(self, tester, FakePixivAccountBinder):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
 
         await context.require(FakePixivAccountBinder).bind(adapter="test",
                                                            user_id=1234,
@@ -35,7 +35,7 @@ class TestUnbindHandlerNotBind(UnBindHandlerTester):
 
     @pytest.mark.asyncio
     async def test(self, tester, FakePixivAccountBinder):
-        from nonebot_plugin_pixivbot import context
+        from nonebot_plugin_pixivbot.global_context import context
 
         await tester()
 

@@ -8,10 +8,10 @@ from nonebot import logger
 from pixivpy_async import *
 from pixivpy_async.error import TokenError
 
-from nonebot_plugin_pixivbot import context
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.enums import RankingMode
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Illust, User, UserPreview
 from nonebot_plugin_pixivbot.utils.errors import QueryError, RateLimitError
 from nonebot_plugin_pixivbot.utils.lifecycler import on_startup, on_shutdown
