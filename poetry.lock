@@ -648,7 +648,7 @@ nonebot2 = ">=2.0.0b1,<3.0.0"
 
 [[package]]
 name = "nonebot-plugin-access-control"
-version = "0.1.0"
+version = "0.1.1"
 description = ""
 category = "main"
 optional = false
@@ -1998,8 +1998,8 @@ nonebot-adapter-telegram = [
     {file = "nonebot_adapter_telegram-0.1.0b3-py3-none-any.whl", hash = "sha256:5bf8199355e28f70baad33f848e903e7ef856ee16454657009b04c3ab15d8228"},
 ]
 nonebot-plugin-access-control = [
-    {file = "nonebot_plugin_access_control-0.1.0-py3-none-any.whl", hash = "sha256:c12a574065bdf0023c8d8aead20499c70ba2294b7461ff074d25de135d7a058e"},
-    {file = "nonebot_plugin_access_control-0.1.0.tar.gz", hash = "sha256:cd90ae6f5b9b9e840db3665c9ec572febe2b28d37000b68ecad3986bfdb0ac36"},
+    {file = "nonebot_plugin_access_control-0.1.1-py3-none-any.whl", hash = "sha256:5c30d84ed760384726f632d349503224f6c438547ba270860f8109ad2c9798fa"},
+    {file = "nonebot_plugin_access_control-0.1.1.tar.gz", hash = "sha256:078a2991b0980c373820f78291e59e01487b82df46688f993bc82c95206eb4d6"},
 ]
 nonebot-plugin-apscheduler = [
     {file = "nonebot-plugin-apscheduler-0.2.0.tar.gz", hash = "sha256:7b63e99a611b657533b48fcf1f8c6627c18c2eb3fa820a906cd4ec4666c0ceb0"},
