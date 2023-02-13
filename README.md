@@ -172,21 +172,43 @@ nonebot_plugin_pixivbot
 pixiv_refresh_token=  # 前面获取的REFRESH_TOKEN
 ```
 
-完整配置（除最小配置出现的配置项以外都是可选项，给出的是默认值）（NoneBot配置项这里不列出，参考[配置 | NoneBot](https://v2.nonebot.dev/docs/tutorial/configuration#%E8%AF%A6%E7%BB%86%E9%85%8D%E7%BD%AE%E9%A1%B9)）：
+除最小配置出现的配置项以外都是可选项，给出的是默认值（NoneBot配置项这里不列出，参考[配置 | NoneBot](https://v2.nonebot.dev/docs/tutorial/configuration#%E8%AF%A6%E7%BB%86%E9%85%8D%E7%BD%AE%E9%A1%B9)）
 
+完整配置：
 ```
-superuser=[]  # 能够发送超级命令的用户（JSON数组，格式为["onebot:123456", "kaiheila:1919810"]，下同）
-
+# 数据库配置
 pixiv_data_source=  # 使用的数据库类型，可选值：sql，mongo。若未设置，则根据是否设置了pixiv_mongo_conn_url自动判断。
 pixiv_sql_conn_url=sqlite+aiosqlite:///pixiv_bot.db  # SQL连接URL，仅支持SQLite与PostgreSQL（通过SQLAlchemy进行连接，必须使用异步的DBAPI）
 pixiv_mongo_conn_url=  # MongoDB连接URL，格式：mongodb://<用户名>:<密码>@<主机>:<端口>/<数据库>。
 pixiv_mongo_database_name=  # 连接的MongoDB数据库
 
+# 连接配置
 pixiv_refresh_token=  # 前面获取的REFRESH_TOKEN
 pixiv_proxy=None  # 代理URL，推荐使用socks5代理
 pixiv_query_timeout=60  # 查询超时（单位：秒）
 pixiv_loading_prompt_delayed_time=5  # 加载提示消息的延迟时间（“努力加载中”的消息会在请求发出多少秒后发出）（单位：秒）
 pixiv_simultaneous_query=8  # 向Pixiv查询的并发数
+pixiv_download_custom_domain=None  # 使用反向代理下载插画的域名
+
+# 查询设置
+pixiv_query_to_me_only=False  # 只响应关于Bot的查询
+pixiv_command_to_me_only=False  # 只响应关于Bot的命令
+
+pixiv_query_cooldown=0  # 每次查询的冷却时间
+pixiv_no_query_cooldown_users=[]  # 在这个列表中的用户不受冷却时间的影响（JSON数组）
+pixiv_max_item_per_query=10  # 每个查询最多请求的插画数量
+
+pixiv_tag_translation_enabled=True  # 启用搜索关键字翻译功能（平时搜索时记录标签翻译，在查询时判断是否存在对应中日翻译）
+
+pixiv_block_tags=[]  # 当插画含有指定tag时会被过滤
+pixiv_block_action=no_image  # 过滤时的动作，可选值：no_image(不显示插画，回复插画信息), completely_block(只回复过滤提示), no_reply(无回复)
+
+pixiv_watch_interval=7200  # 更新推送的查询间隔
+
+# 插画压缩
+pixiv_compression_enabled=False  # 启用插画压缩
+pixiv_compression_max_size=None  # 插画压缩最大尺寸
+pixiv_compression_quantity=None  # 插画压缩品质（0到100）
 
 # 缓存过期时间/删除时间（单位：秒）
 pixiv_download_cache_expires_in=604800  # 默认值：7天
@@ -204,24 +226,16 @@ pixiv_user_bookmarks_cache_delete_in=2592000
 pixiv_related_illusts_cache_expires_in=86400
 pixiv_other_cache_expires_in=21600
 
-pixiv_block_tags=[]  # 当插画含有指定tag时会被过滤
-pixiv_block_action=no_image  # 过滤时的动作，可选值：no_image(不显示插画，回复插画信息), completely_block(只回复过滤提示), no_reply(无回复)
+# OneBot平台（主要是gocq）配置
+pixiv_poke_action=random_recommended_illust  # 响应戳一戳动作，可选值：ranking, random_recommended_illust, random_bookmark, 什么都不填即忽略戳一戳动作
+pixiv_onebot_with_link=False  # 发图时是否带上链接（容易被tx盯上）
+pixiv_onebot_send_forward_message=auto  # 发图时是否使用转发消息的形式，可选值：always(永远使用), auto(仅在多张图片时使用), never(永远不使用)
 
-pixiv_download_custom_domain=None  # 使用反向代理下载插画的域名
+# KOOK平台配置
+pixiv_kook_admin_strategy=nobody  # 指定什么人有权调用管理员指令，可选值：nobody(没有人), everyone(所有人), must_have_permission(必须拥有指定权限)
+pixiv_kook_admin_must_have_permission=0  # 上一条为must_have_permission时，必须拥有的权限的掩码值（参考 https://developer.kaiheila.cn/doc/http/guild-role）
 
-pixiv_compression_enabled=False  # 启用插画压缩
-pixiv_compression_max_size=None  # 插画压缩最大尺寸
-pixiv_compression_quantity=None  # 插画压缩品质（0到100）
-
-pixiv_query_to_me_only=False  # 只响应关于Bot的查询
-pixiv_command_to_me_only=False  # 只响应关于Bot的命令
-
-pixiv_query_cooldown=0  # 每次查询的冷却时间
-pixiv_no_query_cooldown_users=[]  # 在这个列表中的用户不受冷却时间的影响（JSON数组）
-pixiv_max_item_per_query=10  # 每个查询最多请求的插画数量
-
-pixiv_tag_translation_enabled=True  # 启用搜索关键字翻译功能（平时搜索时记录标签翻译，在查询时判断是否存在对应中日翻译）
-
+# 功能配置
 pixiv_more_enabled=True  # 启用重复上一次请求（还要）功能
 pixiv_query_expires_in=10*60  # 上一次请求的过期时间（单位：秒）
 
@@ -269,7 +283,6 @@ pixiv_random_bookmark_min_view=0
 pixiv_random_bookmark_max_page=2147483647
 pixiv_random_bookmark_max_item=2147483647
 
-pixiv_watch_interval=7200  # 更新推送的查询间隔
 ```
 
 ## Special Thanks
