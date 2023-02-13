@@ -21,7 +21,7 @@ class DefaultErrorInterceptor(Interceptor):
         try:
             await wrapped_func(*args, post_dest=post_dest, silently=silently, **kwargs)
         except (asyncio.TimeoutError, ServerConnectionError, ConnectionError) as e:
-            logger.warning(type(e).__name__)
+            logger.warning(e)
             if not silently:
                 await self.post_plain_text("网络错误", post_dest=post_dest)
         except (BadRequestError, QueryError) as e:

@@ -99,30 +99,6 @@ class Config(BaseSettings):
                 f'pixiv_compression_enabled is True but {field.name} got None.')
         return v
 
-    # pixiv_illust_query_permission = {
-    #     "group": [491959457],
-    #     "friend": "all"
-    # }
-    #
-    # @validator('pixiv_illust_query_permission')
-    # def query_permission_validator(cls, v, field: ModelField):
-    #     if v is not None and not isinstance(v, dict):
-    #         raise ValueError(f'{field} expected a dict, but got a {type(v)}.')
-    #     if "group" in v:
-    #         if isinstance(v["group"], list):
-    #             for i, x in enumerate(v["group"]):
-    #                 if not isinstance(x, int):
-    #                     raise ValueError(f'{field}["group"][{i}] expected a int, but got a {type(x)}.')
-    #         elif v["group"] != "all":
-    #             raise ValueError(f'{field}["group"] expected "all" or a list, but got a {type(v["group"])}.')
-    #     if "friend" in v:
-    #         if isinstance(v["friend"], list):
-    #             for i, x in enumerate(v["group"]):
-    #                 if not isinstance(x, int):
-    #                     raise ValueError(f'{field}["friend"][{i}] expected a int, but got a {type(x)}.')
-    #         elif v["friend"] != "all":
-    #             raise ValueError(f'{field}["friend"] expected "all" or a list, but got a {type(v["friend"])}.')
-
     pixiv_query_to_me_only = False
     pixiv_command_to_me_only = False
 

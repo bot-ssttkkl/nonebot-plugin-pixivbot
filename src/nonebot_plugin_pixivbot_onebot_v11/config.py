@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Literal
 
 from nonebot import get_driver
 from pydantic import validator, BaseSettings
@@ -11,6 +11,7 @@ from nonebot_plugin_pixivbot.global_context import context
 class OnebotV11Config(BaseSettings):
     pixiv_poke_action: Optional[str] = "random_recommended_illust"
     pixiv_onebot_with_link: bool = False
+    pixiv_onebot_send_forward_message: Literal['always', 'auto', 'never'] = 'auto'
 
     @validator('pixiv_poke_action', allow_reuse=True)
     def pixiv_poke_action_validator(cls, v, field: ModelField):

@@ -2,9 +2,9 @@ from io import StringIO
 
 from nonebot.adapters.onebot.v11 import Message, MessageSegment
 
-from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.enums import BlockAction
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model.message import IllustMessageModel, IllustMessagesModel
 from nonebot_plugin_pixivbot.protocol_dep.postman import Postman as BasePostman, PostmanManager
 from nonebot_plugin_pixivbot_onebot_v11.config import OnebotV11Config
@@ -72,8 +72,10 @@ class Postman(BasePostman[int, int]):
 
     async def send_illusts(self, model: IllustMessagesModel,
                            *, post_dest: PostDestination):
-        if len(model.messages) == 1:
-            await self.send_illust(model.flat_first(), post_dest=post_dest)
+        if self.conf.pixiv_onebot_send_forward_message == 'never' or \
+                self.conf.pixiv_onebot_send_forward_message == 'auto' and len(model.messages) == 1:
+            for x in model.flat():
+                await self.send_illust(x, post_dest=post_dest)
         else:
             messages = []
             if model.header:

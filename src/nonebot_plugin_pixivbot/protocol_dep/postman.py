@@ -15,11 +15,6 @@ class Postman(ProtocolDep, ABC, Generic[T_UID, T_GID]):
         raise NotImplementedError()
 
     @abstractmethod
-    async def send_illust(self, model: IllustMessageModel,
-                          *, post_dest: PostDestination[T_UID, T_GID]):
-        raise NotImplementedError()
-
-    @abstractmethod
     async def send_illusts(self, model: IllustMessagesModel,
                            *, post_dest: PostDestination[T_UID, T_GID]):
         raise NotImplementedError()
@@ -30,10 +25,6 @@ class PostmanManager(ProtocolDepManager[Postman]):
     async def send_plain_text(self, message: str,
                               *, post_dest: PostDestination[T_UID, T_GID]):
         return await self[post_dest.adapter].send_plain_text(message, post_dest=post_dest)
-
-    async def send_illust(self, model: IllustMessageModel,
-                          *, post_dest: PostDestination[T_UID, T_GID]):
-        return await self[post_dest.adapter].send_illust(model, post_dest=post_dest)
 
     async def send_illusts(self, model: IllustMessagesModel,
                            *, post_dest: PostDestination[T_UID, T_GID]):

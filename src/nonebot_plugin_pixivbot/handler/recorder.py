@@ -91,11 +91,6 @@ class RecordPostmanManager:
     def __init__(self, delegation: PostmanManager):
         self.delegation = delegation
 
-    async def send_illust(self, model: IllustMessageModel,
-                          *, post_dest: PostDestination[T_UID, T_GID]):
-        await self.delegation.send_illust(model, post_dest=post_dest)
-        self.recorder.record_resp(model.id, post_dest.identifier)
-
     async def send_illusts(self, model: IllustMessagesModel,
                            *, post_dest: PostDestination[T_UID, T_GID]):
         await self.delegation.send_illusts(model, post_dest=post_dest)

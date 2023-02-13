@@ -12,7 +12,7 @@ from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Illust, T_UID, T_GID
-from nonebot_plugin_pixivbot.model.message import IllustMessageModel, IllustMessagesModel
+from nonebot_plugin_pixivbot.model.message import IllustMessagesModel
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestinationFactoryManager, PostDestination
 from nonebot_plugin_pixivbot.protocol_dep.postman import PostmanManager
 from .interceptor.base import Interceptor
@@ -42,17 +42,11 @@ class Handler(ABC):
         block_r18 = not await r18_service.get_permission(*post_dest.extract_subjects())
         block_r18g = not await r18g_service.get_permission(*post_dest.extract_subjects())
 
-        if illust.page_count == 1:
-            model = await IllustMessageModel.from_illust(illust, header=header, number=number,
-                                                         block_r18=block_r18, block_r18g=block_r18g)
-            if model is not None:
-                await self.postman_manager.send_illust(model, post_dest=post_dest)
-        else:
-            model = await IllustMessagesModel.from_illust(illust, header=header, number=number,
-                                                          max_page=self.conf.pixiv_max_item_per_query,
-                                                          block_r18=block_r18, block_r18g=block_r18g)
-            if model:
-                await self.postman_manager.send_illusts(model, post_dest=post_dest)
+        model = await IllustMessagesModel.from_illust(illust, header=header, number=number,
+                                                      max_page=self.conf.pixiv_max_item_per_query,
+                                                      block_r18=block_r18, block_r18g=block_r18g)
+        if model:
+            await self.postman_manager.send_illusts(model, post_dest=post_dest)
 
     async def post_illusts(self, illusts: Sequence[Illust], *,
                            header: Optional[str] = None,
