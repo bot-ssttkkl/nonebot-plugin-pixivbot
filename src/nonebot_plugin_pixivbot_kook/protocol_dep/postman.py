@@ -2,20 +2,18 @@ import json
 from typing import Optional
 
 from nonebot.adapters.kaiheila import MessageSegment, Bot, Message
-from nonebot_plugin_pixivbot.global_context import context
+
 from nonebot_plugin_pixivbot.enums import BlockAction
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model.message import IllustMessageModel, IllustMessagesModel
 from nonebot_plugin_pixivbot.protocol_dep.postman import Postman as BasePostman, PostmanManager
-
 from .post_dest import PostDestination
 from ..utils.illust_card import make_illust_card
 
 
-@context.require(PostmanManager).register
-class Postman(BasePostman[int, int]):
-    @classmethod
-    def adapter(cls) -> str:
-        return "kaiheila"
+@context.register_singleton()
+class Postman(BasePostman[int, int], manager=PostmanManager):
+    adapter = "kaiheila"
 
     @staticmethod
     async def make_illust_msg(bot: Bot, model: IllustMessageModel) -> Optional[Message]:

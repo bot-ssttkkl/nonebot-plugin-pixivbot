@@ -52,11 +52,9 @@ class PostDestination(BasePostDestination[int, int]):
             return self._user_id
 
 
-@context.require(PostDestinationFactoryManager).register
-class PostDestinationFactory(BasePostDestinationFactory[int, int]):
-    @classmethod
-    def adapter(cls) -> str:
-        return "telegram"
+@context.register_singleton()
+class PostDestinationFactory(BasePostDestinationFactory[int, int], manager=PostDestinationFactoryManager):
+    adapter = "telegram"
 
     def build(self, bot: Bot,
               user_id: Optional[int],

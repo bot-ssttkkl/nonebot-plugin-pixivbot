@@ -1,28 +1,20 @@
-from abc import ABC, abstractmethod
+from abc import ABC, ABCMeta
 from typing import Dict, TypeVar, Generic, Type
 
 from nonebot_plugin_pixivbot.global_context import context
 
-
-class ProtocolDep(ABC):
-    @classmethod
-    @abstractmethod
-    def adapter(cls) -> str:
-        raise NotImplementedError()
-
-
-T = TypeVar("T", bound=ProtocolDep)
+T = TypeVar("T", bound="ProtocolDep", covariant=True)
 
 
 class ProtocolDepManager(Generic[T], ABC):
-    def __init__(self):
-        self.factories: Dict[str, Type[T]] = {}
+    factories: Dict[str, Type[T]] = {}
 
-    def register(self, cls: Type[T]):
-        self.factories[cls.adapter()] = cls
-        if cls not in context:
-            context.register_singleton()(cls)
-        return cls
+    @classmethod
+    def register(cls, type: Type[T]) -> Type[T]:
+        cls.factories[type.adapter] = type
+        if type not in context:
+            context.register_singleton()(type)
+        return type
 
     def require(self, adapter: str):
         t = self.factories.get(adapter, None)
@@ -32,6 +24,22 @@ class ProtocolDepManager(Generic[T], ABC):
 
     def __getitem__(self, adapter: str):
         return self.require(adapter)
+
+
+class ProtocolDepMeta(ABCMeta):
+    def __new__(mcs, *args, **kwargs):
+        manager = None
+        if 'manager' in kwargs:
+            manager = kwargs['manager']
+            del kwargs['manager']
+        cls = super().__new__(mcs, *args, **kwargs)
+        if manager:
+            manager.register(cls)
+        return cls
+
+
+class ProtocolDep(metaclass=ProtocolDepMeta):
+    adapter: str
 
 
 __all__ = ("ProtocolDep", "ProtocolDepManager")

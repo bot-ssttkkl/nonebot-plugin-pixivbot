@@ -81,11 +81,9 @@ class ChannelPostDestination(PostDestination):
         await self.bot.send_channel_msg(channel_id=self.channel_id, message=message, quote=self.quote_message_id)
 
 
-@context.require(PostDestinationFactoryManager).register
-class PostDestinationFactory(BasePostDestinationFactory[str, str]):
-    @classmethod
-    def adapter(cls) -> str:
-        return "kaiheila"
+@context.register_singleton()
+class PostDestinationFactory(BasePostDestinationFactory[str, str], manager=PostDestinationFactoryManager):
+    adapter = "kaiheila"
 
     def build(self, bot: Bot,
               user_id: Optional[str],

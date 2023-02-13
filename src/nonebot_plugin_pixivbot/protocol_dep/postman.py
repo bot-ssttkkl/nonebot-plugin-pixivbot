@@ -3,7 +3,7 @@ from typing import Generic
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
-from nonebot_plugin_pixivbot.model.message import IllustMessageModel, IllustMessagesModel
+from nonebot_plugin_pixivbot.model.message import IllustMessagesModel
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.protocol_dep.protocol_dep import ProtocolDep, ProtocolDepManager
 

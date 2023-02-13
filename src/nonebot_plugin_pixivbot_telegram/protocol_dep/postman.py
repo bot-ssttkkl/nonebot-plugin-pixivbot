@@ -1,17 +1,15 @@
 from io import StringIO
 
-from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.enums import BlockAction
+from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model.message import IllustMessageModel, IllustMessagesModel
 from nonebot_plugin_pixivbot.protocol_dep.postman import Postman as BasePostman, PostmanManager
 from .post_dest import PostDestination
 
 
-@context.require(PostmanManager).register
-class Postman(BasePostman[int, int]):
-    @classmethod
-    def adapter(cls) -> str:
-        return "telegram"
+@context.register_singleton()
+class Postman(BasePostman[int, int], manager=PostmanManager):
+    adapter = "telegram"
 
     async def send_plain_text(self, message: str,
                               *, post_dest: PostDestination):

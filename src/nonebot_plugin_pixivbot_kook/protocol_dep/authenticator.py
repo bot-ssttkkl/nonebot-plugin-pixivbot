@@ -128,12 +128,9 @@ if conf.pixiv_kook_admin_permission_cache_ttl > 0:
         get_user_permissions)
 
 
-@context.require(AuthenticatorManager).register
-class Authenticator(BaseAuthenticator):
-
-    @classmethod
-    def adapter(cls) -> str:
-        return "kaiheila"
+@context.register_singleton()
+class Authenticator(BaseAuthenticator, manager=AuthenticatorManager):
+    adapter = "kaiheila"
 
     async def group_admin(self, post_dest: PostDestination) -> bool:
         if conf.pixiv_kook_admin_strategy == KookAdminStrategy.everyone:

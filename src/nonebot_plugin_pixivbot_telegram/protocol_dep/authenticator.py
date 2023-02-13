@@ -42,11 +42,9 @@ if conf.pixiv_telegram_admin_permission_cache_ttl > 0:
     get_chat_admin = cached(TTLCache(maxsize=128, ttl=conf.pixiv_telegram_admin_permission_cache_ttl))(get_chat_admin)
 
 
-@context.require(AuthenticatorManager).register
-class Authenticator(BaseAuthenticator):
-    @classmethod
-    def adapter(cls) -> str:
-        return "telegram"
+@context.register_singleton()
+class Authenticator(BaseAuthenticator, manager=AuthenticatorManager):
+    adapter = "telegram"
 
     async def group_admin(self, post_dest: PostDestination) -> bool:
         admins = await get_chat_admin(post_dest.bot.self_id, post_dest.chat_id)

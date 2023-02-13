@@ -12,13 +12,11 @@ from nonebot_plugin_pixivbot_onebot_v11.protocol_dep.post_dest import PostDestin
 
 
 @context.inject
-@context.require(PostmanManager).register
-class Postman(BasePostman[int, int]):
+@context.register_singleton()
+class Postman(BasePostman[int, int], manager=PostmanManager):
     conf: OnebotV11Config = Inject(OnebotV11Config)
 
-    @classmethod
-    def adapter(cls) -> str:
-        return "onebot"
+    adapter = "onebot"
 
     def make_illust_msg(self, model: IllustMessageModel) -> Message:
         msg = Message()

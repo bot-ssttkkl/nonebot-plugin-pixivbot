@@ -97,11 +97,9 @@ class PostDestination(BasePostDestination[int, int]):
             )
 
 
-@context.require(PostDestinationFactoryManager).register
-class PostDestinationFactory(BasePostDestinationFactory[int, int]):
-    @classmethod
-    def adapter(cls) -> str:
-        return "onebot"
+@context.register_singleton()
+class PostDestinationFactory(BasePostDestinationFactory[int, int], manager=PostDestinationFactoryManager):
+    adapter = "onebot"
 
     def build(self, bot: Bot, user_id: Optional[int], group_id: Optional[int]) -> PostDestination:
         return PostDestination(bot, user_id, group_id)
