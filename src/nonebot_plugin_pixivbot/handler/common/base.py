@@ -6,6 +6,7 @@ from ..base import MatcherEntryHandler
 from ..interceptor.cooldown_interceptor import CooldownInterceptor
 from ..interceptor.loading_prompt_interceptor import LoadingPromptInterceptor
 from ..interceptor.record_req_interceptor import RecordReqInterceptor
+from ..interceptor.retry_interceptor import RetryInterceptor
 from ..interceptor.timeout_interceptor import TimeoutInterceptor
 from ..pkg_context import context
 
@@ -18,6 +19,7 @@ class CommonHandler(MatcherEntryHandler, ABC):
         super().__init__()
         self.add_interceptor(context.require(CooldownInterceptor))
         self.add_interceptor(context.require(TimeoutInterceptor))
+        self.add_interceptor(context.require(RetryInterceptor))
         self.add_interceptor(context.require(LoadingPromptInterceptor))
 
 

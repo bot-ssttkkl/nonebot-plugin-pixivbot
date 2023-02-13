@@ -1,11 +1,9 @@
-import asyncio
 from asyncio import sleep, create_task, CancelledError, Semaphore, Task
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from io import BytesIO
 from typing import TypeVar, Optional, Awaitable, List, Callable, Tuple, AsyncGenerator, Union
 
-from aiohttp import ServerConnectionError
 from nonebot import logger
 from pixivpy_async import *
 from pixivpy_async.error import TokenError
@@ -15,15 +13,12 @@ from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Illust, User, UserPreview
-from nonebot_plugin_pixivbot.utils.auto_retry import auto_retry
 from nonebot_plugin_pixivbot.utils.errors import QueryError, RateLimitError
 from nonebot_plugin_pixivbot.utils.lifecycler import on_startup, on_shutdown
 from .base import PixivRepo
 from .compressor import Compressor
 from .lazy_illust import LazyIllust
 from .models import PixivRepoMetadata
-
-network_errors = (asyncio.TimeoutError, ServerConnectionError, ConnectionError)
 
 T = TypeVar("T")
 
@@ -209,7 +204,6 @@ class RemotePixivRepo(PixivRepo):
             else:
                 break
 
-    @auto_retry(network_errors)
     async def _get_illusts(self, papi_search_func: Callable[[], Awaitable[dict]],
                            *, block_tags: Optional[List[str]] = None,
                            min_bookmark: int = 0,
@@ -259,7 +253,6 @@ class RemotePixivRepo(PixivRepo):
         finally:
             logger.info(f"[remote] got {total} illusts, illust_detail of {broken} are missed")
 
-    @auto_retry(network_errors)
     async def _get_user_previews(self, papi_search_func: Callable[[], Awaitable[dict]],
                                  *, block_tags: Optional[List[str]] = None,
                                  **kwargs) \
@@ -281,7 +274,6 @@ class RemotePixivRepo(PixivRepo):
                 yield item
             yield metadata
 
-    @auto_retry(network_errors)
     async def _get_users(self, papi_search_func: Callable[[], Awaitable[dict]], **kwargs) \
             -> AsyncGenerator[Union[PixivRepoMetadata, User], None]:
         yield PixivRepoMetadata(pages=0, next_qs=kwargs)
@@ -291,7 +283,6 @@ class RemotePixivRepo(PixivRepo):
                 yield item
             yield metadata
 
-    @auto_retry(network_errors)
     async def _raw_illust_detail(self, illust_id: int, **kwargs) -> dict:
         async with self._query():
             raw_result = await self._papi.illust_detail(illust_id, **kwargs)
@@ -304,7 +295,6 @@ class RemotePixivRepo(PixivRepo):
         yield PixivRepoMetadata()
         yield Illust.parse_obj(raw_result["illust"])
 
-    @auto_retry(network_errors)
     async def _raw_user_detail(self, user_id: int, **kwargs) -> dict:
         async with self._query():
             raw_result = await self._papi.user_detail(user_id, **kwargs)
@@ -410,7 +400,6 @@ class RemotePixivRepo(PixivRepo):
                                  block_tags=self._conf.pixiv_block_tags,
                                  mode=mode.name, **kwargs)
 
-    @auto_retry(network_errors)
     async def _raw_image(self, illust: Illust, page: int, **kwargs) -> bytes:
         custom_domain = self._conf.pixiv_download_custom_domain
 
