@@ -31,8 +31,8 @@ T = TypeVar("T")
 @context.inject
 @context.register_eager_singleton()
 class RemotePixivRepo(PixivRepo):
-    _conf = Inject(Config)
-    _compressor = Inject(Compressor)
+    _conf: Config = Inject(Config)
+    _compressor: Compressor = Inject(Compressor)
 
     # noinspection PyTypeChecker
     def __init__(self):
@@ -102,7 +102,7 @@ class RemotePixivRepo(PixivRepo):
                 await sleep(60)
 
     def start(self):
-        self._pclient = PixivClient(proxy=self._conf.pixiv_proxy)
+        self._pclient = PixivClient(proxy=self._conf.pixiv_proxy, timeout=self._conf.pixiv_query_timeout)
         self._papi = AppPixivAPI(client=self._pclient.start())
         self._papi.set_additional_headers({'Accept-Language': 'zh-CN'})
         self._refresh_daemon = create_task(self._refresh_daemon_worker())
