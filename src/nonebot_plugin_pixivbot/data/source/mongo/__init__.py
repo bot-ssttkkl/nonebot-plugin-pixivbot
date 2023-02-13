@@ -6,6 +6,7 @@ from beanie import init_beanie, Document
 from bson import CodecOptions
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from nonebot import logger
+from pydantic.main import ModelMetaclass
 from pymongo import IndexModel
 from pymongo.errors import OperationFailure
 
@@ -23,13 +24,13 @@ class MongoDataSource(DataSourceLifecycleMixin):
     conf = Inject(Config)
     app_db_version = 7
 
+    document_models: List[Type[Document]] = []
+
     def __init__(self):
         super().__init__()
 
         self._client = None
         self._db = None
-
-        self.document_models: List[Type[Document]] = []
 
         on_startup(replay=True)(self.initialize)
         on_shutdown()(self.close)
@@ -60,7 +61,6 @@ class MongoDataSource(DataSourceLifecycleMixin):
                 return 1
             else:
                 return version["value"]
-
 
     async def _raw_set_db_version(self, db: AsyncIOMotorDatabase, db_version: int):
         await db["meta_info"].update_one({"key": "db_version"},
@@ -144,8 +144,19 @@ class MongoDataSource(DataSourceLifecycleMixin):
         session.end_session()
 
 
+class MongoDocumentMeta(ModelMetaclass):
+    def __new__(mcs, name, bases, namespace, **kwargs):
+        cls = super().__new__(mcs, name, bases, namespace, **kwargs)
+        MongoDataSource.document_models.append(cls)
+        return cls
+
+
+class MongoDocument(Document, metaclass=MongoDocumentMeta):
+    pass
+
+
 conf = context.require(Config)
 if conf.pixiv_data_source == DataSourceType.mongo:
     context.register_eager_singleton()(MongoDataSource)
 
-__all__ = ("MongoDataSource",)
+__all__ = ("MongoDataSource", "MongoDocument")

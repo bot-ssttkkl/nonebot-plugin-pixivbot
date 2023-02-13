@@ -1,25 +1,21 @@
 from typing import Optional, Any, AsyncGenerator, Collection
 
-from beanie import Document
 from pymongo import IndexModel, DeleteOne
 
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier, T_UID, T_GID, UserIdentifier
 from ..interval_task_repo import process_subscriber
-from ..source.mongo import MongoDataSource
+from ..source.mongo import MongoDataSource, MongoDocument
 from ..utils.shortuuid import gen_code
 
 
-class SubscriptionDocument(Subscription[Any, Any], Document):
+class SubscriptionDocument(Subscription[Any, Any], MongoDocument):
     class Settings:
         name = "subscription"
         indexes = [
             IndexModel([("bot", 1), ("subscriber", 1), ("code", 1)], unique=True)
         ]
-
-
-context.require(MongoDataSource).document_models.append(SubscriptionDocument)
 
 
 @context.inject
@@ -28,7 +24,8 @@ class MongoSubscriptionRepo:
     data_source: MongoDataSource = Inject(MongoDataSource)
 
     async def get_by_subscriber(self, bot: UserIdentifier[T_UID],
-                                subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncGenerator[Subscription[T_UID, T_GID], None]:
+                                subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncGenerator[
+        Subscription[T_UID, T_GID], None]:
         subscriber = process_subscriber(subscriber)
         async with self.data_source.start_session() as session:
             async for doc in SubscriptionDocument.find(

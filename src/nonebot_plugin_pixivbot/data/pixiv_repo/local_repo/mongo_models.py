@@ -1,6 +1,5 @@
 from typing import List
 
-from beanie import Document
 from beanie.odm.interfaces.aggregate import AggregateInterface
 from beanie.odm.interfaces.find import FindInterface
 from beanie.odm.interfaces.getters import OtherGettersInterface
@@ -12,7 +11,7 @@ from nonebot_plugin_pixivbot.data.pixiv_repo.models import PixivRepoMetadata
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Illust, User
-from ...source.mongo import MongoDataSource
+from ...source.mongo import MongoDataSource, MongoDocument
 
 conf = context.require(Config)
 
@@ -32,7 +31,7 @@ class UserSetCache(PixivRepoCache):
     user_id: List[int]
 
 
-class DownloadCache(Document, PixivRepoCache):
+class DownloadCache(MongoDocument, PixivRepoCache):
     illust_id: int
     page: int
     content: bytes
@@ -45,7 +44,7 @@ class DownloadCache(Document, PixivRepoCache):
         ]
 
 
-class IllustDetailCache(Document, PixivRepoCache):
+class IllustDetailCache(MongoDocument, PixivRepoCache):
     illust: Illust
 
     class Settings:
@@ -56,7 +55,7 @@ class IllustDetailCache(Document, PixivRepoCache):
         ]
 
 
-class IllustRankingCache(Document, IllustSetCache):
+class IllustRankingCache(MongoDocument, IllustSetCache):
     mode: RankingMode
 
     class Settings:
@@ -67,7 +66,7 @@ class IllustRankingCache(Document, IllustSetCache):
         ]
 
 
-class OtherIllustCache(Document, IllustSetCache):
+class OtherIllustCache(MongoDocument, IllustSetCache):
     type: str
 
     class Settings:
@@ -78,7 +77,7 @@ class OtherIllustCache(Document, IllustSetCache):
         ]
 
 
-class RelatedIllustsCache(Document, IllustSetCache):
+class RelatedIllustsCache(MongoDocument, IllustSetCache):
     original_illust_id: int
 
     class Settings:
@@ -89,7 +88,7 @@ class RelatedIllustsCache(Document, IllustSetCache):
         ]
 
 
-class SearchIllustCache(Document, IllustSetCache):
+class SearchIllustCache(MongoDocument, IllustSetCache):
     word: str
 
     class Settings:
@@ -100,7 +99,7 @@ class SearchIllustCache(Document, IllustSetCache):
         ]
 
 
-class SearchUserCache(Document, UserSetCache):
+class SearchUserCache(MongoDocument, UserSetCache):
     word: str
 
     class Settings:
@@ -111,7 +110,7 @@ class SearchUserCache(Document, UserSetCache):
         ]
 
 
-class UserBookmarksCache(Document, IllustSetCache):
+class UserBookmarksCache(MongoDocument, IllustSetCache):
     user_id: int
 
     class Settings:
@@ -122,7 +121,7 @@ class UserBookmarksCache(Document, IllustSetCache):
         ]
 
 
-class UserDetailCache(Document, PixivRepoCache):
+class UserDetailCache(MongoDocument, PixivRepoCache):
     user: User
 
     class Settings:
@@ -133,7 +132,7 @@ class UserDetailCache(Document, PixivRepoCache):
         ]
 
 
-class UserIllustsCache(Document, IllustSetCache):
+class UserIllustsCache(MongoDocument, IllustSetCache):
     user_id: int
 
     class Settings:
@@ -143,12 +142,6 @@ class UserIllustsCache(Document, IllustSetCache):
             IndexModel([("metadata.update_time", 1)], expireAfterSeconds=conf.pixiv_user_illusts_cache_delete_in)
         ]
 
-
-context.require(MongoDataSource).document_models.extend([
-    DownloadCache, IllustDetailCache, IllustRankingCache, OtherIllustCache,
-    RelatedIllustsCache, SearchIllustCache, SearchUserCache,
-    UserBookmarksCache, UserDetailCache, UserIllustsCache
-])
 
 __all__ = ("PixivRepoCache", "IllustSetCache",
            "DownloadCache", "IllustDetailCache", "IllustRankingCache", "OtherIllustCache",

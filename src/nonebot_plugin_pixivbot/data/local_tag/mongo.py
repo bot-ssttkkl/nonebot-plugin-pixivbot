@@ -1,6 +1,5 @@
 from typing import Optional, Collection
 
-from beanie import Document
 from beanie.odm.operators.update.general import SetOnInsert
 from nonebot import logger
 from pymongo import *
@@ -8,19 +7,16 @@ from pymongo import *
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Tag, Illust
-from ..source.mongo import MongoDataSource
+from ..source.mongo import MongoDataSource, MongoDocument
 
 
-class LocalTag(Tag, Document):
+class LocalTag(Tag, MongoDocument):
     class Settings:
         name = "local_tags"
         indexes = [
             IndexModel([("name", 1)], unique=True),
             IndexModel([("translated_name", 1)])
         ]
-
-
-context.require(MongoDataSource).document_models.append(LocalTag)
 
 
 @context.inject
@@ -50,16 +46,16 @@ class MongoLocalTagRepo:
         async with self.data_source.start_session() as session:
             # BulkWriter存在bug，upsert不生效
             # https://github.com/roman-right/beanie/issues/224
-    
+
             opt = []
-    
+
             for tag in tags:
                 opt.append(UpdateOne(
                     {"name": tag.name},
                     {"$setOnInsert": {"translated_name": tag.translated_name}},
                     upsert=True
                 ))
-    
+
             if len(opt) != 0:
                 await LocalTag.get_motor_collection().bulk_write(opt, ordered=False, session=session)
                 logger.debug(f"[local_tag_repo] added {len(tags)} local tags")

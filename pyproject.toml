@@ -46,6 +46,8 @@ flake8 = "^5.0.4"
 nonebug = "^0.2.1"
 pytest-mock = "^3.10.0"
 pytest-cov = "^4.0.0"
+nonebot2 = {extras = ["websockets"], version = "^2.0.0rc3"}
+nonebot-adapter-kaiheila = "^0.1.0"
 
 [tool.poetry.extras]
 onebot = ["nonebot-adapter-onebot"]

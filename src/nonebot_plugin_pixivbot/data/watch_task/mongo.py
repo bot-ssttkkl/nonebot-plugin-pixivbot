@@ -1,6 +1,5 @@
 from typing import AsyncGenerator, Optional, Any, Collection
 
-from beanie import Document
 from pymongo import IndexModel, DeleteOne
 from pymongo.errors import DuplicateKeyError
 
@@ -8,20 +7,17 @@ from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import WatchTask, PostIdentifier, T_UID, T_GID, UserIdentifier
 from ..interval_task_repo import process_subscriber
-from ..source.mongo import MongoDataSource
+from ..source.mongo import MongoDataSource, MongoDocument
 from ..utils.shortuuid import gen_code
 
 
-class WatchTaskDocument(WatchTask[Any, Any], Document):
+class WatchTaskDocument(WatchTask[Any, Any], MongoDocument):
     class Settings:
         name = "watch_task"
         indexes = [
             IndexModel([("bot", 1), ("subscriber", 1), ("code", 1)], unique=True),
             IndexModel([("bot", 1), ("subscriber", 1), ("type", 1), ("kwargs", 1)], unique=True)
         ]
-
-
-context.require(MongoDataSource).document_models.append(WatchTaskDocument)
 
 
 @context.inject
