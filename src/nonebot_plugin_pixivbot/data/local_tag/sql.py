@@ -10,7 +10,7 @@ from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Tag, Illust
 
 
-@context.require(SqlDataSource).registry.mapped
+@SqlDataSource.registry.mapped
 class LocalTag:
     __tablename__ = "local_tag"
 

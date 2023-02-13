@@ -6,10 +6,9 @@ from sqlalchemy.orm import relationship
 
 from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
 from nonebot_plugin_pixivbot.data.utils.sql import BLOB, JSON, UTCDateTime
-from nonebot_plugin_pixivbot.global_context import context
 
 
-@context.require(SqlDataSource).registry.mapped
+@SqlDataSource.registry.mapped
 class DownloadCache:
     __tablename__ = "download_cache"
 
@@ -20,7 +19,7 @@ class DownloadCache:
     update_time: datetime = Column(UTCDateTime, nullable=False, index=True)
 
 
-@context.require(SqlDataSource).registry.mapped
+@SqlDataSource.registry.mapped
 class IllustDetailCache:
     __tablename__ = "illust_detail_cache"
 
@@ -30,7 +29,7 @@ class IllustDetailCache:
     update_time: datetime = Column(UTCDateTime, nullable=False, index=True)
 
 
-@context.require(SqlDataSource).registry.mapped
+@SqlDataSource.registry.mapped
 class UserDetailCache:
     __tablename__ = "user_detail_cache"
 
@@ -40,7 +39,7 @@ class UserDetailCache:
     update_time: datetime = Column(UTCDateTime, nullable=False, index=True)
 
 
-@context.require(SqlDataSource).registry.mapped
+@SqlDataSource.registry.mapped
 class IllustSetCache:
     __tablename__ = "illust_set_cache"
 
@@ -64,7 +63,7 @@ class IllustSetCache:
     )
 
 
-@context.require(SqlDataSource).registry.mapped
+@SqlDataSource.registry.mapped
 class IllustSetCacheIllust:
     __tablename__ = "illust_set_cache_illust"
 
@@ -74,7 +73,7 @@ class IllustSetCacheIllust:
     rank: int = Column(Integer, nullable=False, default=0)
 
 
-@context.require(SqlDataSource).registry.mapped
+@SqlDataSource.registry.mapped
 class UserSetCache:
     __tablename__ = "user_set_cache"
 
@@ -96,7 +95,7 @@ class UserSetCache:
     )
 
 
-@context.require(SqlDataSource).registry.mapped
+@SqlDataSource.registry.mapped
 class UserSetCacheUser:
     __tablename__ = "user_set_cache_user"
 

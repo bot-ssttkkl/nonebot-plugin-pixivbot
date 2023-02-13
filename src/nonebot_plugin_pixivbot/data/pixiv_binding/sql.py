@@ -9,7 +9,7 @@ from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import PixivBinding, T_UID
 
 
-@context.require(SqlDataSource).registry.mapped
+@SqlDataSource.registry.mapped
 class PixivBindingOrm:
     __tablename__ = "pixiv_binding"
 

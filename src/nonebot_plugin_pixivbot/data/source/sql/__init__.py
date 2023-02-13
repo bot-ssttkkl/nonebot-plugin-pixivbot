@@ -30,15 +30,15 @@ def json_serializer(obj):
 @context.inject
 class SqlDataSource(DataSourceLifecycleMixin):
     conf: Config = Inject(Config)
+
     app_db_version = 4
+    registry = registry()
 
     def __init__(self):
         super().__init__()
 
         self._engine = None
         self._sessionmaker = None
-
-        self._registry = registry()
 
         on_startup(replay=True)(self.initialize)
         on_shutdown()(self.close)
@@ -104,7 +104,7 @@ class SqlDataSource(DataSourceLifecycleMixin):
             db_version = await self._raw_get_db_version()
             await mig_mgr.perform_migration(conn, db_version, self.app_db_version)
 
-            await conn.run_sync(lambda conn: self._registry.metadata.create_all(conn))
+            await conn.run_sync(lambda conn: self.registry.metadata.create_all(conn))
 
         # expire_on_commit=False will prevent attributes from being expired
         # after commit.
@@ -136,10 +136,6 @@ class SqlDataSource(DataSourceLifecycleMixin):
         if self._engine is None:
             raise DataSourceNotReadyError()
         return self._engine
-
-    @property
-    def registry(self) -> registry:
-        return self._registry
 
 
 conf = context.require(Config)

@@ -12,7 +12,7 @@ from ..utils.shortuuid import gen_code
 from ..utils.sql import insert, JSON, UTCDateTime
 
 
-@context.require(SqlDataSource).registry.mapped
+@SqlDataSource.registry.mapped
 class WatchTaskOrm:
     __tablename__ = "watch_task"
 

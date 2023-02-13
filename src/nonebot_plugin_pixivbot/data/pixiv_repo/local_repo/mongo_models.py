@@ -11,7 +11,7 @@ from nonebot_plugin_pixivbot.data.pixiv_repo.models import PixivRepoMetadata
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Illust, User
-from ...source.mongo import MongoDataSource, MongoDocument
+from ...source.mongo import MongoDocument
 
 conf = context.require(Config)
 
