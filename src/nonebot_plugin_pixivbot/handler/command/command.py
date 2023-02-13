@@ -1,5 +1,5 @@
-from abc import ABC
-from typing import Type, Callable, Sequence
+from abc import ABCMeta, ABC
+from typing import Type, Sequence, Dict
 
 from lazy import lazy
 from nonebot import Bot, on_command
@@ -9,47 +9,20 @@ from nonebot.internal.matcher import Matcher
 from nonebot.internal.params import Depends
 from nonebot.typing import T_State
 
-from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from ..base import Handler, MatcherEntryHandler, post_destination
+from ..pkg_context import context
 from ..utils import get_command_rule
-
-
-class SubCommandHandler(Handler, ABC):
-    async def handle(self, *args,
-                     post_dest: PostDestination[T_UID, T_GID],
-                     silently: bool = False,
-                     disabled_interceptors: bool = False,
-                     **kwargs):
-        try:
-            await super().handle(*args, post_dest=post_dest, silently=silently,
-                                 disabled_interceptors=disabled_interceptors, **kwargs)
-        except BadRequestError as e:
-            await self.handle_bad_request(err=e, post_dest=post_dest, silently=silently)
-
-    async def handle_bad_request(self, err: BadRequestError, *,
-                                 post_dest: PostDestination[T_UID, T_GID],
-                                 silently: bool = False):
-        if self.interceptor is not None:
-            await self.interceptor.intercept(self.actual_handle_bad_request, err,
-                                             post_dest=post_dest, silently=silently)
-        else:
-            await self.actual_handle_bad_request(err, post_dest=post_dest, silently=silently)
-
-    async def actual_handle_bad_request(self, err: BadRequestError, *,
-                                        post_dest: PostDestination[T_UID, T_GID],
-                                        silently: bool = False):
-        if not silently:
-            await self.post_plain_text(err.message, post_dest=post_dest)
 
 
 @context.root.register_eager_singleton()
 class CommandHandler(MatcherEntryHandler):
+    handlers: Dict[str, Type["SubCommandHandler"]] = dict()
+
     def __init__(self):
         super().__init__()
-        self.handlers = dict[str, Type[SubCommandHandler]]()
 
     @classmethod
     def type(cls) -> str:
@@ -87,16 +60,12 @@ class CommandHandler(MatcherEntryHandler):
         args = args[1:]
         await self.handle(*args, post_dest=post_dest)
 
-    def sub_command(self, type: str) \
-            -> Callable[[Type[SubCommandHandler]], Type[SubCommandHandler]]:
-        def decorator(cls: Type[SubCommandHandler]):
-            if cls not in context:
-                context.root.register_singleton()(cls)
-            self.handlers[type] = cls
-            logger.trace(f"registered subcommand {type}")
-            return cls
-
-        return decorator
+    @classmethod
+    def register(cls, subcommand: str, type: Type["SubCommandHandler"]):
+        if cls not in context:
+            context.root.register_singleton()(cls)
+        cls.handlers[subcommand] = type
+        logger.trace(f"registered subcommand {subcommand} for {type}")
 
     def parse_args(self, args: Sequence[str], post_dest: PostDestination[T_UID, T_GID]) -> dict:
         return {"args": args}
@@ -116,3 +85,46 @@ class CommandHandler(MatcherEntryHandler):
             handler = context.require(self.handlers[args[0]])
 
         await handler.handle(*args[1:], post_dest=post_dest)
+
+
+class SubCommandHandlerMeta(ABCMeta):
+    def __new__(mcs, *args, **kwargs):
+        subcommand = None
+        if 'subcommand' in kwargs:
+            subcommand = kwargs['subcommand']
+            del kwargs['subcommand']
+
+        cls = super().__new__(mcs, *args, **kwargs)
+
+        if subcommand:
+            CommandHandler.register(subcommand, cls)
+
+        return cls
+
+
+class SubCommandHandler(Handler, ABC, metaclass=SubCommandHandlerMeta):
+    async def handle(self, *args,
+                     post_dest: PostDestination[T_UID, T_GID],
+                     silently: bool = False,
+                     disabled_interceptors: bool = False,
+                     **kwargs):
+        try:
+            await super().handle(*args, post_dest=post_dest, silently=silently,
+                                 disabled_interceptors=disabled_interceptors, **kwargs)
+        except BadRequestError as e:
+            await self.handle_bad_request(err=e, post_dest=post_dest, silently=silently)
+
+    async def handle_bad_request(self, err: BadRequestError, *,
+                                 post_dest: PostDestination[T_UID, T_GID],
+                                 silently: bool = False):
+        if self.interceptor is not None:
+            await self.interceptor.intercept(self.actual_handle_bad_request, err,
+                                             post_dest=post_dest, silently=silently)
+        else:
+            await self.actual_handle_bad_request(err, post_dest=post_dest, silently=silently)
+
+    async def actual_handle_bad_request(self, err: BadRequestError, *,
+                                        post_dest: PostDestination[T_UID, T_GID],
+                                        silently: bool = False):
+        if not silently:
+            await self.post_plain_text(err.message, post_dest=post_dest)

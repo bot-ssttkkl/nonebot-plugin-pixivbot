@@ -6,14 +6,14 @@ from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import S
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.plugin_service import invalidate_cache_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
-from .command import SubCommandHandler, CommandHandler
+from .command import SubCommandHandler
 from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
 
 
 @context.inject
-@context.require(CommandHandler).sub_command("invalidate_cache")
-class InvalidateCacheHandler(SubCommandHandler):
+@context.register_singleton()
+class InvalidateCacheHandler(SubCommandHandler, subcommand='invalidate_cache'):
     repo = Inject(PixivRepo)
 
     def __init__(self):

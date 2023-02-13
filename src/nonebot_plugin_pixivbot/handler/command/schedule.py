@@ -34,8 +34,8 @@ async def build_subscriptions_msg(post_dest: PostDestination[T_UID, T_GID]):
 
 
 @context.inject
-@context.require(CommandHandler).sub_command("schedule")
-class ScheduleHandler(SubCommandHandler):
+@context.register_singleton()
+class ScheduleHandler(SubCommandHandler, subcommand='schedule'):
     scheduler: Scheduler = Inject(Scheduler)
 
     def __init__(self):
@@ -93,8 +93,8 @@ class ScheduleHandler(SubCommandHandler):
 
 
 @context.inject
-@context.require(CommandHandler).sub_command("unschedule")
-class UnscheduleHandler(SubCommandHandler):
+@context.register_singleton()
+class UnscheduleHandler(SubCommandHandler, subcommand='unschedule'):
     scheduler: Scheduler = Inject(Scheduler)
 
     def __init__(self):

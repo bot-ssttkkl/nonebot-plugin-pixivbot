@@ -4,13 +4,13 @@ from nonebot_plugin_pixivbot import help_text
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.plugin_service import help_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
-from .command import SubCommandHandler, CommandHandler
+from .command import SubCommandHandler
 from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
 
 
-@context.require(CommandHandler).sub_command("help")
-class HelpHandler(SubCommandHandler):
+@context.register_singleton()
+class HelpHandler(SubCommandHandler, subcommand='help'):
     def __init__(self):
         super().__init__()
         self.add_interceptor(ServiceInterceptor(help_service))

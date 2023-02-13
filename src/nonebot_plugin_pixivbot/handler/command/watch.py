@@ -11,7 +11,7 @@ from nonebot_plugin_pixivbot.service.pixiv_service import PixivService
 from nonebot_plugin_pixivbot.service.watchman import Watchman
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from nonebot_plugin_pixivbot.utils.nonebot import default_command_start
-from .command import CommandHandler, SubCommandHandler
+from .command import SubCommandHandler
 from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
 
@@ -71,8 +71,8 @@ async def parse_following_illusts_args(args: Sequence[str], post_dest: PostDesti
 
 
 @context.inject
-@context.require(CommandHandler).sub_command("watch")
-class WatchHandler(SubCommandHandler):
+@context.register_singleton()
+class WatchHandler(SubCommandHandler, subcommand='watch'):
     watchman: Watchman = Inject(Watchman)
 
     def __init__(self):
@@ -152,8 +152,8 @@ class WatchHandler(SubCommandHandler):
 
 
 @context.inject
-@context.require(CommandHandler).sub_command("unwatch")
-class UnwatchHandler(SubCommandHandler):
+@context.register_singleton()
+class UnwatchHandler(SubCommandHandler, subcommand='unwatch'):
     watchman: Watchman = Inject(Watchman)
 
     def __init__(self):

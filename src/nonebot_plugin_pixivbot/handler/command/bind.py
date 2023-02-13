@@ -13,8 +13,8 @@ from ..pkg_context import context
 
 
 @context.inject
-@context.require(CommandHandler).sub_command("bind")
-class BindHandler(SubCommandHandler):
+@context.register_singleton()
+class BindHandler(SubCommandHandler, subcommand='bind'):
     binder = Inject(PixivAccountBinder)
 
     def __init__(self):
@@ -63,8 +63,8 @@ class BindHandler(SubCommandHandler):
 
 
 @context.inject
-@context.require(CommandHandler).sub_command("unbind")
-class UnbindHandler(SubCommandHandler):
+@context.register_singleton()
+class UnbindHandler(SubCommandHandler, subcommand='unbind'):
     binder = Inject(PixivAccountBinder)
 
     def __init__(self):
