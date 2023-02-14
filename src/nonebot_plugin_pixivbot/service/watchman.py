@@ -42,7 +42,7 @@ class Watchman(IntervalTaskWorker[WatchTask[T_UID, T_GID]]):
 
     async def _handle_trigger(self, task: WatchTask[T_UID, T_GID], post_dest: PostDestination[T_UID, T_GID],
                               manually: bool = False):
-        if await receive_watch_service.get_permission(*post_dest.extract_subjects()):
+        if await receive_watch_service.check_by_subject(*post_dest.extract_subjects()):
             try:
                 await self._handlers[task.type].handle_with_parsed_args(post_dest=post_dest, silently=not manually,
                                                                         task=task, disabled_interceptors=manually)

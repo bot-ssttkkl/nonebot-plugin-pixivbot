@@ -170,6 +170,9 @@ class Config(BaseSettings):
 
     pixiv_watch_interval = 3600 * 2
 
+    access_control_reply_on_permission_denied: Optional[str]
+    access_control_reply_on_rate_limited: Optional[str]
+
     class Config:
         extra = "ignore"
 

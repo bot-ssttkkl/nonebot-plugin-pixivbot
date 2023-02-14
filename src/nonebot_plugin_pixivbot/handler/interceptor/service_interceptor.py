@@ -1,17 +1,42 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
+
+from nonebot import logger
+from nonebot_plugin_access_control.errors import PermissionDeniedError, RateLimitedError
 
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
-from .permission_interceptor import PermissionInterceptor
+from .base import Interceptor
+from ..pkg_context import context
+from ...config import Config
+from ...context import Inject
 
 if TYPE_CHECKING:
     from nonebot_plugin_access_control.service import Service
 
 
-class ServiceInterceptor(PermissionInterceptor):
+@context.inject
+class ServiceInterceptor(Interceptor):
+    conf: Config = Inject(Config)
+
     def __init__(self, service: "Service"):
         self.service = service
 
-    async def has_permission(self, post_dest: PostDestination[T_UID, T_GID]) -> bool:
+    async def intercept(self, wrapped_func: Callable, *args,
+                        post_dest: PostDestination[T_UID, T_GID],
+                        silently: bool,
+                        **kwargs):
+        reply = None
+
         subjects = post_dest.extract_subjects()
-        return await self.service.get_permission(*subjects)
+        try:
+            await self.service.check_by_subject(*subjects, throw_on_fail=True)
+            await wrapped_func(*args, post_dest=post_dest, silently=silently, **kwargs)
+        except PermissionDeniedError:
+            logger.debug(f"permission denied {post_dest}")
+            reply = self.conf.access_control_reply_on_permission_denied
+        except RateLimitedError:
+            logger.debug(f"rate limited {post_dest}")
+            reply = self.conf.access_control_reply_on_rate_limited
+
+        if not silently and reply:
+            await self.post_plain_text(reply, post_dest=post_dest)

@@ -53,8 +53,8 @@ class RandomUserIllustHandler(RecordCommonHandler):
                             count: int = 1,
                             post_dest: PostDestination[T_UID, T_GID],
                             silently: bool = False):
-        exclude_r18 = not await r18_service.get_permission(*post_dest.extract_subjects())
-        exclude_r18g = not await r18g_service.get_permission(*post_dest.extract_subjects())
+        exclude_r18 = not await r18_service.check_by_subject(*post_dest.extract_subjects())
+        exclude_r18g = not await r18g_service.check_by_subject(*post_dest.extract_subjects())
 
         userinfo, illusts = await self.service.random_user_illust(user, count=count,
                                                                   exclude_r18=exclude_r18,

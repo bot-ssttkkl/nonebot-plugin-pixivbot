@@ -77,7 +77,7 @@ class Scheduler(IntervalTaskWorker[Subscription[T_UID, T_GID]]):
         }
 
     async def _handle_trigger(self, sub: Subscription[T_UID, T_GID], post_dest: PostDestination[T_UID, T_GID]):
-        if await receive_schedule_service.get_permission(*post_dest.extract_subjects()):
+        if await receive_schedule_service.check_by_subject(*post_dest.extract_subjects()):
             await self._handlers[sub.type].handle_with_parsed_args(post_dest=post_dest, silently=True, **sub.kwargs)
         else:
             logger.info(f"[{self.tag}] permission denied")

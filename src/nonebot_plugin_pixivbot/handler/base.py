@@ -39,8 +39,8 @@ class Handler(ABC):
                           header: Optional[str] = None,
                           number: Optional[int] = None,
                           post_dest: PostDestination[T_UID, T_GID]):
-        block_r18 = not await r18_service.get_permission(*post_dest.extract_subjects())
-        block_r18g = not await r18g_service.get_permission(*post_dest.extract_subjects())
+        block_r18 = not await r18_service.check_by_subject(*post_dest.extract_subjects())
+        block_r18g = not await r18g_service.check_by_subject(*post_dest.extract_subjects())
 
         model = await IllustMessagesModel.from_illust(illust, header=header, number=number,
                                                       max_page=self.conf.pixiv_max_item_per_query,
@@ -52,8 +52,8 @@ class Handler(ABC):
                            header: Optional[str] = None,
                            number: Optional[int] = None,
                            post_dest: PostDestination[T_UID, T_GID]):
-        block_r18 = not await r18_service.get_permission(*post_dest.extract_subjects())
-        block_r18g = not await r18g_service.get_permission(*post_dest.extract_subjects())
+        block_r18 = not await r18_service.check_by_subject(*post_dest.extract_subjects())
+        block_r18g = not await r18g_service.check_by_subject(*post_dest.extract_subjects())
 
         if len(illusts) == 1:
             await self.post_illust(illusts[0], header=header, number=number, post_dest=post_dest)

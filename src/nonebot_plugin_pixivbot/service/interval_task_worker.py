@@ -28,11 +28,7 @@ class IntervalTaskWorker(ABC, Generic[T]):
     pd_factory_mgr: PostDestinationFactoryManager = Inject(PostDestinationFactoryManager)
     auth_mgr: AuthenticatorManager = Inject(AuthenticatorManager)
 
-    def __init__(self, pd_factory_mgr: PostDestinationFactoryManager,
-                 auth_mgr: AuthenticatorManager):
-        self.pd_factory_mgr = pd_factory_mgr
-        self.auth_mgr = auth_mgr
-
+    def __init__(self):
         @on_bot_connect(replay=True)
         async def _(bot: Bot):
             async for task in self.repo.get_by_bot(get_bot_user_identifier(bot)):
@@ -100,7 +96,7 @@ class IntervalTaskWorker(ABC, Generic[T]):
         apscheduler.remove_job(job_id)
         logger.success(f"[{self.tag}] removed job \"{item}\"")
 
-    async def _get_permission(self, item: T) -> bool:
+    async def _check_by_subject(self, item: T) -> bool:
         ...
 
     async def _build_task(self, *args, **kwargs) -> T:

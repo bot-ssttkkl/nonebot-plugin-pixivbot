@@ -72,8 +72,8 @@ class RandomBookmarkHandler(RecordCommonHandler):
         if not pixiv_user_id:
             raise BadRequestError("无效的Pixiv账号，或未绑定Pixiv账号")
 
-        exclude_r18 = not await r18_service.get_permission(*post_dest.extract_subjects())
-        exclude_r18g = not await r18g_service.get_permission(*post_dest.extract_subjects())
+        exclude_r18 = not await r18_service.check_by_subject(*post_dest.extract_subjects())
+        exclude_r18g = not await r18g_service.check_by_subject(*post_dest.extract_subjects())
 
         illusts = await self.service.random_bookmark(pixiv_user_id, count=count,
                                                      exclude_r18=exclude_r18,
