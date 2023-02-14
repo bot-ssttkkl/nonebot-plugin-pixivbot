@@ -13,6 +13,7 @@ from nonebot_plugin_pixivbot.plugin_service import random_user_illust_service, r
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .base import RecordCommonHandler
 from ..base import post_destination
+from ..interceptor.record_req_interceptor import RecordReqInterceptor
 from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
 from ..utils import get_common_query_rule, get_count
@@ -22,7 +23,7 @@ from ..utils import get_common_query_rule, get_count
 class RandomUserIllustHandler(RecordCommonHandler):
     def __init__(self):
         super().__init__()
-        self.add_interceptor(ServiceInterceptor(random_user_illust_service))
+        self.add_interceptor(ServiceInterceptor(random_user_illust_service), before=RecordReqInterceptor)
 
     @classmethod
     def type(cls) -> str:
@@ -53,8 +54,10 @@ class RandomUserIllustHandler(RecordCommonHandler):
                             count: int = 1,
                             post_dest: PostDestination[T_UID, T_GID],
                             silently: bool = False):
-        exclude_r18 = not await r18_service.check_by_subject(*post_dest.extract_subjects())
-        exclude_r18g = not await r18g_service.check_by_subject(*post_dest.extract_subjects())
+        exclude_r18 = not await r18_service.check_by_subject(*post_dest.extract_subjects(),
+                                                             acquire_rate_limit_token=False)
+        exclude_r18g = not await r18g_service.check_by_subject(*post_dest.extract_subjects(),
+                                                               acquire_rate_limit_token=False)
 
         userinfo, illusts = await self.service.random_user_illust(user, count=count,
                                                                   exclude_r18=exclude_r18,

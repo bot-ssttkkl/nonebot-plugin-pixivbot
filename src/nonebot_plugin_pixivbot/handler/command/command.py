@@ -106,11 +106,11 @@ class SubCommandHandler(Handler, ABC, metaclass=SubCommandHandlerMeta):
     async def handle(self, *args,
                      post_dest: PostDestination[T_UID, T_GID],
                      silently: bool = False,
-                     disabled_interceptors: bool = False,
+                     disable_interceptors: bool = False,
                      **kwargs):
         try:
             await super().handle(*args, post_dest=post_dest, silently=silently,
-                                 disabled_interceptors=disabled_interceptors, **kwargs)
+                                 disable_interceptors=disable_interceptors, **kwargs)
         except BadRequestError as e:
             await self.handle_bad_request(err=e, post_dest=post_dest, silently=silently)
 

@@ -3,6 +3,7 @@ from inspect import isawaitable
 from typing import Awaitable, Union, Sequence, Optional
 from typing import Type
 
+from nonebot import logger
 from nonebot.adapters import Bot, Event
 from nonebot.internal.params import Depends
 from nonebot.matcher import Matcher
@@ -39,8 +40,10 @@ class Handler(ABC):
                           header: Optional[str] = None,
                           number: Optional[int] = None,
                           post_dest: PostDestination[T_UID, T_GID]):
-        block_r18 = not await r18_service.check_by_subject(*post_dest.extract_subjects())
-        block_r18g = not await r18g_service.check_by_subject(*post_dest.extract_subjects())
+        block_r18 = not await r18_service.check_by_subject(*post_dest.extract_subjects(),
+                                                           acquire_rate_limit_token=False)
+        block_r18g = not await r18g_service.check_by_subject(*post_dest.extract_subjects(),
+                                                             acquire_rate_limit_token=False)
 
         model = await IllustMessagesModel.from_illust(illust, header=header, number=number,
                                                       max_page=self.conf.pixiv_max_item_per_query,
@@ -84,12 +87,12 @@ class Handler(ABC):
     async def handle(self, *args,
                      post_dest: PostDestination[T_UID, T_GID],
                      silently: bool = False,
-                     disabled_interceptors: bool = False,
+                     disable_interceptors: bool = False,
                      **kwargs):
         if not self.enabled():
             return
 
-        if self.interceptor is not None and not disabled_interceptors:
+        if self.interceptor is not None and not disable_interceptors:
             await self.interceptor.intercept(self._parse_args_and_actual_handle, *args,
                                              post_dest=post_dest,
                                              silently=silently,
@@ -99,12 +102,12 @@ class Handler(ABC):
 
     async def handle_with_parsed_args(self, *, post_dest: PostDestination[T_UID, T_GID],
                                       silently: bool = False,
-                                      disabled_interceptors: bool = False,
+                                      disable_interceptors: bool = False,
                                       **kwargs):
         if not self.enabled():
             return
 
-        if self.interceptor is not None and not disabled_interceptors:
+        if self.interceptor is not None and not disable_interceptors:
             await self.interceptor.intercept(self.actual_handle,
                                              post_dest=post_dest,
                                              silently=silently,
@@ -135,12 +138,37 @@ class Handler(ABC):
         """
         raise NotImplementedError()
 
-    def add_interceptor(self, interceptor: Interceptor):
+    def add_interceptor(self, interceptor: Interceptor, before: Optional[Type[Interceptor]] = None):
+        """
+        添加一个拦截器
+
+        :param interceptor:
+        :param before: 指定添加到哪个拦截器之前，若该拦截器不存在则默认添加到末尾
+        :return:
+        """
         if self.interceptor:
-            self.interceptor = CombinedInterceptor(
-                self.interceptor, interceptor)
+            if before is None:
+                self.interceptor = CombinedInterceptor(self.interceptor, interceptor)
+            elif isinstance(self.interceptor, CombinedInterceptor):
+                itcps = list(self.interceptor.flat())
+                for i, itcp in enumerate(itcps):
+                    if isinstance(itcp, before):
+                        self.interceptor = CombinedInterceptor.from_iterable([
+                            *itcps[:i], interceptor, *itcps[i:]
+                        ])
+                        return
+
+                self.interceptor = CombinedInterceptor(self.interceptor, interceptor)
+                logger.warning("the interceptor specified by \'before\' argument was not found")
+            elif isinstance(self.interceptor, before):
+                self.interceptor = CombinedInterceptor(interceptor, self.interceptor)
+            else:
+                self.interceptor = CombinedInterceptor(self.interceptor, interceptor)
+                logger.warning("the interceptor specified by \'before\' argument was not found")
         else:
             self.interceptor = interceptor
+            if before is not None:
+                logger.warning("the interceptor specified by \'before\' argument was not found")
 
 
 def post_destination(bot: Bot, event: Event):

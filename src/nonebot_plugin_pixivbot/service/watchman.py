@@ -45,7 +45,7 @@ class Watchman(IntervalTaskWorker[WatchTask[T_UID, T_GID]]):
         if await receive_watch_service.check_by_subject(*post_dest.extract_subjects()):
             try:
                 await self._handlers[task.type].handle_with_parsed_args(post_dest=post_dest, silently=not manually,
-                                                                        task=task, disabled_interceptors=manually)
+                                                                        task=task, disable_interceptors=manually)
             finally:
                 # 保存checkpoint，避免一次异常后下一次重复推送
                 # 但是会存在丢失推送的问题

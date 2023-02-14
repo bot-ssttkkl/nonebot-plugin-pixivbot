@@ -15,6 +15,7 @@ from nonebot_plugin_pixivbot.service.pixiv_account_binder import PixivAccountBin
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .base import RecordCommonHandler
 from ..base import post_destination
+from ..interceptor.record_req_interceptor import RecordReqInterceptor
 from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
 from ..utils import get_common_query_rule, get_count, get_post_dest
@@ -27,7 +28,7 @@ class RandomBookmarkHandler(RecordCommonHandler):
 
     def __init__(self):
         super().__init__()
-        self.add_interceptor(ServiceInterceptor(random_bookmark_service))
+        self.add_interceptor(ServiceInterceptor(random_bookmark_service), before=RecordReqInterceptor)
 
     @classmethod
     def type(cls) -> str:
@@ -72,8 +73,10 @@ class RandomBookmarkHandler(RecordCommonHandler):
         if not pixiv_user_id:
             raise BadRequestError("无效的Pixiv账号，或未绑定Pixiv账号")
 
-        exclude_r18 = not await r18_service.check_by_subject(*post_dest.extract_subjects())
-        exclude_r18g = not await r18g_service.check_by_subject(*post_dest.extract_subjects())
+        exclude_r18 = not await r18_service.check_by_subject(*post_dest.extract_subjects(),
+                                                             acquire_rate_limit_token=False)
+        exclude_r18g = not await r18g_service.check_by_subject(*post_dest.extract_subjects(),
+                                                               acquire_rate_limit_token=False)
 
         illusts = await self.service.random_bookmark(pixiv_user_id, count=count,
                                                      exclude_r18=exclude_r18,

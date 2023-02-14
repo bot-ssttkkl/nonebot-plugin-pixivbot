@@ -23,6 +23,17 @@ class CombinedInterceptor(Interceptor):
             raise ValueError("interceptors has no element")
         return itcp
 
+    def flat(self) -> Iterable["Interceptor"]:
+        if isinstance(self.x, CombinedInterceptor):
+            yield from self.x.flat()
+        else:
+            yield self.x
+
+        if isinstance(self.y, CombinedInterceptor):
+            yield from self.y.flat()
+        else:
+            yield self.y
+
     def find(self, interceptor_type: Type[Interceptor]) -> Optional[Interceptor]:
         if isinstance(interceptor_type, CombinedInterceptor):
             raise ValueError("you are attempting to find a CombinedInterceptor")

@@ -469,17 +469,6 @@ optional = false
 python-versions = ">=3.7"
 
 [[package]]
-name = "injector"
-version = "0.20.1"
-description = "Injector - Python dependency injection framework, inspired by Guice"
-category = "main"
-optional = false
-python-versions = "*"
-
-[package.extras]
-dev = ["black", "check-manifest", "dataclasses", "mypy", "pytest", "pytest-cov (>=2.5.1)"]
-
-[[package]]
 name = "jinja2"
 version = "3.1.2"
 description = "A very fast and expressive template engine."
@@ -656,15 +645,17 @@ nonebot2 = ">=2.0.0b1,<3.0.0"
 
 [[package]]
 name = "nonebot-plugin-access-control"
-version = "0.2.3"
+version = "0.3.0"
 description = ""
 category = "main"
 optional = false
 python-versions = ">=3.9,<4.0"
 
 [package.dependencies]
+nonebot-plugin-apscheduler = ">=0.2.0,<0.3.0"
 nonebot-plugin-datastore = ">=0.4.0,<0.5.0"
 nonebot2 = ">=2.0.0rc2,<3.0.0"
+shortuuid = ">=1.0.11,<2.0.0"
 
 [[package]]
 name = "nonebot-plugin-apscheduler"
@@ -1038,7 +1029,7 @@ idna2008 = ["idna"]
 
 [[package]]
 name = "setuptools"
-version = "67.2.0"
+version = "67.3.1"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 category = "main"
 optional = false
@@ -1263,7 +1254,7 @@ telegram = ["nonebot-adapter-telegram"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "2bab1b0cb1789a564b26dbad07277d757d43e0700068ffc1bebf912a0d0c231e"
+content-hash = "b5ef14a4d34f327a77ef33e68f20f627b5f8293b1fd1fe565225b55bfb59a49f"
 
 [metadata.files]
 aiofiles = [
@@ -1820,10 +1811,6 @@ iniconfig = [
     {file = "iniconfig-2.0.0-py3-none-any.whl", hash = "sha256:b6a85871a79d2e3b22d2d1b94ac2824226a63c6b741c88f7ae975f18b6778374"},
     {file = "iniconfig-2.0.0.tar.gz", hash = "sha256:2d91e135bf72d31a410b17c16da610a82cb55f6b0477d1a902134b24a455b8b3"},
 ]
-injector = [
-    {file = "injector-0.20.1-py2.py3-none-any.whl", hash = "sha256:f8fc5994176a8cf6b0455a8d1558c588733474ef17795553464e7e9d2f94eaf5"},
-    {file = "injector-0.20.1.tar.gz", hash = "sha256:8661b49a2f8309ce61e3a6a82b7acb5e225c4bde8e17d1610c893a670dff223a"},
-]
 jinja2 = [
     {file = "Jinja2-3.1.2-py3-none-any.whl", hash = "sha256:6088930bfe239f0e6710546ab9c19c9ef35e29792895fed6e6e31a023a182a61"},
     {file = "Jinja2-3.1.2.tar.gz", hash = "sha256:31351a702a408a9e7595a8fc6150fc3f43bb6bf7e319770cbc0db9df9437e852"},
@@ -2051,8 +2038,7 @@ nonebot-adapter-telegram = [
     {file = "nonebot_adapter_telegram-0.1.0b8-py3-none-any.whl", hash = "sha256:7c4d23077a0f2188edea54f42a3b004f3eaf4a4832728a31524c3ca1c732d1d8"},
 ]
 nonebot-plugin-access-control = [
-    {file = "nonebot_plugin_access_control-0.2.3-py3-none-any.whl", hash = "sha256:f282f1893d619290fa3a6863a42abd30b869dd476ae8cff81d2531d52f0f8929"},
-    {file = "nonebot_plugin_access_control-0.2.3.tar.gz", hash = "sha256:e801dc70567ad79d7641901701c140d47abbc01390c3b0f05b59153d512763c6"},
+    {file = "nonebot_plugin_access_control-0.3.0-py3-none-any.whl", hash = "sha256:cb4f47f4a6e2514a046025f1b98c53e7405c37b6bec9f9c0153d33f4eeef0331"},
 ]
 nonebot-plugin-apscheduler = [
     {file = "nonebot-plugin-apscheduler-0.2.0.tar.gz", hash = "sha256:7b63e99a611b657533b48fcf1f8c6627c18c2eb3fa820a906cd4ec4666c0ceb0"},
@@ -2364,8 +2350,8 @@ rfc3986 = [
     {file = "rfc3986-1.5.0.tar.gz", hash = "sha256:270aaf10d87d0d4e095063c65bf3ddbc6ee3d0b226328ce21e036f946e421835"},
 ]
 setuptools = [
-    {file = "setuptools-67.2.0-py3-none-any.whl", hash = "sha256:16ccf598aab3b506593c17378473978908a2734d7336755a8769b480906bec1c"},
-    {file = "setuptools-67.2.0.tar.gz", hash = "sha256:b440ee5f7e607bb8c9de15259dba2583dd41a38879a7abc1d43a71c59524da48"},
+    {file = "setuptools-67.3.1-py3-none-any.whl", hash = "sha256:23c86b4e44432bfd8899384afc08872ec166a24f48a3f99f293b0a557e6a6b5d"},
+    {file = "setuptools-67.3.1.tar.gz", hash = "sha256:daec07fd848d80676694d6bf69c009d28910aeece68a38dbe88b7e1bb6dba12e"},
 ]
 shortuuid = [
     {file = "shortuuid-1.0.11-py3-none-any.whl", hash = "sha256:27ea8f28b1bd0bf8f15057a3ece57275d2059d2b0bb02854f02189962c13b6aa"},
