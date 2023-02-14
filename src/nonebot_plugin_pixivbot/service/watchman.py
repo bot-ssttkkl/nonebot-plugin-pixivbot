@@ -24,7 +24,6 @@ from nonebot_plugin_pixivbot.utils.nonebot import get_bot_user_identifier
 @context.inject
 class Watchman(IntervalTaskWorker[WatchTask[T_UID, T_GID]]):
     tag = "watchman"
-    repo_type = WatchTaskRepo
 
     conf = Inject(Config)
     binder = Inject(PixivAccountBinder)

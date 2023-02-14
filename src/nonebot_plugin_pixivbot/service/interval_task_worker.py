@@ -23,13 +23,16 @@ T = TypeVar("T", bound=IntervalTask)
 @context.inject
 class IntervalTaskWorker(ABC, Generic[T]):
     tag: str = ""
+    repo: IntervalTaskRepo[T]
 
     pd_factory_mgr: PostDestinationFactoryManager = Inject(PostDestinationFactoryManager)
     auth_mgr: AuthenticatorManager = Inject(AuthenticatorManager)
 
-    repo: IntervalTaskRepo[T]
+    def __init__(self, pd_factory_mgr: PostDestinationFactoryManager,
+                 auth_mgr: AuthenticatorManager):
+        self.pd_factory_mgr = pd_factory_mgr
+        self.auth_mgr = auth_mgr
 
-    def __init__(self):
         @on_bot_connect(replay=True)
         async def _(bot: Bot):
             async for task in self.repo.get_by_bot(get_bot_user_identifier(bot)):
@@ -73,7 +76,7 @@ class IntervalTaskWorker(ABC, Generic[T]):
 
             if not available:
                 logger.info(f"[{self.tag}] {post_dest} is no longer available, removing all his tasks...")
-                await self.unwatch_all_by_subscriber(post_dest.identifier)
+                await self.unschedule_all_by_subscriber(post_dest)
 
     @abstractmethod
     def _make_job_trigger(self, item: T) -> BaseTrigger:
