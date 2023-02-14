@@ -2,17 +2,14 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, overload
 
 from apscheduler.triggers.interval import IntervalTrigger
-from nonebot import logger
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.watch_task import WatchTaskRepo
 from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.handler.watch.following_illusts import WatchFollowingIllustsHandler
-from nonebot_plugin_pixivbot.handler.watch.user_illusts import WatchUserIllustsHandler
+from nonebot_plugin_pixivbot.handler.base import Handler
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.model import WatchTask, WatchType
-from nonebot_plugin_pixivbot.plugin_service import receive_watch_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.protocol_dep.postman import PostmanManager
 from nonebot_plugin_pixivbot.service.interval_task_worker import IntervalTaskWorker
@@ -35,24 +32,25 @@ class Watchman(IntervalTaskWorker[WatchTask[T_UID, T_GID]]):
         WatchType.following_illusts: lambda args: hash(args["sender_user_id"]),
     }
 
-    _handlers = {
-        WatchType.user_illusts: context.require(WatchUserIllustsHandler),
-        WatchType.following_illusts: context.require(WatchFollowingIllustsHandler),
-    }
+    @classmethod
+    def _get_handler(cls, type: WatchType) -> Handler:
+        if type == WatchType.user_illusts:
+            from nonebot_plugin_pixivbot.handler.watch import WatchUserIllustsHandler
+            return context.require(WatchUserIllustsHandler)
+        elif type == WatchType.following_illusts:
+            from nonebot_plugin_pixivbot.handler.watch import WatchFollowingIllustsHandler
+            return context.require(WatchFollowingIllustsHandler)
 
     async def _handle_trigger(self, task: WatchTask[T_UID, T_GID], post_dest: PostDestination[T_UID, T_GID],
                               manually: bool = False):
-        if await receive_watch_service.check_by_subject(*post_dest.extract_subjects()):
-            try:
-                await self._handlers[task.type].handle_with_parsed_args(post_dest=post_dest, silently=not manually,
-                                                                        task=task, disable_interceptors=manually)
-            finally:
-                # 保存checkpoint，避免一次异常后下一次重复推送
-                # 但是会存在丢失推送的问题
-                task.checkpoint = datetime.now(timezone.utc)
-                await self.repo.update(task)
-        else:
-            logger.info(f"[{self.tag}] job cancelled")
+        try:
+            await self._get_handler(task.type).handle_with_parsed_args(post_dest=post_dest, silently=not manually,
+                                                                       task=task, disable_interceptors=manually)
+        finally:
+            # 保存checkpoint，避免一次异常后下一次重复推送
+            # 但是会存在丢失推送的问题
+            task.checkpoint = datetime.now(timezone.utc)
+            await self.repo.update(task)
 
     def _make_job_trigger(self, item: WatchTask[T_UID, T_GID]) -> IntervalTrigger:
         hasher = self._trigger_hasher_mapper[item.type]

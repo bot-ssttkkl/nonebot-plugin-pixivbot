@@ -18,8 +18,9 @@ if TYPE_CHECKING:
 class ServiceInterceptor(Interceptor):
     conf: Config = Inject(Config)
 
-    def __init__(self, service: "Service"):
+    def __init__(self, service: "Service", *, acquire_rate_limit_token: bool = True):
         self.service = service
+        self.acquire_rate_limit_token = acquire_rate_limit_token
 
     async def intercept(self, wrapped_func: Callable, *args,
                         post_dest: PostDestination[T_UID, T_GID],
@@ -29,7 +30,8 @@ class ServiceInterceptor(Interceptor):
 
         subjects = post_dest.extract_subjects()
         try:
-            await self.service.check_by_subject(*subjects, throw_on_fail=True)
+            await self.service.check_by_subject(*subjects, throw_on_fail=True,
+                                                acquire_rate_limit_token=self.acquire_rate_limit_token)
             await wrapped_func(*args, post_dest=post_dest, silently=silently, **kwargs)
         except PermissionDeniedError:
             logger.debug(f"permission denied {post_dest}")

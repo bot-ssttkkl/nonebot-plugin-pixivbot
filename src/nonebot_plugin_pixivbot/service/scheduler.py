@@ -3,12 +3,10 @@ from __future__ import annotations
 import re
 from datetime import datetime, timedelta
 from inspect import isawaitable
-from typing import Dict, Sequence, Union, TYPE_CHECKING, overload
+from typing import Sequence, Union, TYPE_CHECKING, overload
 
 import pytz
 from apscheduler.triggers.interval import IntervalTrigger
-from lazy import lazy
-from nonebot import logger
 
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.subscription import SubscriptionRepo
@@ -16,7 +14,6 @@ from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Subscription
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.model.subscription import ScheduleType
-from nonebot_plugin_pixivbot.plugin_service import receive_schedule_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.service.interval_task_worker import IntervalTaskWorker
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
@@ -63,24 +60,26 @@ class Scheduler(IntervalTaskWorker[Subscription[T_UID, T_GID]]):
     tag = "scheduler"
     repo: SubscriptionRepo = Inject(SubscriptionRepo)
 
-    @lazy
-    def _handlers(self) -> Dict[ScheduleType, Handler]:
-        # 解决Handler和Scheduler的循环引用
-        from nonebot_plugin_pixivbot.handler.common import RandomBookmarkHandler, RandomRecommendedIllustHandler, \
-            RankingHandler, RandomIllustHandler, RandomUserIllustHandler
-        return {
-            ScheduleType.random_bookmark: context.require(RandomBookmarkHandler),
-            ScheduleType.random_recommended_illust: context.require(RandomRecommendedIllustHandler),
-            ScheduleType.ranking: context.require(RankingHandler),
-            ScheduleType.random_illust: context.require(RandomIllustHandler),
-            ScheduleType.random_user_illust: context.require(RandomUserIllustHandler),
-        }
+    @classmethod
+    def _get_handler(cls, type: ScheduleType) -> Handler:
+        if type == ScheduleType.random_bookmark:
+            from nonebot_plugin_pixivbot.handler.schedule import SubscriptionRandomBookmarkHandler
+            return context.require(SubscriptionRandomBookmarkHandler)
+        elif type == ScheduleType.random_recommended_illust:
+            from nonebot_plugin_pixivbot.handler.schedule import SubscriptionRandomRecommendedIllustHandler
+            return context.require(SubscriptionRandomRecommendedIllustHandler)
+        elif type == ScheduleType.ranking:
+            from nonebot_plugin_pixivbot.handler.schedule import SubscriptionRankingHandler
+            return context.require(SubscriptionRankingHandler)
+        elif type == ScheduleType.random_illust:
+            from nonebot_plugin_pixivbot.handler.schedule import SubscriptionRandomIllustHandler
+            return context.require(SubscriptionRandomIllustHandler)
+        elif type == ScheduleType.random_user_illust:
+            from nonebot_plugin_pixivbot.handler.schedule import SubscriptionRandomUserIllustHandler
+            return context.require(SubscriptionRandomUserIllustHandler)
 
     async def _handle_trigger(self, sub: Subscription[T_UID, T_GID], post_dest: PostDestination[T_UID, T_GID]):
-        if await receive_schedule_service.check_by_subject(*post_dest.extract_subjects()):
-            await self._handlers[sub.type].handle_with_parsed_args(post_dest=post_dest, silently=True, **sub.kwargs)
-        else:
-            logger.info(f"[{self.tag}] permission denied")
+        await self._get_handler(sub.type).handle_with_parsed_args(post_dest=post_dest, silently=True, **sub.kwargs)
 
     def _make_job_trigger(self, item: Subscription[T_UID, T_GID]) -> IntervalTrigger:
         offset_hour, offset_minute, hours, minutes = item.schedule
@@ -101,7 +100,7 @@ class Scheduler(IntervalTaskWorker[Subscription[T_UID, T_GID]]):
         if isinstance(schedule, str):
             schedule = parse_schedule(schedule)
 
-        kwargs = self._handlers[type_].parse_args(args, post_dest)
+        kwargs = self._get_handler(type_).parse_args(args, post_dest)
         if isawaitable(kwargs):
             kwargs = await kwargs
 
