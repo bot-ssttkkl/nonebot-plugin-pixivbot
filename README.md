@@ -194,8 +194,6 @@ pixiv_download_custom_domain=None  # 使用反向代理下载插画的域名
 pixiv_query_to_me_only=False  # 只响应关于Bot的查询
 pixiv_command_to_me_only=False  # 只响应关于Bot的命令
 
-pixiv_query_cooldown=0  # 每次查询的冷却时间
-pixiv_no_query_cooldown_users=[]  # 在这个列表中的用户不受冷却时间的影响（JSON数组）
 pixiv_max_item_per_query=10  # 每个查询最多请求的插画数量
 
 pixiv_tag_translation_enabled=True  # 启用搜索关键字翻译功能（平时搜索时记录标签翻译，在查询时判断是否存在对应中日翻译）
@@ -204,6 +202,9 @@ pixiv_block_tags=[]  # 当插画含有指定tag时会被过滤
 pixiv_block_action=no_image  # 过滤时的动作，可选值：no_image(不显示插画，回复插画信息), completely_block(只回复过滤提示), no_reply(无回复)
 
 pixiv_watch_interval=7200  # 更新推送的查询间隔
+
+pixiv_query_cooldown=0  # （已废弃，推荐使用nonebot-plugin-access-control插件进行控制）每次查询的冷却时间
+pixiv_no_query_cooldown_users=[]  # （已废弃，推荐使用nonebot-plugin-access-control插件进行控制）在这个列表中的用户不受冷却时间的影响（JSON数组）
 
 # 插画压缩
 pixiv_compression_enabled=False  # 启用插画压缩
