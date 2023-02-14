@@ -161,7 +161,7 @@ nonebot_plugin_pixivbot
     └── g  （显示R-18G内容）
 ```
 
-譬如，超级用户可以通过发送`/ac subject all deny service nonebot_plugin_pixivbot.r18`全局拦截R-18。
+譬如，超级用户可以通过发送`/ac permission deny --srv nonebot_plugin_pixivbot.r18 --sbj all`全局拦截R-18。
 
 具体可以参考[nonebot-plugin-access-control](https://github.com/ssttkkl/nonebot-plugin-access-control)的文档进行权限控制。
 
