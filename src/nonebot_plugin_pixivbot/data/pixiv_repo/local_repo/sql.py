@@ -348,7 +348,7 @@ class SqlPixivRepo(LocalPixivRepo):
                     .values(user_id=user.id, user=user.dict(), update_time=metadata.update_time))
             stmt = stmt.on_conflict_do_update(index_elements=[UserDetailCache.user_id],
                                               set_={
-                                                  UserDetailCache.user: stmt.excluded.illust,
+                                                  UserDetailCache.user: stmt.excluded.user,
                                                   UserDetailCache.update_time: stmt.excluded.update_time
                                               })
 
