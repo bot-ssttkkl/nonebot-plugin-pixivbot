@@ -56,6 +56,7 @@ class PrivatePostDestination(PostDestination):
             if is_superuser(self.bot, self.user_id):
                 li.append("superuser")
 
+        li.append("kaiheila:private")
         li.append("kaiheila")
         li.append("all")
 
@@ -110,6 +111,7 @@ class ChannelPostDestination(PostDestination):
         if self.guild_id is not None:
             li.append(f"kaiheila:g{self.guild_id}")
 
+        li.append("kaiheila:channel")
         li.append("kaiheila")
         li.append("all")
 

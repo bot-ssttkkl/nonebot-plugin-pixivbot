@@ -165,6 +165,15 @@ nonebot_plugin_pixivbot
 
 譬如，超级用户可以通过发送`/ac permission deny --srv nonebot_plugin_pixivbot.r18 --sbj all`全局拦截R-18。
 
+又譬如，超级用户可以通过分别发送以下指令，使得只有超级用户、QQ私聊与QQ群聊的群管理能够调用`/pixivbot schedule`与`/pixivbot unschedule`命令。
+
+```
+/ac permission deny --srv nonebot_plugin_pixivbot.schedule.manage --sbj all
+/ac permission allow --srv nonebot_plugin_pixivbot.schedule.manage --sbj qq:private
+/ac permission allow --srv nonebot_plugin_pixivbot.schedule.manage --sbj qq:group_admin
+/ac permission allow --srv nonebot_plugin_pixivbot.schedule.manage --sbj superuser
+```
+
 具体可以参考[nonebot-plugin-access-control](https://github.com/ssttkkl/nonebot-plugin-access-control)的文档进行权限控制。
 
 ## 配置项一览

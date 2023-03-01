@@ -49,8 +49,13 @@ class PostDestination(BasePostDestination[int, int]):
                 li.append("superuser")
 
         if self.group_id is not None:
-            li.append(f"qq:{self.user_id}")
+            li.append(f"qq:{self.group_id}")
             li.append(f"onebot:g{self.group_id}")
+            li.append("qq:group")
+            li.append("onebot:group")
+        else:
+            li.append("qq:private")
+            li.append("onebot:private")
 
         li.append("qq")
         li.append("onebot")
