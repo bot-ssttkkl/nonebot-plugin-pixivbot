@@ -9,12 +9,11 @@ from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.protocol_dep.authenticator import AuthenticatorManager, \
     Authenticator as BaseAuthenticator
 from .post_dest import PostDestination, ChannelPostDestination, PrivatePostDestination
-from ..config import KookConfig
-from ..enums import KookAdminStrategy
 
-conf = context.require(KookConfig)
+cache_ttl = 60 * 60 * 2
 
 
+@cached(TTLCache(maxsize=16, ttl=cache_ttl))
 async def get_guild_roles(bot_id: str, guild_id: str) -> Dict[int, int]:
     """
     获取服务器角色权限
@@ -50,6 +49,7 @@ async def get_guild_roles(bot_id: str, guild_id: str) -> Dict[int, int]:
     return guild_roles
 
 
+@cached(TTLCache(maxsize=16, ttl=cache_ttl))
 async def get_channel_overwrites(bot_id: str, channel_id: str) \
         -> Tuple[Dict[int, Tuple[bool, bool]], Dict[int, Tuple[bool, bool]]]:
     """
@@ -76,6 +76,7 @@ async def get_channel_overwrites(bot_id: str, channel_id: str) \
     return role_overwrites, user_overwrites
 
 
+@cached(TTLCache(maxsize=16, ttl=cache_ttl))
 async def get_user_permissions(bot_id: str, user_id: str, channel_id: str, guild_id: str) -> int:
     """
     获取用户在该服务器该频道的权限
@@ -119,41 +120,9 @@ async def get_user_permissions(bot_id: str, user_id: str, channel_id: str, guild
         return 0
 
 
-if conf.pixiv_kook_admin_permission_cache_ttl > 0:
-    get_guild_roles = cached(TTLCache(maxsize=16, ttl=conf.pixiv_kook_admin_permission_cache_ttl))(
-        get_guild_roles)
-    get_channel_overwrites = cached(TTLCache(maxsize=16, ttl=conf.pixiv_kook_admin_permission_cache_ttl))(
-        get_channel_overwrites)
-    get_user_permissions = cached(TTLCache(maxsize=16, ttl=conf.pixiv_kook_admin_permission_cache_ttl))(
-        get_user_permissions)
-
-
 @context.register_singleton()
 class Authenticator(BaseAuthenticator, manager=AuthenticatorManager):
     adapter = "kaiheila"
-
-    async def group_admin(self, post_dest: PostDestination) -> bool:
-        if conf.pixiv_kook_admin_strategy == KookAdminStrategy.everyone:
-            return True
-        elif conf.pixiv_kook_admin_strategy == KookAdminStrategy.nobody:
-            return False
-        elif conf.pixiv_kook_admin_strategy == KookAdminStrategy.must_have_permission:
-            if not isinstance(post_dest, ChannelPostDestination):
-                raise ValueError("expect ChannelPostDestination, got " + str(type(post_dest)))
-
-            if not post_dest.guild_id:
-                logger.warning("unable to authenticate without guild_id")
-                return False
-
-            permissions = await get_user_permissions(post_dest.bot.self_id,
-                                                     post_dest.user_id,
-                                                     post_dest.channel_id,
-                                                     post_dest.guild_id)
-            logger.debug(f"user: {post_dest.user_id} guild: {post_dest.guild_id} permissions: {permissions}")
-            return conf.pixiv_kook_admin_must_have_permission & permissions == \
-                   conf.pixiv_kook_admin_must_have_permission
-        else:
-            raise ValueError("invalid KookAdminStrategy value: " + conf.pixiv_kook_admin_strategy)
 
     async def available(self, post_dest: PostDestination) -> bool:
         if isinstance(post_dest, ChannelPostDestination):

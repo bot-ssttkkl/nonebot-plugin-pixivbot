@@ -19,7 +19,6 @@ from nonebot_plugin_pixivbot.protocol_dep.postman import PostmanManager
 from .interceptor.base import Interceptor
 from .interceptor.combined_interceptor import CombinedInterceptor
 from .interceptor.default_error_interceptor import DefaultErrorInterceptor
-from .interceptor.permission_interceptor import BlacklistInterceptor
 from .pkg_context import context
 from ..plugin_service import r18_service, r18g_service
 
@@ -179,7 +178,6 @@ class EntryHandler(Handler, ABC):
     def __init__(self):
         super().__init__()
         self.add_interceptor(context.require(DefaultErrorInterceptor))
-        self.add_interceptor(context.require(BlacklistInterceptor))
 
 
 class MatcherEntryHandler(EntryHandler, ABC):

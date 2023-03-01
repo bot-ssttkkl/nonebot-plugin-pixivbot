@@ -2,8 +2,6 @@ from io import StringIO
 from typing import Sequence
 
 from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import GroupAdminInterceptor, \
-    AnyPermissionInterceptor, SuperuserInterceptor
 from nonebot_plugin_pixivbot.model import PostIdentifier, ScheduleType
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.plugin_service import manage_schedule_service
@@ -40,10 +38,6 @@ class ScheduleHandler(SubCommandHandler, subcommand='schedule'):
 
     def __init__(self):
         super().__init__()
-        self.add_interceptor(AnyPermissionInterceptor(
-            context.require(SuperuserInterceptor),
-            context.require(GroupAdminInterceptor)
-        ))
         self.add_interceptor(ServiceInterceptor(manage_schedule_service))
 
     @classmethod
@@ -99,10 +93,6 @@ class UnscheduleHandler(SubCommandHandler, subcommand='unschedule'):
 
     def __init__(self):
         super().__init__()
-        self.add_interceptor(AnyPermissionInterceptor(
-            context.require(SuperuserInterceptor),
-            context.require(GroupAdminInterceptor)
-        ))
         self.add_interceptor(ServiceInterceptor(manage_schedule_service))
 
     @classmethod

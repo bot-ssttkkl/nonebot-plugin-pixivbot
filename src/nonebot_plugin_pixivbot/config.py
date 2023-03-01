@@ -1,7 +1,7 @@
 from typing import Optional, List
 from urllib.parse import urlparse
 
-from nonebot import get_driver
+from nonebot import get_driver, logger
 from pydantic import BaseSettings, validator, root_validator
 from pydantic.fields import ModelField
 
@@ -10,9 +10,19 @@ from nonebot_plugin_pixivbot.enums import DataSourceType
 from nonebot_plugin_pixivbot.global_context import context
 
 
+def _deprecated_warn(name: str):
+    logger.warning(f"config \"{name}\" is deprecated, use nonebot-plugin-access-control instead "
+                   "(MORE INFO: https://github.com/ssttkkl/nonebot-plugin-pixivbot#%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6)")
+
+
 @context.register_singleton(**get_driver().config.dict())
 class Config(BaseSettings):
-    blacklist: set[str] = set()
+    @root_validator(pre=True, allow_reuse=True)
+    def deprecated_config(cls, values):
+        for name in {"blacklist", "pixiv_query_cooldown", "pixiv_no_query_cooldown_users"}:
+            if name in values:
+                _deprecated_warn(name)
+        return values
 
     pixiv_refresh_token: str
 
@@ -102,8 +112,6 @@ class Config(BaseSettings):
     pixiv_query_to_me_only = False
     pixiv_command_to_me_only = False
 
-    pixiv_query_cooldown = 0
-    pixiv_no_query_cooldown_users: List[str] = []
     pixiv_max_item_per_query = 10
 
     pixiv_tag_translation_enabled = True
