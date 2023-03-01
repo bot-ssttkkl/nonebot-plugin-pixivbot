@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from contextvars import ContextVar
-from typing import Generic, Optional, List
+from typing import Generic, Optional, List, TypeVar
 
 from nonebot import Bot
 from nonebot.internal.adapter import Event
@@ -35,13 +35,17 @@ class PostDestination(ABC, Generic[T_UID, T_GID]):
     def group_id(self) -> Optional[T_GID]:
         return self.identifier.group_id
 
+    @property
+    def event(self) -> Optional[Event]:
+        raise NotImplementedError()
+
     def __str__(self) -> str:
         return str(self.identifier)
 
     @abstractmethod
     def normalized(self) -> "PostDestination[T_UID, T_GID]":
         """
-        返回一个不含任何附加信息（如引用消息）的PostDestination
+        返回一个不含任何附加信息（如event）的PostDestination
         :return:
         """
         raise NotImplementedError()
@@ -53,14 +57,16 @@ class PostDestination(ABC, Generic[T_UID, T_GID]):
 
 current_post_dest: ContextVar[PostDestination[T_UID, T_GID]] = ContextVar("current_post_dest")
 
+T_Event = TypeVar("T_Event", bound=Event, covariant=True)
 
-class PostDestinationFactory(ProtocolDep, ABC, Generic[T_UID, T_GID]):
+
+class PostDestinationFactory(ProtocolDep, ABC, Generic[T_UID, T_GID, T_Event]):
     @abstractmethod
     def build(self, bot: Bot, user_id: Optional[T_UID], group_id: Optional[T_GID]) -> PostDestination:
         raise NotImplementedError()
 
     @abstractmethod
-    def from_event(self, bot: Bot, event: Event) -> PostDestination:
+    def from_event(self, bot: Bot, event: T_Event) -> PostDestination:
         raise NotImplementedError()
 
 
