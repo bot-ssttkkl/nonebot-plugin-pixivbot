@@ -2,8 +2,6 @@ from io import StringIO
 from typing import Sequence
 
 from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.handler.interceptor.permission_interceptor import GroupAdminInterceptor, \
-    AnyPermissionInterceptor, SuperuserInterceptor
 from nonebot_plugin_pixivbot.model import WatchType, T_UID, T_GID
 from nonebot_plugin_pixivbot.plugin_service import manage_watch_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
@@ -77,10 +75,6 @@ class WatchHandler(SubCommandHandler, subcommand='watch'):
 
     def __init__(self):
         super().__init__()
-        self.add_interceptor(AnyPermissionInterceptor(
-            context.require(SuperuserInterceptor),
-            context.require(GroupAdminInterceptor)
-        ))
         self.add_interceptor(ServiceInterceptor(manage_watch_service))
 
     @classmethod
@@ -158,10 +152,6 @@ class UnwatchHandler(SubCommandHandler, subcommand='unwatch'):
 
     def __init__(self):
         super().__init__()
-        self.add_interceptor(AnyPermissionInterceptor(
-            context.require(SuperuserInterceptor),
-            context.require(GroupAdminInterceptor)
-        ))
         self.add_interceptor(ServiceInterceptor(manage_watch_service))
 
     @classmethod

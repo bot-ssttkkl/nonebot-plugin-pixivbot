@@ -4,10 +4,7 @@ from typing import Callable, Union, Awaitable, Optional
 
 from nonebot import get_driver, logger
 
-from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
-from nonebot_plugin_pixivbot.protocol_dep.authenticator import AuthenticatorManager
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .base import Interceptor
 from ..pkg_context import context
@@ -71,28 +68,3 @@ class SuperuserInterceptor(PermissionInterceptor):
     def has_permission(self, post_dest: PostDestination[T_UID, T_GID]) -> bool:
         return str(post_dest.user_id) in self.superusers \
                or f"{post_dest.adapter}:{post_dest.user_id}" in self.superusers
-
-
-@context.inject
-@context.register_singleton()
-class GroupAdminInterceptor(PermissionInterceptor):
-    auth = Inject(AuthenticatorManager)
-
-    def has_permission(self, post_dest: PostDestination[T_UID, T_GID]) -> Union[bool, Awaitable[bool]]:
-        if not post_dest.group_id:
-            return True
-        return self.auth.group_admin(post_dest)
-
-
-@context.inject
-@context.register_singleton()
-class BlacklistInterceptor(PermissionInterceptor):
-    conf = Inject(Config)
-
-    def __init__(self):
-        super().__init__()
-        self.blacklist = self.conf.blacklist
-
-    def has_permission(self, post_dest: PostDestination[T_UID, T_GID]) -> bool:
-        return str(post_dest.user_id) not in self.blacklist \
-               and f"{post_dest.adapter}:{post_dest.user_id}" not in self.blacklist
