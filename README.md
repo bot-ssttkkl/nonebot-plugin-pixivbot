@@ -184,8 +184,7 @@ nonebot_plugin_pixivbot
 pixiv_refresh_token=  # 前面获取的REFRESH_TOKEN
 ```
 
-除最小配置出现的配置项以外都是可选项，给出的是默认值（NoneBot配置项这里不列出，参考[配置 | NoneBot](https://v2.nonebot.dev/docs/tutorial/configuration#%E8%AF%A6%E7%BB%86%E9%85%8D%E7%BD%AE%E9%A1%B9)
-）
+除最小配置出现的配置项以外都是可选项，给出的是默认值，建议只将自己需要的项加入.env.prod文件
 
 完整配置：
 
@@ -198,11 +197,11 @@ pixiv_mongo_database_name=  # 连接的MongoDB数据库
 
 # 连接配置
 pixiv_refresh_token=  # 前面获取的REFRESH_TOKEN
-pixiv_proxy=None  # 代理URL，推荐使用socks5代理
+pixiv_proxy=  # 代理URL，推荐使用socks5代理
 pixiv_query_timeout=60  # 查询超时（单位：秒）
 pixiv_loading_prompt_delayed_time=5  # 加载提示消息的延迟时间（“努力加载中”的消息会在请求发出多少秒后发出）（单位：秒）
 pixiv_simultaneous_query=8  # 向Pixiv查询的并发数
-pixiv_download_custom_domain=None  # 使用反向代理下载插画的域名
+pixiv_download_custom_domain=  # 使用反向代理下载插画的域名
 
 # 查询设置
 pixiv_query_to_me_only=False  # 只响应关于Bot的查询
@@ -219,8 +218,8 @@ pixiv_watch_interval=7200  # 更新推送的查询间隔
 
 # 插画压缩
 pixiv_compression_enabled=False  # 启用插画压缩
-pixiv_compression_max_size=None  # 插画压缩最大尺寸
-pixiv_compression_quantity=None  # 插画压缩品质（0到100）
+pixiv_compression_max_size=  # 插画压缩最大尺寸
+pixiv_compression_quantity=  # 插画压缩品质（0到100）
 
 # 缓存过期时间/删除时间（单位：秒）
 pixiv_download_cache_expires_in=604800  # 默认值：7天
