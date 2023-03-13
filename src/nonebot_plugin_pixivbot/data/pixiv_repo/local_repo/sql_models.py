@@ -1,8 +1,8 @@
 from datetime import datetime
 from typing import Optional, List
 
-from sqlalchemy import Column, Integer, ForeignKey, String, UniqueConstraint
-from sqlalchemy.orm import relationship
+from sqlalchemy import ForeignKey, UniqueConstraint
+from sqlalchemy.orm import mapped_column, relationship, Mapped
 
 from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
 from nonebot_plugin_pixivbot.data.utils.sql import BLOB, JSON, UTCDateTime
@@ -12,51 +12,50 @@ from nonebot_plugin_pixivbot.data.utils.sql import BLOB, JSON, UTCDateTime
 class DownloadCache:
     __tablename__ = "download_cache"
 
-    illust_id: int = Column(Integer, primary_key=True, nullable=False)
-    page: int = Column(Integer, primary_key=True, nullable=False, default=0)
-    content: bytes = Column(BLOB, nullable=False)
+    illust_id: Mapped[int] = mapped_column(primary_key=True)
+    page: Mapped[int] = mapped_column(primary_key=True, default=0)
+    content: Mapped[bytes] = mapped_column(BLOB)
 
-    update_time: datetime = Column(UTCDateTime, nullable=False, index=True)
+    update_time: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
 
 
 @SqlDataSource.registry.mapped
 class IllustDetailCache:
     __tablename__ = "illust_detail_cache"
 
-    illust_id: int = Column(Integer, primary_key=True, nullable=False)
-    illust: dict = Column(JSON, nullable=False)
+    illust_id: Mapped[int] = mapped_column(primary_key=True)
+    illust: Mapped[dict] = mapped_column(JSON)
 
-    update_time: datetime = Column(UTCDateTime, nullable=False, index=True)
+    update_time: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
 
 
 @SqlDataSource.registry.mapped
 class UserDetailCache:
     __tablename__ = "user_detail_cache"
 
-    user_id: int = Column(Integer, primary_key=True, nullable=False)
-    user: dict = Column(JSON, nullable=False)
+    user_id: Mapped[int] = mapped_column(primary_key=True)
+    user: Mapped[dict] = mapped_column(JSON)
 
-    update_time: datetime = Column(UTCDateTime, nullable=False, index=True)
+    update_time: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
 
 
 @SqlDataSource.registry.mapped
 class IllustSetCache:
     __tablename__ = "illust_set_cache"
 
-    id: int = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    cache_type: str = Column(String, nullable=False)
-    key: dict = Column(JSON, nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    cache_type: Mapped[str]
+    key: Mapped[dict] = mapped_column(JSON)
 
-    update_time: datetime = Column(UTCDateTime, nullable=False, index=True)
-    pages: Optional[int] = Column(Integer)
-    next_qs: Optional[dict] = Column(JSON)
+    update_time: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
+    pages: Mapped[Optional[int]]
+    next_qs: Mapped[Optional[dict]] = mapped_column(JSON)
 
-    illust_id: List["IllustSetCacheIllust"] = relationship("IllustSetCacheIllust",
-                                                           foreign_keys="IllustSetCacheIllust.cache_id",
-                                                           cascade="save-update, delete",
-                                                           passive_deletes=True)
+    illust_id: Mapped[List["IllustSetCacheIllust"]] = relationship(foreign_keys="IllustSetCacheIllust.cache_id",
+                                                                   cascade="save-update, delete",
+                                                                   passive_deletes=True)
 
-    size: int = Column(Integer, nullable=False, default=0)
+    size: Mapped[int] = mapped_column(default=0)
 
     __table_args__ = (
         UniqueConstraint('cache_type', 'key'),
@@ -67,28 +66,26 @@ class IllustSetCache:
 class IllustSetCacheIllust:
     __tablename__ = "illust_set_cache_illust"
 
-    cache_id: int = Column(Integer, ForeignKey("illust_set_cache.id", ondelete="cascade"), primary_key=True,
-                           nullable=False)
-    illust_id: int = Column(Integer, primary_key=True, nullable=False)
-    rank: int = Column(Integer, nullable=False, default=0)
+    cache_id: Mapped[int] = mapped_column(ForeignKey("illust_set_cache.id", ondelete="cascade"), primary_key=True)
+    illust_id: Mapped[int] = mapped_column(primary_key=True)
+    rank: Mapped[int] = mapped_column(default=0)
 
 
 @SqlDataSource.registry.mapped
 class UserSetCache:
     __tablename__ = "user_set_cache"
 
-    id: int = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    cache_type: str = Column(String, nullable=False)
-    key: dict = Column(JSON, nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    cache_type: Mapped[str]
+    key: Mapped[dict] = mapped_column(JSON)
 
-    update_time: datetime = Column(UTCDateTime, nullable=False, index=True)
-    pages: Optional[int] = Column(Integer)
-    next_qs: Optional[dict] = Column(JSON)
+    update_time: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
+    pages: Mapped[Optional[int]]
+    next_qs: Mapped[Optional[dict]] = mapped_column(JSON)
 
-    illust_id: List["UserSetCacheUser"] = relationship("UserSetCacheUser",
-                                                       foreign_keys="UserSetCacheUser.cache_id",
-                                                       cascade="save-update, delete",
-                                                       passive_deletes=True)
+    illust_id: Mapped[List["UserSetCacheUser"]] = relationship(foreign_keys="UserSetCacheUser.cache_id",
+                                                               cascade="save-update, delete",
+                                                               passive_deletes=True)
 
     __table_args__ = (
         UniqueConstraint('cache_type', 'key'),
@@ -99,6 +96,5 @@ class UserSetCache:
 class UserSetCacheUser:
     __tablename__ = "user_set_cache_user"
 
-    cache_id: int = Column(Integer, ForeignKey("user_set_cache.id", ondelete="cascade"), primary_key=True,
-                           nullable=False)
-    user_id: int = Column(Integer, primary_key=True, nullable=False)
+    cache_id: Mapped[int] = mapped_column(ForeignKey("user_set_cache.id", ondelete="cascade"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(primary_key=True)
