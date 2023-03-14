@@ -103,8 +103,7 @@ NoneBot插件，支持发送随机Pixiv插画、画师更新推送、定时订�
 
 1. 参考[安装 | NoneBot](https://v2.nonebot.dev/docs/start/installation)安装NoneBot；
 2. 参考[创建项目 | NoneBot](https://v2.nonebot.dev/docs/tutorial/create-project)创建一个NoneBot实例；
-3. 使用`pip install nonebot-plugin-pixivbot[xxx]`安装特定适配器的插件；
-4. 修改pyproject.toml，启用插件（`plugins=[..., "nonebot_plugin_pixivbot"]`）；
+3. 使用`nb plugin install nonebot-plugin-pixivbot`安装插件；
 5. 在.env.prod中修改配置（参考下方）；
 
 ## 配置外部数据库（可选）
