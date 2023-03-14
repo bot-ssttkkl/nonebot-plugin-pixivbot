@@ -134,6 +134,12 @@ PixivBot需要使用数据库存放订阅以及缓存，默认使用SQLite。
 
 并且安装`nonebot-plugin-pixivbot[mongo]`
 
+## 启用本地缓存（可选）
+
+因为SQLite在面对高并发时容易出现Database Locked错误，自1.8.0版本开始，PixivBot不再默认启用本地缓存。
+
+可以通过在配置项中添加`pixiv_use_local_cache=True`来手动启用本地缓存。如果启用本地缓存，推荐配置PostgreSQL或MongoDB作为数据库。
+
 ## 权限控制
 
 插件接入了[nonebot-plugin-access-control](https://github.com/ssttkkl/nonebot-plugin-access-control)实现细粒度的权限控制：
@@ -195,6 +201,7 @@ pixiv_data_source=  # 使用的数据库类型，可选值：sql，mongo。若�
 pixiv_sql_conn_url=sqlite+aiosqlite:///pixiv_bot.db  # SQL连接URL，仅支持SQLite与PostgreSQL（通过SQLAlchemy进行连接，必须使用异步的DBAPI）
 pixiv_mongo_conn_url=  # MongoDB连接URL，格式：mongodb://<用户名>:<密码>@<主机>:<端口>/<数据库>。
 pixiv_mongo_database_name=  # 连接的MongoDB数据库
+pixiv_use_local_cache=False  # 是否启用本地缓存
 
 # 连接配置
 pixiv_refresh_token=  # 前面获取的REFRESH_TOKEN
