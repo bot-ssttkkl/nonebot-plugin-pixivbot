@@ -37,3 +37,4 @@ class RankingMode(str, Enum):
     week_original = 'week_original'
     week_rookie = 'week_rookie'
     day_manga = 'day_manga'
+    day_ai = 'day_ai'

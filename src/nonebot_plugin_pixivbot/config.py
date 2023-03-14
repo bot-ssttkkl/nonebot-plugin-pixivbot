@@ -31,6 +31,7 @@ class Config(BaseSettings):
     pixiv_mongo_database_name: str
     pixiv_sql_conn_url: str
     pixiv_sql_dialect: str
+    pixiv_use_local_cache: bool = False
 
     @root_validator(pre=True, allow_reuse=True)
     def detect_data_source(cls, values):

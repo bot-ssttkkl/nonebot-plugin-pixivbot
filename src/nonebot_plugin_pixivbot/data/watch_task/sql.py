@@ -1,7 +1,9 @@
+from datetime import datetime
 from typing import Optional, AsyncIterable, Collection
 
 from pytz import utc
-from sqlalchemy import Column, Integer, Enum as SqlEnum, String, select, UniqueConstraint, update
+from sqlalchemy import select, UniqueConstraint, update
+from sqlalchemy.orm import mapped_column, Mapped
 
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
@@ -16,13 +18,13 @@ from ..utils.sql import insert, JSON, UTCDateTime
 class WatchTaskOrm:
     __tablename__ = "watch_task"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    subscriber = Column(JSON, nullable=False)
-    code = Column(String, nullable=False)
-    type = Column(SqlEnum(WatchType), nullable=False)
-    kwargs = Column(JSON, nullable=False, default=dict)
-    bot = Column(String, nullable=False)
-    checkpoint = Column(UTCDateTime, nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    subscriber: Mapped[dict] = mapped_column(JSON)
+    code: Mapped[str]
+    type: Mapped[WatchType]
+    kwargs: Mapped[dict] = mapped_column(JSON, default=dict)
+    bot: Mapped[str]
+    checkpoint: Mapped[datetime] = mapped_column(UTCDateTime)
 
     __table_args__ = (
         UniqueConstraint("bot", "subscriber", "code"),

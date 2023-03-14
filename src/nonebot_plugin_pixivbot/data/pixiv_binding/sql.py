@@ -1,6 +1,7 @@
 from typing import Optional
 
-from sqlalchemy import Column, String, Integer, select, delete
+from sqlalchemy import select, delete
+from sqlalchemy.orm import Mapped, mapped_column
 
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
@@ -13,9 +14,9 @@ from nonebot_plugin_pixivbot.model import PixivBinding, T_UID
 class PixivBindingOrm:
     __tablename__ = "pixiv_binding"
 
-    adapter = Column(String, nullable=False, primary_key=True)
-    user_id = Column(String, nullable=False, primary_key=True)
-    pixiv_user_id = Column(Integer, nullable=False)
+    adapter: Mapped[str] = mapped_column(primary_key=True)
+    user_id: Mapped[str] = mapped_column(primary_key=True)
+    pixiv_user_id: Mapped[int]
 
 
 @context.inject

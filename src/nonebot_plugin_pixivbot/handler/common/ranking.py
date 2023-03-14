@@ -34,7 +34,7 @@ class RankingHandler(CommonHandler):
 
     mode_mapping = {RankingMode.day: "日", RankingMode.week: "周", RankingMode.month: "月",
                     RankingMode.day_male: "男性", RankingMode.day_female: "女性", RankingMode.week_original: "原创",
-                    RankingMode.week_rookie: "新人", RankingMode.day_manga: "漫画"}
+                    RankingMode.week_rookie: "新人", RankingMode.day_manga: "漫画", RankingMode.day_ai: 'ai'}
 
     mode_rev_mapping = {}
     for mode, text in mode_mapping.items():
@@ -70,7 +70,7 @@ class RankingHandler(CommonHandler):
                     f'仅支持查询{self.conf.pixiv_ranking_fetch_item}名以内的插画')
 
     def parse_args(self, args: Sequence[str], post_dest: PostDestination[T_UID, T_GID]) -> dict:
-        mode = args[0] if len(args) > 0 else None
+        mode = args[0].lower() if len(args) > 0 else None
         range = args[1] if len(args) > 1 else None
 
         if not mode:  # 判断是不是空字符串

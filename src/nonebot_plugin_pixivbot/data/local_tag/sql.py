@@ -1,7 +1,8 @@
 from typing import Optional, Collection
 
 from nonebot import logger
-from sqlalchemy import Column, String, select
+from sqlalchemy import select
+from sqlalchemy.orm import mapped_column, Mapped
 
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
@@ -14,8 +15,8 @@ from nonebot_plugin_pixivbot.model import Tag, Illust
 class LocalTag:
     __tablename__ = "local_tag"
 
-    name = Column(String, primary_key=True, nullable=False)
-    translated_name = Column(String, nullable=False, index=True)
+    name: Mapped[str] = mapped_column(primary_key=True)
+    translated_name: Mapped[str] = mapped_column(index=True)
 
 
 @context.inject

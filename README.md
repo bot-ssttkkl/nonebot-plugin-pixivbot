@@ -96,6 +96,7 @@ NoneBot插件，支持发送随机Pixiv插画、画师更新推送、定时订�
 - **/pixivbot invalidate_cache**：清除缓存（只有超级用户能够发送此命令）
 - **/pixivbot**、**/pixivbot help**：查看帮助
 
+
 ## 环境配置
 
 事前准备：登录pixiv账号并获取refresh_token。（参考：[@ZipFile Pixiv OAuth Flow](https://gist.github.com/ZipFile/c9ebedb224406f4f11845ab700124362)
@@ -103,8 +104,7 @@ NoneBot插件，支持发送随机Pixiv插画、画师更新推送、定时订�
 
 1. 参考[安装 | NoneBot](https://v2.nonebot.dev/docs/start/installation)安装NoneBot；
 2. 参考[创建项目 | NoneBot](https://v2.nonebot.dev/docs/tutorial/create-project)创建一个NoneBot实例；
-3. 使用`pip install nonebot-plugin-pixivbot[xxx]`安装特定适配器的插件；
-4. 修改pyproject.toml，启用插件（`plugins=[..., "nonebot_plugin_pixivbot"]`）；
+3. 使用`nb plugin install nonebot-plugin-pixivbot`安装插件；
 5. 在.env.prod中修改配置（参考下方）；
 
 ## 配置外部数据库（可选）
@@ -133,6 +133,12 @@ PixivBot需要使用数据库存放订阅以及缓存，默认使用SQLite。
 - pixiv_mongo_database_name=`连接的MongoDB数据库`
 
 并且安装`nonebot-plugin-pixivbot[mongo]`
+
+## 启用本地缓存（可选）
+
+因为SQLite的性能有限，自1.8.0版本开始，PixivBot不再默认启用本地缓存。
+
+可以通过在配置项中添加`pixiv_use_local_cache=True`来手动启用本地缓存。如果启用本地缓存，推荐配置PostgreSQL或MongoDB作为数据库。
 
 ## 权限控制
 
@@ -194,6 +200,7 @@ pixiv_data_source=  # 使用的数据库类型，可选值：sql，mongo。若�
 pixiv_sql_conn_url=sqlite+aiosqlite:///pixiv_bot.db  # SQL连接URL，仅支持SQLite与PostgreSQL（通过SQLAlchemy进行连接，必须使用异步的DBAPI）
 pixiv_mongo_conn_url=  # MongoDB连接URL，格式：mongodb://<用户名>:<密码>@<主机>:<端口>/<数据库>。
 pixiv_mongo_database_name=  # 连接的MongoDB数据库
+pixiv_use_local_cache=False  # 是否启用本地缓存
 
 # 连接配置
 pixiv_refresh_token=  # 前面获取的REFRESH_TOKEN
@@ -305,6 +312,7 @@ pixiv_random_bookmark_max_item=2147483647
 ![](https://github.com/ssttkkl/ssttkkl/blob/main/afdian-ssttkkl.jfif)
 
 </details>
+
 
 ## LICENSE
 

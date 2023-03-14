@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nonebot-plugin-pixivbot"
-version = "1.7.7"
+version = "1.8.0a4"
 description = "Nonebot Plugin PixivBot"
 authors = ["ssttkkl <huang.wen.long@hotmail.com>"]
 readme = "README.md"
@@ -16,12 +16,12 @@ packages = [
 python = "^3.9"
 nonebot2 = "^2.0.0rc2"
 nonebot_plugin_apscheduler = "^0.2.0"
-nonebot-plugin-access-control = "^0.3.8"
+nonebot-plugin-access-control = "^0.4.0a2"
 PixivPy-Async = "^1.2.14"
 Pillow = "^9.2.0"
 numpy = "^1.23.1"
 lazy = "^1.4"
-aiohttp-socks = "^0.7.1"
+aiohttp-socks = "^0.8.0"
 frozendict = "^2.3.4"
 tzlocal = "^4.2"
 cachetools = "^5.2.0"
@@ -35,15 +35,14 @@ nonebot-adapter-telegram = { version = "^0.1.0b3", optional = true }
 motor = { version = "^3.0.0", optional = true }
 beanie = { version = "^1.13.1", optional = true }
 
-# 为了和sqlmodel==0.0.8的依赖保持一致（nonebot-plugin-access-control -> nonebot-plugin-datastore的依赖）
-SQLAlchemy = { version = ">=1.4.17,<=1.4.41", extras = ["asyncio"] }
-aiosqlite = "^0.17.0"
+SQLAlchemy = { version = "^2.0.0", extras = ["asyncio"] }
+aiosqlite = "^0.18.0"
 asyncpg = { version = "^0.27.0", optional = true }
 
 [tool.poetry.group.dev.dependencies]
-nb-cli = "^0.6.7"
-flake8 = "^5.0.4"
-nonebug = "^0.2.1"
+nb-cli = "^1.0.5"
+flake8 = "^6.0.0"
+nonebug = "^0.3.1"
 pytest-mock = "^3.10.0"
 pytest-cov = "^4.0.0"
 nonebot2 = {extras = ["websockets"], version = "^2.0.0rc3"}
