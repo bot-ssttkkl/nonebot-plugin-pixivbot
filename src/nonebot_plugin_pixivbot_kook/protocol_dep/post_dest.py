@@ -72,9 +72,9 @@ class PrivatePostDestination(PostDestination):
 
 class ChannelPostDestination(PostDestination):
     def __init__(self, bot: Bot, *,
-                 user_id: Optional[str],
+                 user_id: Optional[str] = None,
                  channel_id: str,
-                 guild_id: Optional[str],
+                 guild_id: Optional[str] = None,
                  event: Optional[ChannelMessageEvent] = None):
         super().__init__(bot)
         self._user_id = user_id
@@ -126,7 +126,7 @@ class ChannelPostDestination(PostDestination):
 
 
 @context.register_singleton()
-class PostDestinationFactory(BasePostDestinationFactory[str, str], manager=PostDestinationFactoryManager):
+class PostDestinationFactory(BasePostDestinationFactory[str, str, Event], manager=PostDestinationFactoryManager):
     adapter = "kaiheila"
 
     def build(self, bot: Bot,

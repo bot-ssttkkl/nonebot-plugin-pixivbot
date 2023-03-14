@@ -9,19 +9,19 @@ from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination as Ba
     PostDestinationFactory as BasePostDestinationFactory, PostDestinationFactoryManager
 
 
-class PostDestination(BasePostDestination[int, int]):
+class PostDestination(BasePostDestination[int, int, Event]):
     __slots__ = ("bot", "_user_id", "chat_id", "chat_type", "reply_to_message_id")
 
     def __init__(self, bot: Bot,
                  user_id: Optional[int] = None,
                  chat_id: Optional[int] = None,
                  chat_type: Optional[str] = None,
-                 reply_to_message_id: Optional[int] = None) -> None:
+                 event: Optional[Event] = None) -> None:
         self._bot = bot
         self._user_id = user_id
         self.chat_id = chat_id
         self.chat_type = chat_type
-        self.reply_to_message_id = reply_to_message_id
+        self._event = event
 
     @property
     def bot(self) -> Bot:
@@ -30,6 +30,14 @@ class PostDestination(BasePostDestination[int, int]):
     @property
     def identifier(self) -> PostIdentifier[T_UID, T_GID]:
         return PostIdentifier("telegram", self._user_id, self.chat_id)
+
+    @property
+    def event(self) -> Optional[Event]:
+        return self._event
+
+    @property
+    def reply_to_message_id(self) -> Optional[int]:
+        return getattr(self.event, "message_id", None)
 
     def normalized(self) -> "PostDestination[T_UID, T_GID]":
         return PostDestination(self.bot, self._user_id, self.chat_id, self.chat_type)
@@ -74,9 +82,7 @@ class PostDestinationFactory(BasePostDestinationFactory[int, int], manager=PostD
                 # 私聊消息的chat_id == user_id
                 chat_id = None
 
-            reply_to_message_id = getattr(event, "message_id", None)
-
             return PostDestination(bot, user_id=user_id, chat_id=chat_id, chat_type=event.chat.type,
-                                   reply_to_message_id=reply_to_message_id)
+                                   event=event)
         else:
             raise ValueError("invalid event type: " + str(type(event)))
