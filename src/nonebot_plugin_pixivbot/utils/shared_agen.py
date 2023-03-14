@@ -137,7 +137,7 @@ class SharedAsyncGeneratorManager(ABC, Generic[T_ID, T_ITEM]):
             if identifier in self._expires_time:
                 del self._expires_time[identifier]
         else:
-            logger.warning(f"[{self.log_tag}] {identifier} was not found")
+            logger.debug(f"[{self.log_tag}] {identifier} was not found")
             return
 
     async def invalidate_all(self):
