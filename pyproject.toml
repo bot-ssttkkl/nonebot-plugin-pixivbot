@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nonebot-plugin-pixivbot"
-version = "1.8.0a3"
+version = "1.8.0a4"
 description = "Nonebot Plugin PixivBot"
 authors = ["ssttkkl <huang.wen.long@hotmail.com>"]
 readme = "README.md"
@@ -21,7 +21,7 @@ PixivPy-Async = "^1.2.14"
 Pillow = "^9.2.0"
 numpy = "^1.23.1"
 lazy = "^1.4"
-aiohttp-socks = "^0.7.1"
+aiohttp-socks = "^0.8.0"
 frozendict = "^2.3.4"
 tzlocal = "^4.2"
 cachetools = "^5.2.0"
@@ -40,9 +40,9 @@ aiosqlite = "^0.18.0"
 asyncpg = { version = "^0.27.0", optional = true }
 
 [tool.poetry.group.dev.dependencies]
-nb-cli = "^0.6.7"
-flake8 = "^5.0.4"
-nonebug = "^0.2.1"
+nb-cli = "^1.0.5"
+flake8 = "^6.0.0"
+nonebug = "^0.3.1"
 pytest-mock = "^3.10.0"
 pytest-cov = "^4.0.0"
 nonebot2 = {extras = ["websockets"], version = "^2.0.0rc3"}

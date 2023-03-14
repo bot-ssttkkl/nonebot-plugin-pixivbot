@@ -136,7 +136,7 @@ PixivBot需要使用数据库存放订阅以及缓存，默认使用SQLite。
 
 ## 启用本地缓存（可选）
 
-因为SQLite在面对高并发时容易出现Database Locked错误，自1.8.0版本开始，PixivBot不再默认启用本地缓存。
+因为SQLite的性能有限，自1.8.0版本开始，PixivBot不再默认启用本地缓存。
 
 可以通过在配置项中添加`pixiv_use_local_cache=True`来手动启用本地缓存。如果启用本地缓存，推荐配置PostgreSQL或MongoDB作为数据库。
 
