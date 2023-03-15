@@ -5,7 +5,7 @@ from typing import AsyncGenerator, Union, Optional, List
 from apscheduler.triggers.interval import IntervalTrigger
 from nonebot import logger
 from nonebot_plugin_apscheduler import scheduler as apscheduler
-from sqlalchemy import select, delete, func
+from sqlalchemy import select, delete, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from nonebot_plugin_pixivbot.config import Config
@@ -104,6 +104,9 @@ class SqlPixivRepo(LocalPixivRepo):
     async def _invalidate_illusts(self, session: AsyncSession,
                                   cache_type: str,
                                   key: dict):
+        if self.conf.pixiv_sql_dialect == 'sqlite':
+            await session.execute(text("PRAGMA foreign_keys = ON;"))
+
         stmt = (delete(IllustSetCache)
                 .where(IllustSetCache.cache_type == cache_type,
                        IllustSetCache.key == key))
@@ -251,6 +254,9 @@ class SqlPixivRepo(LocalPixivRepo):
     async def _invalidate_users(self, session: AsyncSession,
                                 cache_type: str,
                                 key: dict):
+        if self.conf.pixiv_sql_dialect == 'sqlite':
+            await session.execute(text("PRAGMA foreign_keys = ON;"))
+
         stmt = (delete(UserSetCache)
                 .where(UserSetCache.cache_type == cache_type,
                        UserSetCache.key == key))
@@ -591,6 +597,9 @@ class SqlPixivRepo(LocalPixivRepo):
         logger.info(f"[local] invalidate_all")
 
         async with self.data_source.start_session() as session:
+            if self.conf.pixiv_sql_dialect == 'sqlite':
+                await session.execute(text("PRAGMA foreign_keys = ON;"))
+
             result = await session.execute(delete(IllustSetCache))
             logger.success(f"[local] deleted {result.rowcount} illust_set cache")
             result = await session.execute(delete(UserSetCache))
@@ -607,6 +616,9 @@ class SqlPixivRepo(LocalPixivRepo):
         logger.info(f"[local] clean_expired")
 
         async with self.data_source.start_session() as session:
+            if self.conf.pixiv_sql_dialect == 'sqlite':
+                await session.execute(text("PRAGMA foreign_keys = ON;"))
+
             now = datetime.utcnow()
             stmt = delete(IllustDetailCache).where(
                 IllustDetailCache.update_time <= now - timedelta(seconds=self.conf.pixiv_illust_detail_cache_expires_in)

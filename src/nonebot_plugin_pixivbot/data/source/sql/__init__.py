@@ -1,6 +1,7 @@
 import json
 from contextlib import asynccontextmanager
 from datetime import datetime, date
+from typing import AsyncContextManager
 
 from nonebot import get_driver, logger
 from sqlalchemy import select, inspect
@@ -125,7 +126,7 @@ class SqlDataSource(DataSourceLifecycleMixin):
         await self._fire_closed()
 
     @asynccontextmanager
-    async def start_session(self):
+    async def start_session(self) -> AsyncContextManager[AsyncSession]:
         if self._engine is None:
             raise DataSourceNotReadyError()
         async with self._sessionmaker() as session:
