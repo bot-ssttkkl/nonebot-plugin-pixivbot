@@ -175,6 +175,26 @@ nonebot_plugin_pixivbot
 
 具体可以参考[nonebot-plugin-access-control](https://github.com/ssttkkl/nonebot-plugin-access-control)的文档进行权限控制。
 
+## 常见问题
+
+**遇到问题时请先尝试执行`pip install nonebot-plugin-pixivbot -U`更新到最新版本**
+
+### 内部错误：<class 'pixivpy_async.error.NoTokenError'>No access_token Found!
+
+没登录成功，多半是网络问题
+
+如果登录成功的话会在bot初始化后有这几句：
+
+```
+03-13 11:19:36 [SUCCESS] nonebot_plugin_pixivbot | refresh access token successfully. new token expires in 3600 seconds.
+03-13 11:19:36 [DEBUG] nonebot_plugin_pixivbot | access_token: ***************
+03-13 11:19:36 [DEBUG] nonebot_plugin_pixivbot | refresh_token: *****************
+```
+
+### 内部错误：<class 'sqlalchemy.exc.OperationalError'>(sqlite3.OperationalError) near "ON": syntax error
+
+多半是SQLite版本过低，不支持ON CONFLICT子句，如果是Linux系统请更新安装的SQLite版本
+
 ## 配置项一览
 
 最小配置：
