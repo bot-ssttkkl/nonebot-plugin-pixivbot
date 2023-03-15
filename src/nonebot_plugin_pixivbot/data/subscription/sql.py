@@ -1,7 +1,8 @@
 from typing import Optional, AsyncIterable, Collection
 
 import tzlocal
-from sqlalchemy import Column, Integer, Enum as SqlEnum, String, select, UniqueConstraint
+from sqlalchemy import select, UniqueConstraint
+from sqlalchemy.orm import mapped_column, Mapped
 
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
@@ -16,14 +17,14 @@ from ..utils.sql import insert, JSON
 class SubscriptionOrm:
     __tablename__ = "subscription"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    subscriber = Column(JSON, nullable=False)
-    code = Column(String, nullable=False)
-    type = Column(SqlEnum(ScheduleType), nullable=False)
-    kwargs = Column(JSON, nullable=False, default=dict)
-    bot = Column(String, nullable=False)
-    schedule = Column(JSON, nullable=False)
-    tz = Column(String, nullable=False, default=tzlocal.get_localzone_name)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    subscriber: Mapped[dict] = mapped_column(JSON)
+    code: Mapped[str]
+    type: Mapped[ScheduleType]
+    kwargs: Mapped[dict] = mapped_column(JSON, default=dict)
+    bot: Mapped[str]
+    schedule: Mapped[dict] = mapped_column(JSON)
+    tz: Mapped[str] = mapped_column(default=tzlocal.get_localzone_name)
 
     __table_args__ = (
         UniqueConstraint("bot", "subscriber", "code"),
