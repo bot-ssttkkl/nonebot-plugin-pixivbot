@@ -106,8 +106,11 @@ class SharedAsyncGeneratorManager(ABC, Generic[T_ID, T_ITEM]):
         # 自然也不需要缓存到self._stopped_holders中
         if identifier in self._running_holders:
             holder = self._running_holders.pop(identifier)
-            self._stopped_holders[identifier] = holder
-            logger.debug(f"[{self.log_tag}] {identifier} was stopped and cached")
+            if identifier in self._expires_time:
+                self._stopped_holders[identifier] = holder
+                logger.debug(f"[{self.log_tag}] {identifier} was stopped and cached")
+            else:
+                logger.debug(f"[{self.log_tag}] {identifier} was stopped but not cached")
 
     async def on_agen_error(self, identifier: T_ID, e: Exception):
         await self.invalidate(identifier)

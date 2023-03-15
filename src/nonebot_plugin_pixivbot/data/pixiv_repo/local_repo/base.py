@@ -34,7 +34,8 @@ class LocalPixivRepo(PixivRepo):
 
     async def append_user_illusts(self, user_id: int,
                                   content: List[Union[Illust, LazyIllust]],
-                                  metadata: PixivRepoMetadata) -> bool:
+                                  metadata: PixivRepoMetadata,
+                                  append_at_begin: bool = False) -> bool:
         ...
 
     async def invalidate_user_bookmarks(self, user_id: int):
@@ -42,7 +43,8 @@ class LocalPixivRepo(PixivRepo):
 
     async def append_user_bookmarks(self, user_id: int,
                                     content: List[Union[Illust, LazyIllust]],
-                                    metadata: PixivRepoMetadata) -> bool:
+                                    metadata: PixivRepoMetadata,
+                                    append_at_begin: bool = False) -> bool:
         ...
 
     async def invalidate_recommended_illusts(self):

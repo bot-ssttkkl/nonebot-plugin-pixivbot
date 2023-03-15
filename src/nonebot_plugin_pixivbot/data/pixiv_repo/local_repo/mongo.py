@@ -4,7 +4,7 @@ from typing import List, Union, Sequence, Any, AsyncGenerator, Optional, Type, M
 import bson
 from beanie.odm.operators.find.comparison import In
 from beanie.odm.operators.find.logical import And
-from beanie.odm.operators.update.array import AddToSet
+from beanie.odm.operators.update.array import AddToSet, Pull, Push
 from beanie.odm.operators.update.general import Set
 from nonebot import logger
 from pymongo import UpdateOne
@@ -235,8 +235,30 @@ class MongoPixivRepo(LocalPixivRepo):
                               *criteria: Union[Mapping[str, Any], bool],
                               content: List[Union[Illust, LazyIllust]],
                               metadata: PixivRepoMetadata,
-                              append: bool = False):
-        if append:
+                              append_at_begin: bool = False):
+        if append_at_begin:
+            await doc_type.find_one(*criteria, session=session).update(
+                Set({
+                    doc_type.metadata: metadata
+                }),
+                Pull({
+                    doc_type.illust_id: {
+                        "$in": [illust.id for illust in content]
+                    }
+                }),
+                upsert=True,
+                session=session
+            )
+            await doc_type.find_one(*criteria, session=session).update(
+                Push({
+                    doc_type.illust_id: {
+                        "$each": [illust.id for illust in content],
+                        "$position": 0
+                    }
+                }),
+                session=session
+            )
+        else:
             await doc_type.find_one(*criteria, session=session).update(
                 Set({
                     doc_type.metadata: metadata
@@ -245,15 +267,6 @@ class MongoPixivRepo(LocalPixivRepo):
                     doc_type.illust_id: {
                         "$each": [illust.id for illust in content]
                     }
-                }),
-                upsert=True,
-                session=session
-            )
-        else:
-            await doc_type.find_one(*criteria, session=session).update(
-                Set({
-                    doc_type.illust_id: [illust.id for illust in content],
-                    doc_type.metadata: metadata
                 }),
                 upsert=True,
                 session=session
@@ -345,9 +358,11 @@ class MongoPixivRepo(LocalPixivRepo):
                                         doc_type: Type[IllustSetCache],
                                         *criteria: Union[Mapping[str, Any], bool],
                                         content: List[Union[Illust, LazyIllust]],
-                                        metadata: PixivRepoMetadata):
+                                        metadata: PixivRepoMetadata,
+                                        append_at_begin: bool = False):
         exists = await self._check_illusts_exists(session, doc_type, *criteria, illust_id=[x.id for x in content])
-        await self._update_illusts(session, doc_type, *criteria, content=content, metadata=metadata, append=True)
+        await self._update_illusts(session, doc_type, *criteria, content=content, metadata=metadata,
+                                   append_at_begin=append_at_begin)
         return exists
 
     async def _append_and_check_users(self, session: ClientSession,
@@ -480,7 +495,7 @@ class MongoPixivRepo(LocalPixivRepo):
         async with self.data_source.start_session() as session:
             async for x in self._get_illusts(session, UserIllustsCache, UserIllustsCache.user_id == user_id,
                                              expired_in=self.conf.pixiv_user_illusts_cache_expires_in, offset=offset):
-                yield
+                yield x
 
     async def invalidate_user_illusts(self, user_id: int):
         logger.info(f"[local] invalidate user_illusts {user_id}")
@@ -489,13 +504,16 @@ class MongoPixivRepo(LocalPixivRepo):
 
     async def append_user_illusts(self, user_id: int,
                                   content: List[Union[Illust, LazyIllust]],
-                                  metadata: PixivRepoMetadata) -> bool:
+                                  metadata: PixivRepoMetadata,
+                                  append_at_begin: bool = False) -> bool:
         logger.info(f"[local] append user_illusts {user_id} "
+                    f"{'at begin ' if append_at_begin else ''}"
                     f"({len(content)} items) "
                     f"{metadata}")
         async with self.data_source.start_session() as session:
             return await self._append_and_check_illusts(session, UserIllustsCache, UserIllustsCache.user_id == user_id,
-                                                        content=content, metadata=metadata)
+                                                        content=content, metadata=metadata,
+                                                        append_at_begin=append_at_begin)
 
     # ================ user_bookmarks ================
     async def user_bookmarks(self, user_id: int = 0, *, offset: int = 0) \
@@ -513,14 +531,17 @@ class MongoPixivRepo(LocalPixivRepo):
 
     async def append_user_bookmarks(self, user_id: int,
                                     content: List[Union[Illust, LazyIllust]],
-                                    metadata: PixivRepoMetadata) -> bool:
+                                    metadata: PixivRepoMetadata,
+                                    append_at_begin: bool = False) -> bool:
         logger.info(f"[local] append user_bookmarks {user_id} "
+                    f"{'at begin ' if append_at_begin else ''}"
                     f"({len(content)} items) "
                     f"{metadata}")
         async with self.data_source.start_session() as session:
             return await self._append_and_check_illusts(session, UserBookmarksCache,
                                                         UserBookmarksCache.user_id == user_id,
-                                                        content=content, metadata=metadata)
+                                                        content=content, metadata=metadata,
+                                                        append_at_begin=append_at_begin)
 
     # ================ recommended_illusts ================
     async def recommended_illusts(self, *, offset: int = 0) \
