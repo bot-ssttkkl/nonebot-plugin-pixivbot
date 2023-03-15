@@ -145,6 +145,7 @@ async def mediate_append(cache_factory: Callable[..., AsyncGenerator[Union[T, Pi
                          remote_factory: Callable[..., AsyncGenerator[Union[T, PixivRepoMetadata], None]],
                          query_kwargs: Mapping[str, Any],
                          cache_appender: Callable[[List[T], Optional[PixivRepoMetadata]], Awaitable[bool]],
+                         front_cache_appender: Callable[[List[T], Optional[PixivRepoMetadata]], Awaitable[bool]],
                          max_item: int = 2 ** 31,
                          max_page: int = 2 ** 31,
                          force_expiration: bool = False) -> AsyncGenerator[Union[T, PixivRepoMetadata], None]:
@@ -187,13 +188,13 @@ async def mediate_append(cache_factory: Callable[..., AsyncGenerator[Union[T, Pi
 
                 if len(buffer) > 0:
                     metadata.update_time = datetime.now(timezone.utc)
-                    if await cache_appender(buffer, metadata):
+                    if await front_cache_appender(buffer, metadata):
                         break
                     buffer = []
 
                     # check whether we approach limit
                     if loaded_items >= max_item or loaded_pages >= max_page:
-                        return
+                        break
             else:
                 loaded_items += 1
                 buffer.append(x)

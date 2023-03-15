@@ -5,7 +5,7 @@ from typing import AsyncGenerator, Union, Optional, List
 from apscheduler.triggers.interval import IntervalTrigger
 from nonebot import logger
 from nonebot_plugin_apscheduler import scheduler as apscheduler
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from nonebot_plugin_pixivbot.config import Config
@@ -78,7 +78,7 @@ class SqlPixivRepo(LocalPixivRepo):
         stmt = (select(IllustSetCacheIllust, IllustDetailCache)
                 .where(IllustSetCacheIllust.cache_id == cache.id)
                 .outerjoin(IllustDetailCache, IllustSetCacheIllust.illust_id == IllustDetailCache.illust_id)
-                .order_by(IllustSetCacheIllust.rank)
+                .order_by(IllustSetCacheIllust.rank, IllustDetailCache.update_time.desc())
                 .offset(offset))
 
         total = 0
@@ -115,7 +115,7 @@ class SqlPixivRepo(LocalPixivRepo):
                                         key: dict,
                                         content: List[Union[Illust, LazyIllust]],
                                         metadata: PixivRepoMetadata,
-                                        ranked: bool = False):
+                                        append_at_begin: bool = False):
         async with session.begin_nested() as tx1:
             async with session.begin_nested() as tx2:
                 stmt = (select(IllustSetCache)
@@ -135,25 +135,48 @@ class SqlPixivRepo(LocalPixivRepo):
                 await tx2.commit()
 
             row_count = 0
-            if ranked:
-                for i, x in enumerate(content):
-                    stmt = insert(IllustSetCacheIllust).values(
-                        cache_id=cache.id, illust_id=x.id, rank=cache.size + i
-                    ).on_conflict_do_nothing(index_elements=[
-                        IllustSetCacheIllust.cache_id, IllustSetCacheIllust.illust_id
-                    ])
-                    row_count += (await session.execute(stmt)).rowcount
-            else:
-                for i, x in enumerate(content):
-                    stmt = insert(IllustSetCacheIllust).values(
-                        cache_id=cache.id, illust_id=x.id
-                    ).on_conflict_do_nothing(index_elements=[
-                        IllustSetCacheIllust.cache_id, IllustSetCacheIllust.illust_id
-                    ])
-                    row_count += (await session.execute(stmt)).rowcount
+            if append_at_begin:
+                stmt = select(
+                    func.min(IllustSetCacheIllust.rank)
+                ).select_from(IllustSetCacheIllust).where(
+                    IllustSetCacheIllust.cache_id == cache.id
+                )
 
-            if ranked:
-                cache.size += row_count
+                rnk = (await session.execute(stmt)).scalar_one_or_none()
+                if rnk is None:
+                    rnk = 0
+
+                for x in reversed(content):
+                    stmt = insert(IllustSetCacheIllust).values(
+                        cache_id=cache.id, illust_id=x.id, rank=rnk - 1
+                    ).on_conflict_do_nothing(index_elements=[
+                        IllustSetCacheIllust.cache_id, IllustSetCacheIllust.illust_id
+                    ])
+                    result = await session.execute(stmt)
+                    row_count += result.rowcount
+                    rnk -= result.rowcount
+            else:
+                stmt = select(
+                    func.max(IllustSetCacheIllust.rank)
+                ).select_from(IllustSetCacheIllust).where(
+                    IllustSetCacheIllust.cache_id == cache.id
+                )
+
+                rnk = (await session.execute(stmt)).scalar_one_or_none()
+                if rnk is None:
+                    rnk = 0
+
+                for x in content:
+                    stmt = insert(IllustSetCacheIllust).values(
+                        cache_id=cache.id, illust_id=x.id, rank=rnk + 1
+                    ).on_conflict_do_nothing(index_elements=[
+                        IllustSetCacheIllust.cache_id, IllustSetCacheIllust.illust_id
+                    ])
+                    result = await session.execute(stmt)
+                    row_count += result.rowcount
+                    rnk += result.rowcount
+
+            cache.size += row_count
 
             await tx1.commit()
 
@@ -414,8 +437,7 @@ class SqlPixivRepo(LocalPixivRepo):
                     f"{metadata}")
         async with self.data_source.start_session() as session:
             return await self._append_and_check_illusts(session, "illust_ranking", {"mode": mode},
-                                                        content=content, metadata=metadata,
-                                                        ranked=True)
+                                                        content=content, metadata=metadata)
 
     # ================ search_illust ================
     async def search_illust(self, word: str, *, offset: int = 0) \
@@ -457,13 +479,16 @@ class SqlPixivRepo(LocalPixivRepo):
 
     async def append_user_illusts(self, user_id: int,
                                   content: List[Union[Illust, LazyIllust]],
-                                  metadata: PixivRepoMetadata) -> bool:
+                                  metadata: PixivRepoMetadata,
+                                  append_at_begin: bool = False) -> bool:
         logger.info(f"[local] append user_illusts {user_id} "
+                    f"{'at begin ' if append_at_begin else ''}"
                     f"({len(content)} items) "
                     f"{metadata}")
         async with self.data_source.start_session() as session:
             return await self._append_and_check_illusts(session, "user_illusts", {"user_id": user_id},
-                                                        content=content, metadata=metadata)
+                                                        content=content, metadata=metadata,
+                                                        append_at_begin=append_at_begin)
 
     # ================ user_bookmarks ================
     async def user_bookmarks(self, user_id: int = 0, *, offset: int = 0) \
@@ -481,13 +506,16 @@ class SqlPixivRepo(LocalPixivRepo):
 
     async def append_user_bookmarks(self, user_id: int,
                                     content: List[Union[Illust, LazyIllust]],
-                                    metadata: PixivRepoMetadata) -> bool:
+                                    metadata: PixivRepoMetadata,
+                                    append_at_begin: bool = False) -> bool:
         logger.info(f"[local] append user_bookmarks {user_id} "
+                    f"{'at begin ' if append_at_begin else ''} "
                     f"({len(content)} items) "
                     f"{metadata}")
         async with self.data_source.start_session() as session:
             return await self._append_and_check_illusts(session, "user_bookmarks", {"user_id": user_id},
-                                                        content=content, metadata=metadata)
+                                                        content=content, metadata=metadata,
+                                                        append_at_begin=append_at_begin)
 
     # ================ recommended_illusts ================
     async def recommended_illusts(self, *, offset: int = 0) \
