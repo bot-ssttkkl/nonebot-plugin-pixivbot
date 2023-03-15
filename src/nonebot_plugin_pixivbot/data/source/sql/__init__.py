@@ -4,9 +4,10 @@ from datetime import datetime, date
 from typing import AsyncContextManager
 
 from nonebot import get_driver, logger
-from sqlalchemy import select, inspect, StaticPool
+from sqlalchemy import select, inspect
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine
 from sqlalchemy.orm import registry, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.context import Inject
