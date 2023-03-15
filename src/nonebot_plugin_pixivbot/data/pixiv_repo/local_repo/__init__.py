@@ -20,6 +20,6 @@ else:
     from .sql import SqlPixivRepo
 
     context.bind(LocalPixivRepo, SqlPixivRepo)
-    logger.info(f"local cache: enabled ({conf.detect_sql_dialect})")
+    logger.info(f"local cache: enabled ({conf.pixiv_sql_dialect})")
 
 __all__ = ("LocalPixivRepo",)

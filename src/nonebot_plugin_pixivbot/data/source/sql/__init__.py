@@ -4,7 +4,7 @@ from datetime import datetime, date
 from typing import AsyncContextManager
 
 from nonebot import get_driver, logger
-from sqlalchemy import select, inspect
+from sqlalchemy import select, inspect, StaticPool
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine
 from sqlalchemy.orm import registry, sessionmaker
 
@@ -88,11 +88,21 @@ class SqlDataSource(DataSourceLifecycleMixin):
         await self._fire_initializing()
 
         driver = get_driver()
-        self._engine = create_async_engine(self.conf.pixiv_sql_conn_url,
-                                           # 仅当TRACE模式时回显sql语句
-                                           echo=driver.config.log_level == 'TRACE',
-                                           future=True,
-                                           json_serializer=json_serializer)
+
+        params = {
+            # 仅当TRACE模式时回显sql语句
+            'echo': driver.config.log_level == 'TRACE',
+            'future': True,
+            'json_serializer': json_serializer
+        }
+
+        if self.conf.detect_sql_dialect == 'sqlite':
+            # 使用 SQLite 数据库时，如果在写入时遇到 (sqlite3.OperationalError) database is locked 错误。
+            # 可尝试将 poolclass 设置为 StaticPool，保持有且仅有一个连接。
+            # 不过这样设置之后，在程序运行期间，你的数据库文件都将被占用。
+            params['poolclass'] = StaticPool
+
+        self._engine = create_async_engine(self.conf.pixiv_sql_conn_url, **params)
 
         async with self._engine.begin() as conn:
             from .migration import SqlMigrationManager
