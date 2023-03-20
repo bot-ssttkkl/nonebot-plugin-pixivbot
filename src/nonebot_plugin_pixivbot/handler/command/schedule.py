@@ -52,7 +52,7 @@ class ScheduleHandler(SubCommandHandler, subcommand='schedule',
     async def actual_handle(self, *, type: ScheduleType,
                             schedule: str,
                             args: Sequence[str]):
-        await self.scheduler.add_task(type, schedule, args, self.post_dest)
+        await scheduler.add_task(type, schedule, args, self.post_dest)
         await self.post_plain_text(message="订阅成功")
 
     async def actual_handle_bad_request(self, err: BadRequestError):
@@ -86,7 +86,7 @@ class UnscheduleHandler(SubCommandHandler, subcommand='unschedule',
 
     # noinspection PyMethodOverriding
     async def actual_handle(self, *, code: str):
-        if await self.scheduler.remove_task(self.post_dest, code):
+        if await scheduler.remove_task(self.post_dest, code):
             await self.post_plain_text(message="取消订阅成功")
         else:
             raise BadRequestError("取消订阅失败，不存在该订阅")
