@@ -121,6 +121,7 @@ class Config(BaseSettings):
     pixiv_query_expires_in = 10 * 60
 
     pixiv_illust_query_enabled = True
+    pixiv_illust_sniffer_enabled = True
 
     pixiv_ranking_query_enabled = True
     pixiv_ranking_default_mode: RankingMode = RankingMode.day

@@ -1,9 +1,10 @@
 from functools import partial
-from typing import Callable, Type, Optional, Iterable
+from typing import Callable, Type, Optional, Iterable, TYPE_CHECKING
 
-from nonebot_plugin_pixivbot.model import T_UID, T_GID
-from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .base import Interceptor
+
+if TYPE_CHECKING:
+    from nonebot_plugin_pixivbot.handler.base import Handler
 
 
 class CombinedInterceptor(Interceptor):
@@ -49,11 +50,9 @@ class CombinedInterceptor(Interceptor):
                 result = self.y.find(interceptor_type)
             return result
 
-    async def intercept(self, wrapped_func: Callable, *args,
-                        post_dest: PostDestination[T_UID, T_GID],
-                        silently: bool,
-                        **kwargs):
+    async def intercept(self, handler: "Handler", wrapped_func: Callable, *args, **kwargs):
         await self.x.intercept(
-            partial(self.y.intercept, wrapped_func), *args,
-            post_dest=post_dest, silently=silently, **kwargs
+            handler,
+            partial(self.y.intercept, handler, wrapped_func),
+            *args, **kwargs
         )

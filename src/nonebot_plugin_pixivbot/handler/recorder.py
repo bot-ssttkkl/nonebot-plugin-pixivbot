@@ -1,48 +1,40 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, TYPE_CHECKING, Mapping, Any, Type, NamedTuple, Sequence
 
 from cachetools import TTLCache
 
 from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.model import PostIdentifier, T_UID, T_GID
-from nonebot_plugin_pixivbot.model.message import IllustMessageModel, IllustMessagesModel
+from nonebot_plugin_pixivbot.model.message import IllustMessagesModel
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.protocol_dep.postman import PostmanManager
 from .pkg_context import context
 
+if TYPE_CHECKING:
+    from .base import Handler
 
-class Req:
-    def __init__(self, func, *args, **kwargs):
-        self.func = func
-        self.args = args
-        self.kwargs = kwargs
-
-    def __call__(self, **kwargs):
-        actual_kwargs = self.kwargs.copy()
-        for x, y in kwargs.items():
-            actual_kwargs[x] = y
-
-        return self.func(*self.args, **actual_kwargs)
+conf = context.require(Config)
 
 
-class Resp:
-    def __init__(self, illust_id: int):
-        self.illust_id = illust_id
+class Req(NamedTuple):
+    handler_type: Type["Handler"]
+    args: Sequence[Any]
+    kwargs: Mapping[str, Any]
 
 
-@context.inject
+class Resp(NamedTuple):
+    illust_id: int
+
+
 @context.root.register_singleton()
 class Recorder:
-    conf = Inject(Config)
-
     def __init__(self, max_req_size: int = 65535,
                  max_resp_size: int = 65535):
         self._reqs = TTLCache[PostIdentifier[T_UID, T_GID], Req](maxsize=max_req_size,
-                                                                 ttl=self.conf.pixiv_query_expires_in)
+                                                                 ttl=conf.pixiv_query_expires_in)
         self._resps = TTLCache[PostIdentifier[T_UID, T_GID], Resp](maxsize=max_resp_size,
-                                                                   ttl=self.conf.pixiv_query_expires_in)
+                                                                   ttl=conf.pixiv_query_expires_in)
 
         self.max_req_size = max_req_size
         self.max_resp_size = max_resp_size
@@ -86,16 +78,15 @@ class Recorder:
 @context.inject
 @context.bind_singleton_to(PostmanManager, context.require(PostmanManager))
 class RecordPostmanManager:
-    recorder = Inject(Recorder)
-
     def __init__(self, delegation: PostmanManager):
         self.delegation = delegation
 
     async def send_illusts(self, model: IllustMessagesModel,
                            *, post_dest: PostDestination[T_UID, T_GID]):
+        recorder = context.require(Recorder)
         await self.delegation.send_illusts(model, post_dest=post_dest)
         if len(model.messages) == 1:
-            self.recorder.record_resp(model.messages[0].id, post_dest.identifier)
+            recorder.record_resp(model.messages[0].id, post_dest.identifier)
 
     def __getattr__(self, name: str):
         return getattr(self.delegation, name)

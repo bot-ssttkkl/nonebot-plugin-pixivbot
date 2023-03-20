@@ -1,31 +1,31 @@
-from typing import Union, Awaitable, Sequence
-
-from nonebot_plugin_pixivbot import help_text
-from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.plugin_service import help_service
-from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
-from .command import SubCommandHandler
+from .subcommand import SubCommandHandler
 from ..interceptor.service_interceptor import ServiceInterceptor
-from ..pkg_context import context
+from ...utils.nonebot import default_command_start
+
+help_text = f"""
+常规语句：
+- 看看榜<范围>：查看pixiv榜单
+- 来张图：从推荐插画随机抽选一张插画
+- 来张<关键字>图：搜索关键字，从搜索结果随机抽选一张插画
+- 来张<用户>老师的图：搜索画师，从该画师的插画列表里随机抽选一张插画
+- 看看图<插画ID>：查看id为<插画ID>的插画
+- 来张私家车：从书签中随机抽选一张插画
+- 还要：重复上一次请求
+- 不够色：获取上一张插画的相关推荐
+
+命令语句：
+- {default_command_start}pixivbot help：查看本帮助
+- {default_command_start}pixivbot bind：绑定Pixiv账号
+
+更多功能：参见https://github.com/ssttkkl/nonebot-plugin-pixivbot
+""".strip()
 
 
-@context.register_singleton()
-class HelpHandler(SubCommandHandler, subcommand='help'):
-    def __init__(self):
-        super().__init__()
-        self.add_interceptor(ServiceInterceptor(help_service))
-
+class HelpHandler(SubCommandHandler, subcommand='help', interceptors=[ServiceInterceptor(help_service)]):
     @classmethod
     def type(cls) -> str:
         return "help"
 
-    def enabled(self) -> bool:
-        return True
-
-    def parse_args(self, args: Sequence[str], post_dest: PostDestination[T_UID, T_GID]) \
-            -> Union[dict, Awaitable[dict]]:
-        return {}
-
-    async def actual_handle(self, *, post_dest: PostDestination[T_UID, T_GID],
-                            silently: bool = False, **kwargs):
-        await self.post_plain_text(help_text, post_dest=post_dest)
+    async def actual_handle(self):
+        await self.post_plain_text(help_text)

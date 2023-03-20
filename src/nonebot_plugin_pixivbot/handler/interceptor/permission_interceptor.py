@@ -1,42 +1,34 @@
 from abc import ABC, abstractmethod
-from inspect import isawaitable
-from typing import Callable, Union, Awaitable, Optional
+from typing import Callable, Union, Awaitable, Optional, TYPE_CHECKING
 
 from nonebot import get_driver, logger
 
-from nonebot_plugin_pixivbot.model import T_UID, T_GID
-from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from .base import Interceptor
 from ..pkg_context import context
+
+if TYPE_CHECKING:
+    from nonebot_plugin_pixivbot.handler.base import Handler
 
 
 class PermissionInterceptor(Interceptor, ABC):
     @abstractmethod
-    def has_permission(self, post_dest: PostDestination[T_UID, T_GID]) -> Union[bool, Awaitable[bool]]:
+    def has_permission(self, handler: "Handler") -> Union[bool, Awaitable[bool]]:
         raise NotImplementedError()
 
-    def get_permission_denied_msg(self, post_dest: PostDestination[T_UID, T_GID]) \
-            -> Union[Optional[str], Awaitable[Optional[str]]]:
+    async def get_permission_denied_msg(self, handler: "Handler") -> Optional[str]:
         return None
 
-    async def intercept(self, wrapped_func: Callable, *args,
-                        post_dest: PostDestination[T_UID, T_GID],
-                        silently: bool,
-                        **kwargs):
-        p = self.has_permission(post_dest)
-        if isawaitable(p):
-            p = await p
+    async def intercept(self, handler: "Handler", wrapped_func: Callable, *args, **kwargs):
+        p = await self.has_permission(handler)
 
         if p:
-            await wrapped_func(*args, post_dest=post_dest, silently=silently, **kwargs)
+            await wrapped_func(*args, **kwargs)
         else:
-            logger.debug(f"permission denied {post_dest}")
-            if not silently:
-                msg = self.get_permission_denied_msg(post_dest)
-                if isawaitable(msg):
-                    await msg
+            logger.debug(f"permission denied {handler.post_dest}")
+            if not handler.silently:
+                msg = await self.get_permission_denied_msg(handler)
                 if msg:
-                    await self.post_plain_text(msg, post_dest=post_dest)
+                    await handler.post_plain_text(msg)
 
 
 class AnyPermissionInterceptor(PermissionInterceptor):
@@ -47,12 +39,9 @@ class AnyPermissionInterceptor(PermissionInterceptor):
     def append(self, interceptor: PermissionInterceptor):
         self.interceptors.append(interceptor)
 
-    async def has_permission(self, post_dest: PostDestination[T_UID, T_GID]) -> bool:
+    async def has_permission(self, handler: "Handler") -> bool:
         for inter in self.interceptors:
-            p = inter.has_permission(post_dest)
-            if isawaitable(p):
-                p = await p
-
+            p = await inter.has_permission(handler)
             if p:
                 return True
 
@@ -61,10 +50,7 @@ class AnyPermissionInterceptor(PermissionInterceptor):
 
 @context.register_singleton()
 class SuperuserInterceptor(PermissionInterceptor):
-    def __init__(self):
-        super().__init__()
-        self.superusers = get_driver().config.superusers
-
-    def has_permission(self, post_dest: PostDestination[T_UID, T_GID]) -> bool:
-        return str(post_dest.user_id) in self.superusers \
-               or f"{post_dest.adapter}:{post_dest.user_id}" in self.superusers
+    def has_permission(self, handler: "Handler") -> bool:
+        superusers = get_driver().config.superusers
+        return str(handler.post_dest.user_id) in superusers \
+               or f"{handler.post_dest.adapter}:{handler.post_dest.user_id}" in superusers

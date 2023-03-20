@@ -1,3 +1,1 @@
-from .poke import PokeHandler
-
-__all__ = ("PokeHandler",)
+from . import poke

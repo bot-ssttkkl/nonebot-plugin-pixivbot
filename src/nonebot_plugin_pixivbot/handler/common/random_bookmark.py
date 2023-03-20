@@ -1,53 +1,39 @@
 from typing import Sequence
 
-from lazy import lazy
-from nonebot import on_regex, Bot
-from nonebot.internal.adapter import Event
-from nonebot.internal.matcher import Matcher
+from nonebot import on_regex
 from nonebot.internal.params import Depends
 from nonebot.typing import T_State
 
-from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.model import T_UID, T_GID
-from nonebot_plugin_pixivbot.plugin_service import random_bookmark_service, r18_service, r18g_service
-from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
+from nonebot_plugin_pixivbot.model import T_UID
+from nonebot_plugin_pixivbot.plugin_service import random_bookmark_service
 from nonebot_plugin_pixivbot.service.pixiv_account_binder import PixivAccountBinder
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .base import RecordCommonHandler
-from ..base import post_destination
-from ..interceptor.record_req_interceptor import RecordReqInterceptor
+from ..interceptor.default_error_interceptor import DefaultErrorInterceptor
 from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
-from ..utils import get_common_query_rule, get_count, get_post_dest
+from ..utils import get_common_query_rule, get_count
+from ...config import Config
+from ...protocol_dep.post_dest import post_destination
+from ...service.pixiv_service import PixivService
+
+conf = context.require(Config)
+binder = context.require(PixivAccountBinder)
+service = context.require(PixivService)
 
 
-@context.inject
-@context.root.register_eager_singleton()
 class RandomBookmarkHandler(RecordCommonHandler):
-    binder = Inject(PixivAccountBinder)
-
-    def __init__(self):
-        super().__init__()
-        self.add_interceptor(ServiceInterceptor(random_bookmark_service), before=RecordReqInterceptor)
-
     @classmethod
     def type(cls) -> str:
         return "random_bookmark"
 
-    def enabled(self) -> bool:
-        return self.conf.pixiv_random_bookmark_query_enabled
+    @classmethod
+    def enabled(cls) -> bool:
+        return conf.pixiv_random_bookmark_query_enabled
 
-    @lazy
-    def matcher(self):
-        return on_regex("^来(.*)?张私家车$", rule=get_common_query_rule(), priority=5)
-
-    async def on_match(self, bot: Bot, event: Event, state: T_State, matcher: Matcher,
-                       post_dest: PostDestination[T_UID, T_GID] = Depends(post_destination)):
-        await self.handle(count=get_count(state), post_dest=get_post_dest(bot, event))
-
-    def parse_args(self, args: Sequence[str], post_dest: PostDestination[T_UID, T_GID]) -> dict:
+    async def parse_args(self, args: Sequence[str]) -> dict:
         pixiv_user_id = 0
-        sender_user_id = post_dest.user_id
+        sender_user_id = self.post_dest.user_id
 
         if len(args) > 0:
             try:
@@ -61,27 +47,29 @@ class RandomBookmarkHandler(RecordCommonHandler):
     # noinspection PyMethodOverriding
     async def actual_handle(self, *, sender_user_id: T_UID,
                             pixiv_user_id: int = 0,
-                            count: int = 1,
-                            post_dest: PostDestination[T_UID, T_GID],
-                            silently: bool = False):
+                            count: int = 1):
         if not pixiv_user_id and sender_user_id:
-            pixiv_user_id = await self.binder.get_binding(post_dest.adapter, sender_user_id)
+            pixiv_user_id = await binder.get_binding(self.post_dest.adapter, sender_user_id)
 
         if not pixiv_user_id:
-            pixiv_user_id = self.conf.pixiv_random_bookmark_user_id
+            pixiv_user_id = conf.pixiv_random_bookmark_user_id
 
         if not pixiv_user_id:
             raise BadRequestError("无效的Pixiv账号，或未绑定Pixiv账号")
 
-        exclude_r18 = not await r18_service.check_by_subject(*post_dest.extract_subjects(),
-                                                             acquire_rate_limit_token=False)
-        exclude_r18g = not await r18g_service.check_by_subject(*post_dest.extract_subjects(),
-                                                               acquire_rate_limit_token=False)
-
-        illusts = await self.service.random_bookmark(pixiv_user_id, count=count,
-                                                     exclude_r18=exclude_r18,
-                                                     exclude_r18g=exclude_r18g)
+        illusts = await service.random_bookmark(pixiv_user_id, count=count,
+                                                exclude_r18=(not await self.is_r18_allowed()),
+                                                exclude_r18g=(not await self.is_r18g_allowed()))
 
         await self.post_illusts(illusts,
-                                header="这是您点的私家车",
-                                post_dest=post_dest)
+                                header="这是您点的私家车")
+
+
+RandomBookmarkHandler.add_interceptor_after(ServiceInterceptor(random_bookmark_service),
+                                            after=context.require(DefaultErrorInterceptor))
+
+
+@on_regex("^来(.*)?张私家车$", rule=get_common_query_rule(), priority=5).handle()
+async def on_match(state: T_State,
+                   post_dest=Depends(post_destination)):
+    await RandomBookmarkHandler(post_dest).handle(count=get_count(state))

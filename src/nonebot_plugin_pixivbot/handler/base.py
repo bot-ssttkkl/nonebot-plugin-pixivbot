@@ -1,216 +1,227 @@
-from abc import ABC, abstractmethod
-from inspect import isawaitable
-from typing import Awaitable, Union, Sequence, Optional
+from abc import ABC, abstractmethod, ABCMeta
+from typing import Sequence, Optional
 from typing import Type
 
 from nonebot import logger
-from nonebot.adapters import Bot, Event
-from nonebot.internal.params import Depends
-from nonebot.matcher import Matcher
-from nonebot.typing import T_State
 
 from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Illust, T_UID, T_GID
 from nonebot_plugin_pixivbot.model.message import IllustMessagesModel
-from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestinationFactoryManager, PostDestination
+from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.protocol_dep.postman import PostmanManager
-from .interceptor.base import Interceptor
+from .interceptor.base import Interceptor, DummyInterceptor
 from .interceptor.combined_interceptor import CombinedInterceptor
 from .interceptor.default_error_interceptor import DefaultErrorInterceptor
 from .pkg_context import context
 from ..plugin_service import r18_service, r18g_service
+from ..utils.algorithm import as_unique
+
+conf = context.require(Config)
 
 
-@context.inject
-class Handler(ABC):
-    conf: Config = Inject(Config)
-    postman_manager: PostmanManager = Inject(PostmanManager)
+def _log_interceptors(cls: Type["Handler"]):
+    if isinstance(cls.interceptor, CombinedInterceptor):
+        logger.trace(
+            f"{cls.__name__}: apply interceptors [{', '.join(map(lambda x: type(x).__name__, cls.interceptor.flat()))}]")
+    else:
+        logger.trace(f"{cls.__name__}: apply interceptors [{type(cls.interceptor).__name__}]")
 
-    def __init__(self):
-        self.interceptor = None
 
-    async def post_plain_text(self, message: str,
-                              post_dest: PostDestination):
-        await self.postman_manager.send_plain_text(message, post_dest=post_dest)
+class HandlerMeta(ABCMeta):
+    interceptor: Interceptor
 
-    async def post_illust(self, illust: Illust, *,
-                          header: Optional[str] = None,
-                          number: Optional[int] = None,
-                          post_dest: PostDestination[T_UID, T_GID]):
-        block_r18 = not await r18_service.check_by_subject(*post_dest.extract_subjects(),
-                                                           acquire_rate_limit_token=False)
-        block_r18g = not await r18g_service.check_by_subject(*post_dest.extract_subjects(),
-                                                             acquire_rate_limit_token=False)
+    def __new__(mcs, name, bases, namespace, **kwargs):
+        interceptors = []
 
-        model = await IllustMessagesModel.from_illust(illust, header=header, number=number,
-                                                      max_page=self.conf.pixiv_max_item_per_query,
-                                                      block_r18=block_r18, block_r18g=block_r18g)
-        if model:
-            await self.postman_manager.send_illusts(model, post_dest=post_dest)
+        if not kwargs.get("overwrite_interceptors", False):
+            for base_cls in bases:
+                if isinstance(base_cls, HandlerMeta):
+                    if isinstance(base_cls.interceptor, CombinedInterceptor):
+                        interceptors.extend(base_cls.interceptor.flat())
+                    elif isinstance(base_cls.interceptor, DummyInterceptor):
+                        pass
+                    else:
+                        interceptors.append(base_cls.interceptor)
 
-    async def post_illusts(self, illusts: Sequence[Illust], *,
-                           header: Optional[str] = None,
-                           number: Optional[int] = None,
-                           post_dest: PostDestination[T_UID, T_GID]):
-        block_r18 = not await r18_service.check_by_subject(*post_dest.extract_subjects())
-        block_r18g = not await r18g_service.check_by_subject(*post_dest.extract_subjects())
+        if "interceptors" in kwargs:
+            interceptors.extend(kwargs["interceptors"])
+            del kwargs["interceptors"]
 
-        if len(illusts) == 1:
-            await self.post_illust(illusts[0], header=header, number=number, post_dest=post_dest)
+        interceptors = as_unique(interceptors)
+
+        cls = super().__new__(mcs, name, bases, namespace, **kwargs)
+
+        if len(interceptors) == 0:
+            cls.interceptor = DummyInterceptor()
+        elif len(interceptors) == 1:
+            cls.interceptor = interceptors[0]
         else:
-            model = await IllustMessagesModel.from_illusts(illusts, header=header, number=number,
-                                                           block_r18=block_r18, block_r18g=block_r18g)
-            if model:
-                await self.postman_manager.send_illusts(model, post_dest=post_dest)
+            cls.interceptor = CombinedInterceptor.from_iterable(interceptors)
+
+        _log_interceptors(cls)
+
+        return cls
+
+
+class Handler(ABC, metaclass=HandlerMeta):
+    interceptor: Interceptor
+
+    def __init__(self, post_dest: PostDestination[T_UID, T_GID],
+                 *, silently: bool = False,
+                 disable_interceptors: bool = False):
+        self.post_dest = post_dest
+        self.silently = silently
+        self.disable_interceptors = disable_interceptors
 
     @classmethod
     @abstractmethod
     def type(cls) -> str:
         raise NotImplementedError()
 
-    @abstractmethod
-    def enabled(self) -> bool:
-        raise NotImplementedError()
+    @classmethod
+    def enabled(cls) -> bool:
+        return True
 
-    def parse_args(self, args: Sequence[str], post_dest: PostDestination[T_UID, T_GID]) -> Union[dict, Awaitable[dict]]:
+    async def parse_args(self, args: Sequence[str]) -> dict:
         """
         将位置参数转化为命名参数
         :param args: 位置参数sequence
-        :param post_dest: PostDestination
         :return: 命名参数dict
         """
         return {}
 
-    async def handle(self, *args,
-                     post_dest: PostDestination[T_UID, T_GID],
-                     silently: bool = False,
-                     disable_interceptors: bool = False,
-                     **kwargs):
+    async def handle(self, *args, **kwargs):
         if not self.enabled():
             return
 
-        if self.interceptor is not None and not disable_interceptors:
-            await self.interceptor.intercept(self._parse_args_and_actual_handle, *args,
-                                             post_dest=post_dest,
-                                             silently=silently,
-                                             **kwargs)
+        if not self.disable_interceptors:
+            await self.interceptor.intercept(self, self._parse_args_and_actual_handle, *args, **kwargs)
         else:
-            await self._parse_args_and_actual_handle(*args, post_dest=post_dest, silently=silently, **kwargs)
+            await self._parse_args_and_actual_handle(*args, **kwargs)
 
-    async def handle_with_parsed_args(self, *, post_dest: PostDestination[T_UID, T_GID],
-                                      silently: bool = False,
-                                      disable_interceptors: bool = False,
-                                      **kwargs):
+    async def handle_with_parsed_args(self, **kwargs):
         if not self.enabled():
             return
 
-        if self.interceptor is not None and not disable_interceptors:
-            await self.interceptor.intercept(self.actual_handle,
-                                             post_dest=post_dest,
-                                             silently=silently,
-                                             **kwargs)
+        if not self.disable_interceptors:
+            await self.interceptor.intercept(self, self.actual_handle, **kwargs)
         else:
-            await self.actual_handle(post_dest=post_dest, silently=silently, **kwargs)
+            await self.actual_handle(**kwargs)
 
-    async def _parse_args_and_actual_handle(self, *args,
-                                            post_dest: PostDestination[T_UID, T_GID],
-                                            silently: bool = False,
-                                            **kwargs):
-        parsed_kwargs = self.parse_args(args, post_dest)
-        if isawaitable(parsed_kwargs):
-            parsed_kwargs = await parsed_kwargs
-
+    async def _parse_args_and_actual_handle(self, *args, **kwargs):
+        parsed_kwargs = await self.parse_args(args)
         kwargs = {**kwargs, **parsed_kwargs}
-        await self.actual_handle(post_dest=post_dest, silently=silently, **kwargs)
+        await self.actual_handle(**kwargs)
 
     @abstractmethod
-    async def actual_handle(self, *, post_dest: PostDestination[T_UID, T_GID],
-                            silently: bool = False,
-                            **kwargs):
+    async def actual_handle(self, **kwargs):
         """
         处理指令
-        :param post_dest: PostDestination
-        :param silently: 失败时不发送消息
         :param kwargs: 参数dict
         """
         raise NotImplementedError()
 
-    def add_interceptor(self, interceptor: Interceptor, before: Optional[Type[Interceptor]] = None):
+    @classmethod
+    def add_interceptor_before(cls, interceptor: Interceptor, before: Interceptor):
+        """
+        添加一个拦截器到指定拦截器之前
+
+        :param interceptor:
+        :param before: 指定添加到哪个拦截器之前
+        """
+        if isinstance(cls.interceptor, CombinedInterceptor):
+            itcps = list(cls.interceptor.flat())
+            for i, itcp in enumerate(itcps):
+                if itcp is before:
+                    cls.interceptor = CombinedInterceptor.from_iterable([
+                        *itcps[:i], interceptor, *itcps[i:]
+                    ])
+                    break
+            else:
+                raise ValueError("the interceptor specified by \'before\' argument was not found")
+        elif cls.interceptor is before:
+            cls.interceptor = CombinedInterceptor(interceptor, cls.interceptor)
+        else:
+            raise ValueError("the interceptor specified by \'before\' argument was not found")
+
+        _log_interceptors(cls)
+
+    @classmethod
+    def add_interceptor_after(cls, interceptor: Interceptor, after: Interceptor):
+        """
+        添加一个拦截器到指定拦截器之后
+
+        :param interceptor:
+        :param after: 指定添加到哪个拦截器之后
+        """
+        if isinstance(cls.interceptor, CombinedInterceptor):
+            itcps = list(cls.interceptor.flat())
+            for i, itcp in enumerate(itcps):
+                if itcp is after:
+                    cls.interceptor = CombinedInterceptor.from_iterable([
+                        *itcps[:i + 1], interceptor, *itcps[i + 1:]
+                    ])
+                    break
+            else:
+                raise ValueError("the interceptor specified by \'after\' argument was not found")
+        elif cls.interceptor is after:
+            cls.interceptor = CombinedInterceptor(cls.interceptor, interceptor)
+        else:
+            raise ValueError("the interceptor specified by \'after\' argument was not found")
+
+        _log_interceptors(cls)
+
+    @classmethod
+    def add_interceptor(cls, interceptor: Interceptor, front: bool = False):
         """
         添加一个拦截器
 
         :param interceptor:
-        :param before: 指定添加到哪个拦截器之前，若该拦截器不存在则默认添加到末尾
-        :return:
+        :param front: 添加到最前
         """
-        if self.interceptor:
-            if before is None:
-                self.interceptor = CombinedInterceptor(self.interceptor, interceptor)
-            elif isinstance(self.interceptor, CombinedInterceptor):
-                itcps = list(self.interceptor.flat())
-                for i, itcp in enumerate(itcps):
-                    if isinstance(itcp, before):
-                        self.interceptor = CombinedInterceptor.from_iterable([
-                            *itcps[:i], interceptor, *itcps[i:]
-                        ])
-                        return
-
-                self.interceptor = CombinedInterceptor(self.interceptor, interceptor)
-                logger.warning("the interceptor specified by \'before\' argument was not found")
-            elif isinstance(self.interceptor, before):
-                self.interceptor = CombinedInterceptor(interceptor, self.interceptor)
-            else:
-                self.interceptor = CombinedInterceptor(self.interceptor, interceptor)
-                logger.warning("the interceptor specified by \'before\' argument was not found")
+        if front:
+            cls.interceptor = CombinedInterceptor(interceptor, cls.interceptor)
         else:
-            self.interceptor = interceptor
-            if before is not None:
-                logger.warning("the interceptor specified by \'before\' argument was not found")
+            cls.interceptor = CombinedInterceptor(cls.interceptor, interceptor)
+        _log_interceptors(cls)
+
+    async def is_r18_allowed(self) -> bool:
+        return await r18_service.check_by_subject(*self.post_dest.extract_subjects(),
+                                                  acquire_rate_limit_token=False)
+
+    async def is_r18g_allowed(self) -> bool:
+        return await r18g_service.check_by_subject(*self.post_dest.extract_subjects(),
+                                                   acquire_rate_limit_token=False)
+
+    async def post_plain_text(self, message: str):
+
+        postman_manager = context.require(PostmanManager)
+        await postman_manager.send_plain_text(message, post_dest=self.post_dest)
+
+    async def post_illust(self, illust: Illust, *,
+                          header: Optional[str] = None,
+                          number: Optional[int] = None):
+        postman_manager = context.require(PostmanManager)
+        model = await IllustMessagesModel.from_illust(illust, header=header, number=number,
+                                                      max_page=conf.pixiv_max_item_per_query,
+                                                      block_r18=(not await self.is_r18_allowed()),
+                                                      block_r18g=(not await self.is_r18g_allowed()))
+        if model:
+            await postman_manager.send_illusts(model, post_dest=self.post_dest)
+
+    async def post_illusts(self, illusts: Sequence[Illust], *,
+                           header: Optional[str] = None,
+                           number: Optional[int] = None):
+        postman_manager = context.require(PostmanManager)
+        if len(illusts) == 1:
+            await self.post_illust(illusts[0], header=header, number=number)
+        else:
+            model = await IllustMessagesModel.from_illusts(illusts, header=header, number=number,
+                                                           block_r18=(not await self.is_r18_allowed()),
+                                                           block_r18g=(not await self.is_r18g_allowed()))
+            if model:
+                await postman_manager.send_illusts(model, post_dest=self.post_dest)
 
 
-def post_destination(bot: Bot, event: Event):
-    return context.require(PostDestinationFactoryManager).from_event(bot, event)
-
-
-class EntryHandler(Handler, ABC):
-    def __init__(self):
-        super().__init__()
-        self.add_interceptor(context.require(DefaultErrorInterceptor))
-
-
-class MatcherEntryHandler(EntryHandler, ABC):
-    def __init__(self):
-        super().__init__()
-        self.matcher.append_handler(self.on_match)
-
-    @property
-    @abstractmethod
-    def matcher(self) -> Type[Matcher]:
-        raise NotImplementedError()
-
-    @abstractmethod
-    async def on_match(self, bot: Bot, event: Event, state: T_State, matcher: Matcher,
-                       post_dest: PostDestination[T_UID, T_GID] = Depends(post_destination)):
-        raise NotImplementedError()
-
-
-class DelegationHandler(Handler, ABC):
-    def __init__(self):
-        super().__init__()
-        if self.enabled():
-            self.interceptor = self.delegation.interceptor
-
-    @property
-    @abstractmethod
-    def delegation(self) -> Handler:
-        raise NotImplementedError()
-
-    def parse_args(self, args: Sequence[str], post_dest: PostDestination[T_UID, T_GID]) -> Union[dict, Awaitable[dict]]:
-        return self.delegation.parse_args(args, post_dest)
-
-    async def actual_handle(self, *, post_dest: PostDestination[T_UID, T_GID],
-                            silently: bool = False,
-                            **kwargs):
-        return await self.delegation.actual_handle(post_dest=post_dest, silently=silently, **kwargs)
+class EntryHandler(Handler, ABC, interceptors=[context.require(DefaultErrorInterceptor)]):
+    pass
