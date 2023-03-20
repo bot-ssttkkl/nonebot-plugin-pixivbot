@@ -1,3 +1,4 @@
+from abc import ABC
 from typing import List
 
 from beanie.odm.interfaces.aggregate import AggregateInterface
@@ -19,15 +20,16 @@ conf = context.require(Config)
 class PixivRepoCache(BaseModel,
                      FindInterface,
                      AggregateInterface,
-                     OtherGettersInterface):
+                     OtherGettersInterface,
+                     ABC):
     metadata: PixivRepoMetadata
 
 
-class IllustSetCache(PixivRepoCache):
+class IllustSetCache(PixivRepoCache, ABC):
     illust_id: List[int]
 
 
-class UserSetCache(PixivRepoCache):
+class UserSetCache(PixivRepoCache, ABC):
     user_id: List[int]
 
 

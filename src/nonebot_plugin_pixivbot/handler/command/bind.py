@@ -43,7 +43,7 @@ class BindHandler(SubCommandHandler, subcommand='bind', interceptors=[ServiceInt
                 else:
                     msg = "当前未绑定Pixiv账号\n"
                 msg += f"命令格式：{default_command_start}pixivbot bind <pixiv_user_id>"
-                await self.post_plain_text(message=msg, post_dest=self.post_dest)
+                await self.post_plain_text(message=msg)
 
 
 class UnbindHandler(SubCommandHandler, subcommand='unbind', interceptors=[ServiceInterceptor(bind_service)]):
