@@ -1,17 +1,18 @@
 from io import StringIO
 from typing import Sequence
 
-from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.model import PostIdentifier, ScheduleType
+from nonebot_plugin_pixivbot.model import ScheduleType
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.plugin_service import manage_schedule_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.service.scheduler import Scheduler
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from nonebot_plugin_pixivbot.utils.nonebot import default_command_start
-from .command import SubCommandHandler
+from .subcommand import SubCommandHandler
 from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
+
+scheduler = context.require(Scheduler)
 
 
 async def build_subscriptions_msg(post_dest: PostDestination[T_UID, T_GID]):
@@ -31,23 +32,13 @@ async def build_subscriptions_msg(post_dest: PostDestination[T_UID, T_GID]):
         return sio.getvalue()
 
 
-@context.inject
-@context.register_singleton()
-class ScheduleHandler(SubCommandHandler, subcommand='schedule'):
-    scheduler: Scheduler = Inject(Scheduler)
-
-    def __init__(self):
-        super().__init__()
-        self.add_interceptor(ServiceInterceptor(manage_schedule_service))
-
+class ScheduleHandler(SubCommandHandler, subcommand='schedule',
+                      interceptors=[ServiceInterceptor(manage_schedule_service)]):
     @classmethod
     def type(cls) -> str:
         return "schedule"
 
-    def enabled(self) -> bool:
-        return True
-
-    def parse_args(self, args: Sequence[str], post_dest: PostIdentifier[T_UID, T_GID]) -> dict:
+    async def parse_args(self, args: Sequence[str]) -> dict:
         if len(args) < 2:
             raise BadRequestError()
         try:
@@ -60,21 +51,17 @@ class ScheduleHandler(SubCommandHandler, subcommand='schedule'):
     # noinspection PyMethodOverriding
     async def actual_handle(self, *, type: ScheduleType,
                             schedule: str,
-                            args: Sequence[str],
-                            post_dest: PostDestination[T_UID, T_GID],
-                            silently: bool = False, **kwargs):
-        await self.scheduler.add_task(type, schedule, args, post_dest)
-        await self.post_plain_text(message="订阅成功", post_dest=post_dest)
+                            args: Sequence[str]):
+        await self.scheduler.add_task(type, schedule, args, self.post_dest)
+        await self.post_plain_text(message="订阅成功")
 
-    async def actual_handle_bad_request(self, err: BadRequestError,
-                                        *, post_dest: PostDestination[T_UID, T_GID],
-                                        silently: bool = False):
+    async def actual_handle_bad_request(self, err: BadRequestError):
         msg = ""
         if err.message:
             msg += err.message
             msg += '\n'
 
-        msg += await build_subscriptions_msg(post_dest)
+        msg += await build_subscriptions_msg(self.post_dest)
         msg += "\n" \
                f"命令格式：{default_command_start}pixivbot schedule <type> <schedule> [..args]\n" \
                "参数：\n" \
@@ -83,48 +70,34 @@ class ScheduleHandler(SubCommandHandler, subcommand='schedule'):
                "  <schedule>：格式为HH:mm（每日固定时间点推送）或HH:mm*x（间隔时间推送）\n" \
                "  [...args]：根据<type>不同需要提供不同的参数\n" \
                f"示例：{default_command_start}pixivbot schedule ranking 06:00*x day 1-5"
-        await self.post_plain_text(message=msg, post_dest=post_dest)
+        await self.post_plain_text(message=msg)
 
 
-@context.inject
-@context.register_singleton()
-class UnscheduleHandler(SubCommandHandler, subcommand='unschedule'):
-    scheduler: Scheduler = Inject(Scheduler)
-
-    def __init__(self):
-        super().__init__()
-        self.add_interceptor(ServiceInterceptor(manage_schedule_service))
-
+class UnscheduleHandler(SubCommandHandler, subcommand='unschedule',
+                        interceptors=[ServiceInterceptor(manage_schedule_service)]):
     @classmethod
     def type(cls) -> str:
         return "unschedule"
 
-    def enabled(self) -> bool:
-        return True
-
-    def parse_args(self, args: Sequence[str], post_dest: PostIdentifier[T_UID, T_GID]) -> dict:
+    async def parse_args(self, args: Sequence[str]) -> dict:
         if len(args) == 0:
             raise BadRequestError()
         return {"code": args[0]}
 
     # noinspection PyMethodOverriding
-    async def actual_handle(self, *, code: str,
-                            post_dest: PostDestination[T_UID, T_GID],
-                            silently: bool = False):
-        if await self.scheduler.remove_task(post_dest, code):
-            await self.post_plain_text(message="取消订阅成功", post_dest=post_dest)
+    async def actual_handle(self, *, code: str):
+        if await self.scheduler.remove_task(self.post_dest, code):
+            await self.post_plain_text(message="取消订阅成功")
         else:
             raise BadRequestError("取消订阅失败，不存在该订阅")
 
-    async def actual_handle_bad_request(self, err: BadRequestError,
-                                        *, post_dest: PostDestination[T_UID, T_GID],
-                                        silently: bool = False):
+    async def actual_handle_bad_request(self, err: BadRequestError):
         msg = ""
         if err.message:
             msg += err.message
             msg += '\n'
 
-        msg += await build_subscriptions_msg(post_dest)
+        msg += await build_subscriptions_msg(self.post_dest)
         msg += "\n"
         msg += f"命令格式：{default_command_start}pixivbot unschedule <id>"
-        await self.post_plain_text(message=msg, post_dest=post_dest)
+        await self.post_plain_text(message=msg)

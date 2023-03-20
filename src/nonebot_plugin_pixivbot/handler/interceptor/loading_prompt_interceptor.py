@@ -1,36 +1,34 @@
 from asyncio import create_task, sleep, shield, Task
-from typing import Callable, Optional
+from typing import Callable, Optional, TYPE_CHECKING
 
 from nonebot import logger
 
 from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
-from .base import Interceptor, T_UID, T_GID
+from .base import Interceptor
 from ..pkg_context import context
 
+if TYPE_CHECKING:
+    from nonebot_plugin_pixivbot.handler.base import Handler
 
-@context.inject
+conf = context.require(Config)
+
+
 @context.register_singleton()
 class LoadingPromptInterceptor(Interceptor):
-    conf = Inject(Config)
 
-    async def send_delayed_loading_prompt(self, post_dest: PostDestination[T_UID, T_GID]):
-        await sleep(self.conf.pixiv_loading_prompt_delayed_time)
+    async def send_delayed_loading_prompt(self, handler: "Handler"):
+        await sleep(conf.pixiv_loading_prompt_delayed_time)
 
-        logger.debug(f"send delayed loading to {post_dest.identifier}")
-        await shield(self.post_plain_text("努力加载中", post_dest))
+        logger.debug(f"send delayed loading to {handler.post_dest.identifier}")
+        await shield(handler.post_plain_text("努力加载中"))
 
-    async def intercept(self, wrapped_func: Callable,
-                        *args, post_dest: PostDestination[T_UID, T_GID],
-                        silently: bool,
-                        **kwargs):
+    async def intercept(self, handler: "Handler", wrapped_func: Callable, *args, **kwargs):
         task: Optional[Task] = None
-        if not silently:
-            task = create_task(self.send_delayed_loading_prompt(post_dest))
+        if not handler.silently:
+            task = create_task(self.send_delayed_loading_prompt(handler))
 
         try:
-            await wrapped_func(*args, post_dest=post_dest, silently=silently, **kwargs)
+            await wrapped_func(*args, **kwargs)
         finally:
             if task and not task.done():
                 task.cancel()

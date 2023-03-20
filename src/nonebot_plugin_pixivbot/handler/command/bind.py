@@ -1,34 +1,22 @@
 from typing import Sequence
 
-from nonebot_plugin_pixivbot.context import Inject
-from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.plugin_service import bind_service
-from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
 from nonebot_plugin_pixivbot.service.pixiv_account_binder import PixivAccountBinder
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from nonebot_plugin_pixivbot.utils.nonebot import default_command_start
-from .command import SubCommandHandler
+from .subcommand import SubCommandHandler
 from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
 
+binder = context.require(PixivAccountBinder)
 
-@context.inject
-@context.register_singleton()
-class BindHandler(SubCommandHandler, subcommand='bind'):
-    binder = Inject(PixivAccountBinder)
 
-    def __init__(self):
-        super().__init__()
-        self.add_interceptor(ServiceInterceptor(bind_service))
-
+class BindHandler(SubCommandHandler, subcommand='bind', interceptors=[ServiceInterceptor(bind_service)]):
     @classmethod
     def type(cls) -> str:
         return "bind"
 
-    def enabled(self) -> bool:
-        return True
-
-    async def parse_args(self, args: Sequence[str], post_dest: PostDestination[T_UID, T_GID]) -> dict:
+    async def parse_args(self, args: Sequence[str]) -> dict:
         if len(args) < 1:
             raise BadRequestError()
         else:
@@ -40,52 +28,33 @@ class BindHandler(SubCommandHandler, subcommand='bind'):
             return {"pixiv_user_id": pixiv_user_id}
 
     # noinspection PyMethodOverriding
-    async def actual_handle(self, *, pixiv_user_id: int,
-                            post_dest: PostDestination[T_UID, T_GID],
-                            silently: bool = False):
-        await self.binder.bind(post_dest.adapter, post_dest.user_id, pixiv_user_id)
-        await self.post_plain_text(message="Pixiv账号绑定成功", post_dest=post_dest)
+    async def actual_handle(self, *, pixiv_user_id: int):
+        await binder.bind(self.post_dest.adapter, self.post_dest.user_id, pixiv_user_id)
+        await self.post_plain_text(message="Pixiv账号绑定成功")
 
-    async def actual_handle_bad_request(self, err: BadRequestError,
-                                        *, post_dest: PostDestination[T_UID, T_GID],
-                                        silently: bool = False):
-        if not silently:
+    async def actual_handle_bad_request(self, err: BadRequestError):
+        if not self.silently:
             if err.message:
-                await self.post_plain_text(message=err.message, post_dest=post_dest)
+                await self.post_plain_text(message=err.message)
             else:
-                pixiv_user_id = await self.binder.get_binding(post_dest.adapter, post_dest.user_id)
+                pixiv_user_id = await binder.get_binding(self.post_dest.adapter, self.post_dest.user_id)
                 if pixiv_user_id is not None:
                     msg = f"当前绑定账号：{pixiv_user_id}\n"
                 else:
                     msg = "当前未绑定Pixiv账号\n"
                 msg += f"命令格式：{default_command_start}pixivbot bind <pixiv_user_id>"
-                await self.post_plain_text(message=msg, post_dest=post_dest)
+                await self.post_plain_text(message=msg, post_dest=self.post_dest)
 
 
-@context.inject
-@context.register_singleton()
-class UnbindHandler(SubCommandHandler, subcommand='unbind'):
-    binder = Inject(PixivAccountBinder)
-
-    def __init__(self):
-        super().__init__()
-        self.add_interceptor(ServiceInterceptor(bind_service))
-
+class UnbindHandler(SubCommandHandler, subcommand='unbind', interceptors=[ServiceInterceptor(bind_service)]):
     @classmethod
     def type(cls) -> str:
         return "unbind"
 
-    def enabled(self) -> bool:
-        return True
-
-    def parse_args(self, args: Sequence[str], post_dest: PostDestination[T_UID, T_GID]) -> dict:
-        return {}
-
     # noinspection PyMethodOverriding
-    async def actual_handle(self, *, post_dest: PostDestination[T_UID, T_GID],
-                            silently: bool = False):
-        result = await self.binder.unbind(post_dest.adapter, post_dest.user_id)
+    async def actual_handle(self):
+        result = await binder.unbind(self.post_dest.adapter, self.post_dest.user_id)
         if result:
-            await self.post_plain_text(message="Pixiv账号解绑成功", post_dest=post_dest)
+            await self.post_plain_text(message="Pixiv账号解绑成功")
         else:
-            await self.post_plain_text(message="当前未绑定Pixiv账号", post_dest=post_dest)
+            await self.post_plain_text(message="当前未绑定Pixiv账号")

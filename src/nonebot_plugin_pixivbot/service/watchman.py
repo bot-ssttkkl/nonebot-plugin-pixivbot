@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Dict, Any, overload
+from typing import Dict, Any, overload, Type
 
 from apscheduler.triggers.interval import IntervalTrigger
 
@@ -8,6 +8,7 @@ from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.watch_task import WatchTaskRepo
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.base import Handler
+from nonebot_plugin_pixivbot.handler.watch import WatchUserIllustsHandler, WatchFollowingIllustsHandler
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.model import WatchTask, WatchType
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
@@ -33,19 +34,18 @@ class Watchman(IntervalTaskWorker[WatchTask[T_UID, T_GID]]):
     }
 
     @classmethod
-    def _get_handler(cls, type: WatchType) -> Handler:
+    def _get_handler_type(cls, type: WatchType) -> Type["Handler"]:
         if type == WatchType.user_illusts:
-            from nonebot_plugin_pixivbot.handler.watch import WatchUserIllustsHandler
-            return context.require(WatchUserIllustsHandler)
+            return WatchUserIllustsHandler
         elif type == WatchType.following_illusts:
-            from nonebot_plugin_pixivbot.handler.watch import WatchFollowingIllustsHandler
-            return context.require(WatchFollowingIllustsHandler)
+            return WatchFollowingIllustsHandler
 
     async def _handle_trigger(self, task: WatchTask[T_UID, T_GID], post_dest: PostDestination[T_UID, T_GID],
                               manually: bool = False):
         try:
-            await self._get_handler(task.type).handle_with_parsed_args(post_dest=post_dest, silently=not manually,
-                                                                       task=task, disable_interceptors=manually)
+            handler_type = self._get_handler_type(task.type)
+            handler = handler_type(post_dest, silently=not manually, disable_interceptors=manually)
+            await handler.handle_with_parsed_args(task=task)
         finally:
             # 保存checkpoint，避免一次异常后下一次重复推送
             # 但是会存在丢失推送的问题

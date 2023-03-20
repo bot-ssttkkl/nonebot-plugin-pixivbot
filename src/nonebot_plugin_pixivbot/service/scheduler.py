@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timedelta
 from inspect import isawaitable
-from typing import Sequence, Union, TYPE_CHECKING, overload
+from typing import Sequence, Union, TYPE_CHECKING, overload, Type
 
 import pytz
 from apscheduler.triggers.interval import IntervalTrigger
@@ -11,6 +11,9 @@ from apscheduler.triggers.interval import IntervalTrigger
 from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.subscription import SubscriptionRepo
 from nonebot_plugin_pixivbot.global_context import context
+from nonebot_plugin_pixivbot.handler.schedule import SubscriptionRandomBookmarkHandler, \
+    SubscriptionRandomRecommendedIllustHandler, SubscriptionRankingHandler, SubscriptionRandomIllustHandler, \
+    SubscriptionRandomUserIllustHandler
 from nonebot_plugin_pixivbot.model import Subscription
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.model.subscription import ScheduleType
@@ -61,25 +64,21 @@ class Scheduler(IntervalTaskWorker[Subscription[T_UID, T_GID]]):
     repo: SubscriptionRepo = Inject(SubscriptionRepo)
 
     @classmethod
-    def _get_handler(cls, type: ScheduleType) -> Handler:
+    def _get_handler_type(cls, type: ScheduleType) -> Type["Handler"]:
         if type == ScheduleType.random_bookmark:
-            from nonebot_plugin_pixivbot.handler.schedule import SubscriptionRandomBookmarkHandler
-            return context.require(SubscriptionRandomBookmarkHandler)
+            return SubscriptionRandomBookmarkHandler
         elif type == ScheduleType.random_recommended_illust:
-            from nonebot_plugin_pixivbot.handler.schedule import SubscriptionRandomRecommendedIllustHandler
-            return context.require(SubscriptionRandomRecommendedIllustHandler)
+            return SubscriptionRandomRecommendedIllustHandler
         elif type == ScheduleType.ranking:
-            from nonebot_plugin_pixivbot.handler.schedule import SubscriptionRankingHandler
-            return context.require(SubscriptionRankingHandler)
+            return SubscriptionRankingHandler
         elif type == ScheduleType.random_illust:
-            from nonebot_plugin_pixivbot.handler.schedule import SubscriptionRandomIllustHandler
-            return context.require(SubscriptionRandomIllustHandler)
+            return SubscriptionRandomIllustHandler
         elif type == ScheduleType.random_user_illust:
-            from nonebot_plugin_pixivbot.handler.schedule import SubscriptionRandomUserIllustHandler
-            return context.require(SubscriptionRandomUserIllustHandler)
+            return SubscriptionRandomUserIllustHandler
 
     async def _handle_trigger(self, sub: Subscription[T_UID, T_GID], post_dest: PostDestination[T_UID, T_GID]):
-        await self._get_handler(sub.type).handle_with_parsed_args(post_dest=post_dest, silently=True, **sub.kwargs)
+        handler_type = self._get_handler_type(sub.type)
+        await handler_type(post_dest, silently=True).handle_with_parsed_args(**sub.kwargs)
 
     def _make_job_trigger(self, item: Subscription[T_UID, T_GID]) -> IntervalTrigger:
         offset_hour, offset_minute, hours, minutes = item.schedule
@@ -100,7 +99,8 @@ class Scheduler(IntervalTaskWorker[Subscription[T_UID, T_GID]]):
         if isinstance(schedule, str):
             schedule = parse_schedule(schedule)
 
-        kwargs = self._get_handler(type_).parse_args(args, post_dest)
+        handler_type = self._get_handler_type(type_)
+        kwargs = handler_type(post_dest).parse_args(args)
         if isawaitable(kwargs):
             kwargs = await kwargs
 

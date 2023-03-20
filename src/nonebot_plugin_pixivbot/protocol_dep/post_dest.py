@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from contextvars import ContextVar
 from typing import Generic, Optional, List, TypeVar
 
 from nonebot import Bot
@@ -55,8 +54,6 @@ class PostDestination(ABC, Generic[T_UID, T_GID]):
         raise NotImplementedError()
 
 
-current_post_dest: ContextVar[PostDestination[T_UID, T_GID]] = ContextVar("current_post_dest")
-
 T_Event = TypeVar("T_Event", bound=Event, covariant=True)
 
 
@@ -79,5 +76,8 @@ class PostDestinationFactoryManager(ProtocolDepManager[PostDestinationFactory]):
         return self[get_adapter_name(bot)].from_event(bot, event)
 
 
-__all__ = ("PostDestination", "PostDestinationFactory", "PostDestinationFactoryManager",
-           "current_post_dest")
+def post_destination(bot: Bot, event: Event):
+    return context.require(PostDestinationFactoryManager).from_event(bot, event)
+
+
+__all__ = ("PostDestination", "PostDestinationFactory", "PostDestinationFactoryManager", "post_destination")

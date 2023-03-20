@@ -12,4 +12,4 @@ from .protocol_dep.post_dest import PostDestinationFactory
 from .protocol_dep.postman import Postman
 
 # ================== register handler ==================
-from .handler import *
+from . import handler
