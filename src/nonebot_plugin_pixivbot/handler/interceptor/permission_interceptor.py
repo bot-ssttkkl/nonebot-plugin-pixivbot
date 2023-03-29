@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Callable, Union, Awaitable, Optional, TYPE_CHECKING
+from typing import Callable, Optional, TYPE_CHECKING
 
 from nonebot import get_driver, logger
 
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 class PermissionInterceptor(Interceptor, ABC):
     @abstractmethod
-    def has_permission(self, handler: "Handler") -> Union[bool, Awaitable[bool]]:
+    async def has_permission(self, handler: "Handler") -> bool:
         raise NotImplementedError()
 
     async def get_permission_denied_msg(self, handler: "Handler") -> Optional[str]:
@@ -50,7 +50,7 @@ class AnyPermissionInterceptor(PermissionInterceptor):
 
 @context.register_singleton()
 class SuperuserInterceptor(PermissionInterceptor):
-    def has_permission(self, handler: "Handler") -> bool:
+    async def has_permission(self, handler: "Handler") -> bool:
         superusers = get_driver().config.superusers
         return str(handler.post_dest.user_id) in superusers \
                or f"{handler.post_dest.adapter}:{handler.post_dest.user_id}" in superusers
