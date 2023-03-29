@@ -142,7 +142,6 @@ dmypy.json
 
 .idea
 
-.env.prod
-.env.dev
+.env.*
 bot.py
 *.db
