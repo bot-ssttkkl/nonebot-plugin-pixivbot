@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nonebot-plugin-pixivbot"
-version = "1.8.0"
+version = "1.8.1"
 description = "Nonebot Plugin PixivBot"
 authors = ["ssttkkl <huang.wen.long@hotmail.com>"]
 readme = "README.md"
