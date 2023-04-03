@@ -264,7 +264,7 @@ pixiv_onebot_send_forward_message=auto  # 发图时是否使用转发消息的�
 
 # 功能配置
 pixiv_more_enabled=True  # 启用重复上一次请求（还要）功能
-pixiv_query_expires_in=10*60  # 上一次请求的过期时间（单位：秒）
+pixiv_query_expires_in=600  # 上一次请求的过期时间（单位：秒）
 
 pixiv_illust_query_enabled=True  # 启用插画查询（看看图）功能
 
