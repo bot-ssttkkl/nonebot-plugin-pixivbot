@@ -142,7 +142,13 @@ class UnwatchHandler(SubCommandHandler, subcommand='unwatch', service=manage_wat
 
     # noinspection PyMethodOverriding
     async def actual_handle(self, *, code: str):
-        if await watchman.remove_task(self.post_dest, code):
+        if code != "all":
+            ok = await watchman.remove_task(self.post_dest, code)
+        else:
+            await watchman.remove_all_by_subscriber(self.post_dest)
+            ok = True
+
+        if ok:
             await self.post_plain_text(message="取消订阅成功")
         else:
             raise BadRequestError("取消订阅失败，不存在该订阅")

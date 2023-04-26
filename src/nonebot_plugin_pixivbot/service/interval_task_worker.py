@@ -74,7 +74,7 @@ class IntervalTaskWorker(ABC, Generic[T]):
 
             if not available:
                 logger.info(f"[{self.tag}] {post_dest} is no longer available, removing all his tasks...")
-                await self.unschedule_all_by_subscriber(post_dest)
+                await self.remove_all_by_subscriber(post_dest)
 
     @abstractmethod
     def _make_job_trigger(self, item: T) -> BaseTrigger:
@@ -122,7 +122,7 @@ class IntervalTaskWorker(ABC, Generic[T]):
         else:
             return False
 
-    async def unschedule_all_by_subscriber(self, post_dest: PostDestination[T_UID, T_GID]):
+    async def remove_all_by_subscriber(self, post_dest: PostDestination[T_UID, T_GID]):
         old = await self.repo.delete_many_by_subscriber(get_bot_user_identifier(post_dest.bot),
                                                         post_dest.identifier)
         for item in old:
