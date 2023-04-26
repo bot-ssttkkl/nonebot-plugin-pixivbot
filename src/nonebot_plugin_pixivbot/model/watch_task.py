@@ -4,6 +4,7 @@ from typing import Any, Dict, Generic
 
 from . import T_UID, T_GID
 from .interval_task import IntervalTask
+from ..utils.format import format_kwargs
 
 
 class WatchType(str, Enum):
@@ -18,11 +19,12 @@ class WatchTask(IntervalTask[T_UID, T_GID], Generic[T_UID, T_GID]):
 
     @property
     def args_text(self) -> str:
-        args = list(filter(lambda kv: kv[1], self.kwargs.items()))
-        if len(args) != 0:
-            return ", ".join(map(lambda kv: f'{kv[0]}={kv[1]}', args))
-        else:
-            return ""
+        filtered_kwargs = {}
+        for k in self.kwargs:
+            if self.kwargs[k]:
+                filtered_kwargs[k] = self.kwargs[k]
+
+        return format_kwargs(**filtered_kwargs)
 
     def __repr__(self):
         text = f'[{self.code}] {self.type} by {self.subscriber}'
@@ -32,4 +34,3 @@ class WatchTask(IntervalTask[T_UID, T_GID], Generic[T_UID, T_GID]):
 
     def __str__(self):
         return self.__repr__()
-
