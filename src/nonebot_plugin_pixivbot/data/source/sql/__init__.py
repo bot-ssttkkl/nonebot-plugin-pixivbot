@@ -101,6 +101,7 @@ class SqlDataSource(DataSourceLifecycleMixin):
             # 不过这样设置之后，在程序运行期间，你的数据库文件都将被占用。
             params['poolclass'] = StaticPool
 
+        logger.info("[data source] sql conn url: " + conf.pixiv_sql_conn_url)
         self._engine = create_async_engine(conf.pixiv_sql_conn_url, **params)
 
         async with self._engine.begin() as conn:

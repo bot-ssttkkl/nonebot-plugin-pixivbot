@@ -38,6 +38,7 @@ beanie = { version = "^1.17.0", optional = true }
 SQLAlchemy = { version = "^2.0.0", extras = ["asyncio"] }
 aiosqlite = "^0.18.0"
 asyncpg = { version = "^0.27.0", optional = true }
+nonebot-plugin-localstore = "^0.4.1"
 
 [tool.poetry.group.dev.dependencies]
 nb-cli = "^1.0.5"

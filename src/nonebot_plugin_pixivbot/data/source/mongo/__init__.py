@@ -88,6 +88,8 @@ class MongoDataSource(DataSourceLifecycleMixin):
 
         await self._fire_initializing()
 
+        logger.info("[data source] mongo conn url: " + conf.pixiv_mongo_conn_url)
+
         client = AsyncIOMotorClient(conf.pixiv_mongo_conn_url)
         options = CodecOptions(tz_aware=True)
         db = client[conf.pixiv_mongo_database_name].with_options(options)

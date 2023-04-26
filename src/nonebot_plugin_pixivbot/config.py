@@ -1,9 +1,14 @@
+from pathlib import Path
 from typing import Optional, List
 from urllib.parse import urlparse
 
-from nonebot import get_driver, logger
+from nonebot import get_driver, logger, require
 from pydantic import BaseSettings, validator, root_validator
 from pydantic.fields import ModelField
+
+require("nonebot_plugin_localstore")
+
+import nonebot_plugin_localstore as store
 
 from nonebot_plugin_pixivbot.enums import *
 from nonebot_plugin_pixivbot.enums import DataSourceType
@@ -13,6 +18,15 @@ from nonebot_plugin_pixivbot.global_context import context
 def _deprecated_warn(name: str):
     logger.warning(f"config \"{name}\" is deprecated, use nonebot-plugin-access-control instead "
                    "(MORE INFO: https://github.com/ssttkkl/nonebot-plugin-pixivbot#%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6)")
+
+
+def _get_default_sql_conn_url():
+    # 旧版本的sqlite数据库在working directory
+    data_file = Path("pixiv_bot.db")
+    if not data_file.exists():
+        data_file = store.get_data_file("nonebot_plugin_pixivbot", "pixiv_bot.db")
+
+    return "sqlite+aiosqlite:///" + str(data_file)
 
 
 @context.register_singleton(**get_driver().config.dict())
@@ -50,7 +64,7 @@ class Config(BaseSettings):
     @root_validator(pre=True, allow_reuse=True)
     def default_sql_conn_url(cls, values):
         if "pixiv_sql_conn_url" not in values:
-            values["pixiv_sql_conn_url"] = "sqlite+aiosqlite:///pixiv_bot.db"
+            values["pixiv_sql_conn_url"] = _get_default_sql_conn_url()
         return values
 
     @root_validator(pre=True, allow_reuse=True)

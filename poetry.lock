@@ -2919,4 +2919,4 @@ telegram = ["nonebot-adapter-telegram"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "bbb8de506f60e6f3befeeb879b901eec541ff013406eb1afe2643ced46635b1e"
+content-hash = "9f888a56286af3f35e49094a5cbd70acf5b3194d46e058dfa619129133f18180"
