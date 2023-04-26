@@ -6,8 +6,6 @@ from nonebot_plugin_pixivbot.plugin_service import more_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import post_destination
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .base import CommonHandler
-from ..interceptor.default_error_interceptor import DefaultErrorInterceptor
-from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
 from ..recorder import Recorder
 from ..utils import get_common_query_rule, get_count
@@ -17,7 +15,7 @@ recorder = context.require(Recorder)
 conf = context.require(Config)
 
 
-class MoreHandler(CommonHandler):
+class MoreHandler(CommonHandler, service=more_service):
     @classmethod
     def type(cls) -> str:
         return "more"
@@ -33,10 +31,6 @@ class MoreHandler(CommonHandler):
 
         handler = req.handler_type(self.post_dest, silently=self.silently, disable_interceptors=True)
         await handler.handle(*req.args, **{**req.kwargs, "count": count})
-
-
-MoreHandler.add_interceptor_after(ServiceInterceptor(more_service),
-                                  after=context.require(DefaultErrorInterceptor))
 
 
 @on_regex("^还要((.*)张)?$", rule=get_common_query_rule(), priority=1, block=True).handle()

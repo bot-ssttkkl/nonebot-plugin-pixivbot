@@ -9,7 +9,6 @@ from nonebot_plugin_pixivbot.service.watchman import Watchman
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from nonebot_plugin_pixivbot.utils.nonebot import default_command_start
 from .subcommand import SubCommandHandler
-from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
 
 watchman = context.require(Watchman)
@@ -68,8 +67,7 @@ async def parse_following_illusts_args(args: Sequence[str], post_dest: PostDesti
     return watch_args, message
 
 
-class WatchHandler(SubCommandHandler, subcommand='watch',
-                   interceptors=[ServiceInterceptor(manage_watch_service)]):
+class WatchHandler(SubCommandHandler, subcommand='watch', service=manage_watch_service):
 
     @classmethod
     def type(cls) -> str:
@@ -132,8 +130,7 @@ class WatchHandler(SubCommandHandler, subcommand='watch',
         await self.post_plain_text(message=msg)
 
 
-class UnwatchHandler(SubCommandHandler, subcommand='unwatch',
-                     interceptors=[ServiceInterceptor(manage_watch_service)]):
+class UnwatchHandler(SubCommandHandler, subcommand='unwatch', service=manage_watch_service):
     @classmethod
     def type(cls) -> str:
         return "unwatch"

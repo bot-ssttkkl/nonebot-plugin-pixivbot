@@ -8,8 +8,6 @@ from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.plugin_service import illust_service
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .base import CommonHandler
-from ..interceptor.default_error_interceptor import DefaultErrorInterceptor
-from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
 from ..utils import get_common_query_rule
 from ...config import Config
@@ -20,7 +18,7 @@ conf = context.require(Config)
 service = context.require(PixivService)
 
 
-class IllustHandler(CommonHandler, Generic[T_UID, T_GID]):
+class IllustHandler(CommonHandler, Generic[T_UID, T_GID], service=illust_service):
     @classmethod
     def type(cls) -> str:
         return "illust"
@@ -39,10 +37,6 @@ class IllustHandler(CommonHandler, Generic[T_UID, T_GID]):
     async def actual_handle(self, illust_id: int):
         illust = await service.illust_detail(illust_id)
         await self.post_illust(illust)
-
-
-IllustHandler.add_interceptor_after(ServiceInterceptor(illust_service),
-                                    after=context.require(DefaultErrorInterceptor))
 
 
 @on_regex(r"^看看图\s*([1-9][0-9]*)$", rule=get_common_query_rule(), priority=5).handle()

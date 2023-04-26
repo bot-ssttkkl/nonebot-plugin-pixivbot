@@ -11,8 +11,6 @@ from nonebot_plugin_pixivbot.plugin_service import ranking_service
 from nonebot_plugin_pixivbot.utils.decode_integer import decode_integer
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .base import CommonHandler
-from ..interceptor.default_error_interceptor import DefaultErrorInterceptor
-from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
 from ..utils import get_common_query_rule
 from ...config import Config
@@ -23,7 +21,7 @@ conf = context.require(Config)
 service = context.require(PixivService)
 
 
-class RankingHandler(CommonHandler):
+class RankingHandler(CommonHandler, service=ranking_service):
     @classmethod
     def type(cls) -> str:
         return "ranking"
@@ -97,10 +95,6 @@ class RankingHandler(CommonHandler):
         await self.post_illusts(illusts,
                                 header=f"这是您点的{self.mode_mapping[mode]}榜",
                                 number=range[0])
-
-
-RankingHandler.add_interceptor_after(ServiceInterceptor(ranking_service),
-                                     after=context.require(DefaultErrorInterceptor))
 
 
 @on_regex(r"^看看(.*)?榜\s*(.*)?$", rule=get_common_query_rule(), priority=4, block=True).handle()

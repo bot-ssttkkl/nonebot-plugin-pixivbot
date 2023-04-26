@@ -9,8 +9,6 @@ from nonebot_plugin_pixivbot.plugin_service import random_bookmark_service
 from nonebot_plugin_pixivbot.service.pixiv_account_binder import PixivAccountBinder
 from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .base import RecordCommonHandler
-from ..interceptor.default_error_interceptor import DefaultErrorInterceptor
-from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
 from ..utils import get_common_query_rule, get_count
 from ...config import Config
@@ -22,7 +20,7 @@ binder = context.require(PixivAccountBinder)
 service = context.require(PixivService)
 
 
-class RandomBookmarkHandler(RecordCommonHandler):
+class RandomBookmarkHandler(RecordCommonHandler, service=random_bookmark_service):
     @classmethod
     def type(cls) -> str:
         return "random_bookmark"
@@ -63,10 +61,6 @@ class RandomBookmarkHandler(RecordCommonHandler):
 
         await self.post_illusts(illusts,
                                 header="这是您点的私家车")
-
-
-RandomBookmarkHandler.add_interceptor_after(ServiceInterceptor(random_bookmark_service),
-                                            after=context.require(DefaultErrorInterceptor))
 
 
 @on_regex("^来(.*)?张私家车$", rule=get_common_query_rule(), priority=5).handle()

@@ -22,7 +22,7 @@ help_text = f"""
 """.strip()
 
 
-class HelpHandler(SubCommandHandler, subcommand='help', interceptors=[ServiceInterceptor(help_service)]):
+class HelpHandler(SubCommandHandler, subcommand='help', service=help_service):
     @classmethod
     def type(cls) -> str:
         return "help"

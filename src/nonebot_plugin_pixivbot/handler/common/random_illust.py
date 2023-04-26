@@ -7,8 +7,6 @@ from nonebot.typing import T_State
 from nonebot_plugin_pixivbot.plugin_service import random_illust_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import post_destination
 from .base import RecordCommonHandler
-from ..interceptor.default_error_interceptor import DefaultErrorInterceptor
-from ..interceptor.service_interceptor import ServiceInterceptor
 from ..pkg_context import context
 from ..utils import get_common_query_rule, get_count
 from ...config import Config
@@ -18,7 +16,7 @@ conf = context.require(Config)
 service = context.require(PixivService)
 
 
-class RandomIllustHandler(RecordCommonHandler):
+class RandomIllustHandler(RecordCommonHandler, service=random_illust_service):
     @classmethod
     def type(cls) -> str:
         return "random_illust"
@@ -39,10 +37,6 @@ class RandomIllustHandler(RecordCommonHandler):
 
         await self.post_illusts(illusts,
                                 header=f"这是您点的{word}图")
-
-
-RandomIllustHandler.add_interceptor_after(ServiceInterceptor(random_illust_service),
-                                          after=context.require(DefaultErrorInterceptor))
 
 
 @on_regex("^来(.*)?张(.+)图$", rule=get_common_query_rule(), priority=5).handle()

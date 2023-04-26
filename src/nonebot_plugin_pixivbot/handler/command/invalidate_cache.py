@@ -8,9 +8,8 @@ from ..pkg_context import context
 repo = context.require(PixivRepo)
 
 
-class InvalidateCacheHandler(SubCommandHandler, subcommand='invalidate_cache',
-                             interceptors=[context.require(SuperuserInterceptor),
-                                           ServiceInterceptor(invalidate_cache_service)]):
+class InvalidateCacheHandler(SubCommandHandler, subcommand='invalidate_cache', service=invalidate_cache_service,
+                             interceptors=[context.require(SuperuserInterceptor)]):
 
     @classmethod
     def type(cls) -> str:

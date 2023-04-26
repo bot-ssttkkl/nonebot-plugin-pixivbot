@@ -12,6 +12,7 @@ from nonebot_plugin_pixivbot.protocol_dep.postman import PostmanManager
 from .interceptor.base import Interceptor, DummyInterceptor
 from .interceptor.combined_interceptor import CombinedInterceptor
 from .interceptor.default_error_interceptor import DefaultErrorInterceptor
+from .interceptor.service_interceptor import ServiceInterceptor
 from .pkg_context import context
 from ..plugin_service import r18_service, r18g_service
 from ..utils.algorithm import as_unique
@@ -46,6 +47,18 @@ class HandlerMeta(ABCMeta):
         if "interceptors" in kwargs:
             interceptors.extend(kwargs["interceptors"])
             del kwargs["interceptors"]
+
+        if "service" in kwargs:
+            service = kwargs["service"]
+            del kwargs["service"]
+
+            if "service_interceptor_kwargs" in kwargs:
+                service_interceptor_kwargs = kwargs["service_interceptor_kwargs"]
+                del kwargs["service_interceptor_kwargs"]
+            else:
+                service_interceptor_kwargs = {}
+
+            interceptors.insert(0, ServiceInterceptor(service, **service_interceptor_kwargs))
 
         interceptors = as_unique(interceptors)
 

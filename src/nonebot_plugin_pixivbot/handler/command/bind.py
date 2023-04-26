@@ -11,7 +11,7 @@ from ..pkg_context import context
 binder = context.require(PixivAccountBinder)
 
 
-class BindHandler(SubCommandHandler, subcommand='bind', interceptors=[ServiceInterceptor(bind_service)]):
+class BindHandler(SubCommandHandler, subcommand='bind', service=bind_service):
     @classmethod
     def type(cls) -> str:
         return "bind"
@@ -46,7 +46,7 @@ class BindHandler(SubCommandHandler, subcommand='bind', interceptors=[ServiceInt
                 await self.post_plain_text(message=msg)
 
 
-class UnbindHandler(SubCommandHandler, subcommand='unbind', interceptors=[ServiceInterceptor(bind_service)]):
+class UnbindHandler(SubCommandHandler, subcommand='unbind', service=bind_service):
     @classmethod
     def type(cls) -> str:
         return "unbind"
