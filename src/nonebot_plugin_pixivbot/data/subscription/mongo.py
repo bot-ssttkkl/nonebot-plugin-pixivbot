@@ -2,9 +2,9 @@ from typing import Optional, Any, AsyncGenerator, Collection
 
 from pymongo import IndexModel, DeleteOne
 
-from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Subscription, PostIdentifier, T_UID, T_GID, UserIdentifier
+from .base import SubscriptionRepo
 from ..interval_task_repo import process_subscriber
 from ..source.mongo import MongoDataSource, MongoDocument
 from ..utils.shortuuid import gen_code
@@ -18,24 +18,26 @@ class SubscriptionDocument(Subscription[Any, Any], MongoDocument):
         ]
 
 
-@context.inject
+data_source = context.require(MongoDataSource)
+
+
 @context.register_singleton()
-class MongoSubscriptionRepo:
-    data_source: MongoDataSource = Inject(MongoDataSource)
+class MongoSubscriptionRepo(SubscriptionRepo):
 
     async def get_by_subscriber(self, bot: UserIdentifier[T_UID],
-                                subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncGenerator[
-        Subscription[T_UID, T_GID], None]:
+                                subscriber: PostIdentifier[T_UID, T_GID]) \
+            -> AsyncGenerator[Subscription[T_UID, T_GID], None]:
         subscriber = process_subscriber(subscriber)
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             async for doc in SubscriptionDocument.find(
                     SubscriptionDocument.bot == bot,
                     SubscriptionDocument.subscriber == subscriber,
                     session=session):
                 yield doc
 
-    async def get_by_bot(self, bot: UserIdentifier[T_UID]) -> AsyncGenerator[Subscription[T_UID, T_GID], None]:
-        async with self.data_source.start_session() as session:
+    async def get_by_bot(self, bot: UserIdentifier[T_UID]) \
+            -> AsyncGenerator[Subscription[T_UID, T_GID], None]:
+        async with data_source.start_session() as session:
             async for doc in SubscriptionDocument.find(SubscriptionDocument.bot == bot,
                                                        session=session):
                 yield doc
@@ -44,7 +46,7 @@ class MongoSubscriptionRepo:
                           subscriber: PostIdentifier[T_UID, T_GID],
                           code: str) -> Optional[Subscription[T_UID, T_GID]]:
         subscriber = process_subscriber(subscriber)
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             return await SubscriptionDocument.find_one(
                 SubscriptionDocument.bot == bot,
                 SubscriptionDocument.subscriber == subscriber,
@@ -54,7 +56,7 @@ class MongoSubscriptionRepo:
     async def insert(self, item: Subscription[T_UID, T_GID]) -> bool:
         item.subscriber = process_subscriber(item.subscriber)
         item.code = gen_code()
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             await SubscriptionDocument.insert_one(SubscriptionDocument(**item.dict()), session=session)
         return True
 
@@ -68,7 +70,7 @@ class MongoSubscriptionRepo:
             "code": code,
             "subscriber": process_subscriber(subscriber).dict()
         }
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             result = await SubscriptionDocument.get_motor_collection().find_one_and_delete(query, session=session)
             if result:
                 return Subscription.parse_obj(result)
@@ -80,7 +82,7 @@ class MongoSubscriptionRepo:
             -> Collection[Subscription[T_UID, T_GID]]:
         subscriber = process_subscriber(subscriber)
 
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             old_doc = await SubscriptionDocument.find(
                 SubscriptionDocument.bot == bot,
                 SubscriptionDocument.subscriber == subscriber,

@@ -11,17 +11,16 @@ from pymongo import IndexModel
 from pymongo.errors import OperationFailure
 
 from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.errors import DataSourceNotReadyError
 from nonebot_plugin_pixivbot.enums import DataSourceType
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.utils.lifecycler import on_shutdown, on_startup
 from ..lifecycle_mixin import DataSourceLifecycleMixin
 
+conf = context.require(Config)
 
-@context.inject
+
 class MongoDataSource(DataSourceLifecycleMixin):
-    conf = Inject(Config)
     app_db_version = 7
 
     document_models: List[Type[Document]] = []
@@ -89,9 +88,9 @@ class MongoDataSource(DataSourceLifecycleMixin):
 
         await self._fire_initializing()
 
-        client = AsyncIOMotorClient(self.conf.pixiv_mongo_conn_url)
+        client = AsyncIOMotorClient(conf.pixiv_mongo_conn_url)
         options = CodecOptions(tz_aware=True)
-        db = client[self.conf.pixiv_mongo_database_name].with_options(options)
+        db = client[conf.pixiv_mongo_database_name].with_options(options)
 
         # migrate
         mig_mgr = MongoMigrationManager(lambda prev, cur: self._raw_set_db_version(db, cur))
@@ -155,7 +154,6 @@ class MongoDocument(Document, metaclass=MongoDocumentMeta):
     pass
 
 
-conf = context.require(Config)
 if conf.pixiv_data_source == DataSourceType.mongo:
     context.register_eager_singleton()(MongoDataSource)
 

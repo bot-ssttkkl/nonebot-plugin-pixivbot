@@ -10,12 +10,13 @@ from sqlalchemy.orm import registry, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.enums import DataSourceType
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.utils.lifecycler import on_startup, on_shutdown
 from ..lifecycle_mixin import DataSourceLifecycleMixin
 from ...errors import DataSourceNotReadyError
+
+conf = context.require(Config)
 
 
 def default_dumps(obj):
@@ -29,10 +30,7 @@ def json_serializer(obj):
     return json.dumps(obj, default=default_dumps)
 
 
-@context.inject
 class SqlDataSource(DataSourceLifecycleMixin):
-    conf: Config = Inject(Config)
-
     app_db_version = 4
     registry = registry()
 
@@ -97,13 +95,13 @@ class SqlDataSource(DataSourceLifecycleMixin):
             'json_serializer': json_serializer
         }
 
-        if self.conf.detect_sql_dialect == 'sqlite':
+        if conf.detect_sql_dialect == 'sqlite':
             # 使用 SQLite 数据库时，如果在写入时遇到 (sqlite3.OperationalError) database is locked 错误。
             # 可尝试将 poolclass 设置为 StaticPool，保持有且仅有一个连接。
             # 不过这样设置之后，在程序运行期间，你的数据库文件都将被占用。
             params['poolclass'] = StaticPool
 
-        self._engine = create_async_engine(self.conf.pixiv_sql_conn_url, **params)
+        self._engine = create_async_engine(conf.pixiv_sql_conn_url, **params)
 
         async with self._engine.begin() as conn:
             from .migration import SqlMigrationManager
@@ -150,7 +148,6 @@ class SqlDataSource(DataSourceLifecycleMixin):
         return self._engine
 
 
-conf = context.require(Config)
 if conf.pixiv_data_source == DataSourceType.sql:
     context.register_eager_singleton()(SqlDataSource)
 

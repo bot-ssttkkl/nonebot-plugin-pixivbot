@@ -2,7 +2,6 @@ from io import StringIO
 
 from nonebot.adapters.onebot.v11 import Message, MessageSegment
 
-from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.enums import BlockAction
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model.message import IllustMessageModel, IllustMessagesModel
@@ -10,12 +9,11 @@ from nonebot_plugin_pixivbot.protocol_dep.postman import Postman as BasePostman,
 from nonebot_plugin_pixivbot_onebot_v11.config import OnebotV11Config
 from nonebot_plugin_pixivbot_onebot_v11.protocol_dep.post_dest import PostDestination
 
+conf = context.require(OnebotV11Config)
 
-@context.inject
+
 @context.register_singleton()
 class Postman(BasePostman[int, int], manager=PostmanManager):
-    conf: OnebotV11Config = Inject(OnebotV11Config)
-
     adapter = "onebot"
 
     def make_illust_msg(self, model: IllustMessageModel) -> Message:
@@ -46,7 +44,7 @@ class Postman(BasePostman[int, int], manager=PostmanManager):
 
             sio.write(f"作者：{model.author}\n"
                       f"发布时间：{model.create_time}\n")
-            if self.conf.pixiv_onebot_with_link:
+            if conf.pixiv_onebot_with_link:
                 sio.write(model.link)
             else:
                 sio.write(f"Pixiv ID：{model.id}")
@@ -70,8 +68,8 @@ class Postman(BasePostman[int, int], manager=PostmanManager):
 
     async def send_illusts(self, model: IllustMessagesModel,
                            *, post_dest: PostDestination):
-        if self.conf.pixiv_onebot_send_forward_message == 'never' or \
-                self.conf.pixiv_onebot_send_forward_message == 'auto' and len(model.messages) == 1:
+        if conf.pixiv_onebot_send_forward_message == 'never' or \
+                conf.pixiv_onebot_send_forward_message == 'auto' and len(model.messages) == 1:
             for x in model.flat():
                 await self.send_illust(x, post_dest=post_dest)
         else:

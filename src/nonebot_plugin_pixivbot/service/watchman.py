@@ -4,7 +4,6 @@ from typing import Dict, Any, overload, Type
 from apscheduler.triggers.interval import IntervalTrigger
 
 from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.watch_task import WatchTaskRepo
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.base import Handler
@@ -12,26 +11,24 @@ from nonebot_plugin_pixivbot.handler.watch import WatchUserIllustsHandler, Watch
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.model import WatchTask, WatchType
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
-from nonebot_plugin_pixivbot.protocol_dep.postman import PostmanManager
 from nonebot_plugin_pixivbot.service.interval_task_worker import IntervalTaskWorker
-from nonebot_plugin_pixivbot.service.pixiv_account_binder import PixivAccountBinder
 from nonebot_plugin_pixivbot.utils.nonebot import get_bot_user_identifier
+
+conf = context.require(Config)
 
 
 @context.root.register_eager_singleton()
-@context.inject
 class Watchman(IntervalTaskWorker[WatchTask[T_UID, T_GID]]):
     tag = "watchman"
-
-    conf = Inject(Config)
-    binder = Inject(PixivAccountBinder)
-    postman_mgr = Inject(PostmanManager)
-    repo: WatchTaskRepo = Inject(WatchTaskRepo)
 
     _trigger_hasher_mapper = {
         WatchType.user_illusts: lambda args: args["user_id"],
         WatchType.following_illusts: lambda args: hash(args["sender_user_id"]),
     }
+
+    @property
+    def repo(self) -> WatchTaskRepo:
+        return context.require(WatchTaskRepo)
 
     @classmethod
     def _get_handler_type(cls, type: WatchType) -> Type["Handler"]:
@@ -54,11 +51,11 @@ class Watchman(IntervalTaskWorker[WatchTask[T_UID, T_GID]]):
 
     def _make_job_trigger(self, item: WatchTask[T_UID, T_GID]) -> IntervalTrigger:
         hasher = self._trigger_hasher_mapper[item.type]
-        hash_sec = hasher(item.kwargs) % self.conf.pixiv_watch_interval
+        hash_sec = hasher(item.kwargs) % conf.pixiv_watch_interval
         yesterday = datetime.now(timezone.utc).replace(
             hour=0, minute=0, second=0, microsecond=0
         ) + timedelta(days=-1) + timedelta(seconds=hash_sec)
-        trigger = IntervalTrigger(seconds=self.conf.pixiv_watch_interval, start_date=yesterday)
+        trigger = IntervalTrigger(seconds=conf.pixiv_watch_interval, start_date=yesterday)
         return trigger
 
     async def _build_task(self, type_: WatchType,

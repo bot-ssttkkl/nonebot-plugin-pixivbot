@@ -3,9 +3,9 @@ from typing import AsyncGenerator, Optional, Any, Collection
 from pymongo import IndexModel, DeleteOne
 from pymongo.errors import DuplicateKeyError
 
-from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import WatchTask, PostIdentifier, T_UID, T_GID, UserIdentifier
+from . import WatchTaskRepo
 from ..interval_task_repo import process_subscriber
 from ..source.mongo import MongoDataSource, MongoDocument
 from ..utils.shortuuid import gen_code
@@ -20,15 +20,16 @@ class WatchTaskDocument(WatchTask[Any, Any], MongoDocument):
         ]
 
 
-@context.inject
+data_source = context.require(MongoDataSource)
+
+
 @context.register_singleton()
-class MongoWatchTaskRepo:
-    data_source = Inject(MongoDataSource)
+class MongoWatchTaskRepo(WatchTaskRepo):
 
     async def get_by_subscriber(self, bot: UserIdentifier[T_UID],
                                 subscriber: PostIdentifier[T_UID, T_GID]) -> AsyncGenerator[WatchTask, None]:
         subscriber = process_subscriber(subscriber)
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             async for doc in WatchTaskDocument.find(
                     WatchTaskDocument.bot == bot,
                     WatchTaskDocument.subscriber == subscriber,
@@ -36,7 +37,7 @@ class MongoWatchTaskRepo:
                 yield doc
 
     async def get_by_bot(self, bot: UserIdentifier[T_UID]) -> AsyncGenerator[WatchTask, None]:
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             async for doc in WatchTaskDocument.find(WatchTaskDocument.bot == bot,
                                                     session=session):
                 yield doc
@@ -45,7 +46,7 @@ class MongoWatchTaskRepo:
                           subscriber: PostIdentifier[T_UID, T_GID],
                           code: int) -> Optional[WatchTask]:
         subscriber = process_subscriber(subscriber)
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             return await WatchTaskDocument.find_one(
                 WatchTaskDocument.bot == bot,
                 WatchTaskDocument.subscriber == subscriber,
@@ -54,7 +55,7 @@ class MongoWatchTaskRepo:
 
     async def insert(self, item: WatchTask) -> bool:
         try:
-            async with self.data_source.start_session() as session:
+            async with data_source.start_session() as session:
                 item.subscriber = process_subscriber(item.subscriber)
                 item.code = gen_code()
                 doc = WatchTaskDocument(**item.dict())
@@ -65,7 +66,7 @@ class MongoWatchTaskRepo:
             return False
 
     async def update(self, item: WatchTask) -> bool:
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             if isinstance(item, WatchTaskDocument):
                 await item.save()
             else:
@@ -81,7 +82,7 @@ class MongoWatchTaskRepo:
     async def delete_one(self, bot: UserIdentifier[T_UID],
                          subscriber: PostIdentifier[T_UID, T_GID],
                          code: int) -> Optional[WatchTask]:
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             # beanie不支持原子性的find_one_and_delete操作
             subscriber = process_subscriber(subscriber)
             query = {
@@ -97,7 +98,7 @@ class MongoWatchTaskRepo:
 
     async def delete_many_by_subscriber(self, bot: UserIdentifier[T_UID],
                                         subscriber: PostIdentifier[T_UID, T_GID]) -> Collection[WatchTask]:
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             subscriber = process_subscriber(subscriber)
 
             old_doc = await WatchTaskDocument.find(

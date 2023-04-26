@@ -4,7 +4,6 @@ from nonebot_plugin_pixivbot.data.pixiv_repo.local_repo import LocalPixivRepo
 from nonebot_plugin_pixivbot.global_context import context
 
 
-@context.inject
 @context.register_singleton()
 class DummyPixivRepo(LocalPixivRepo):
     # ================ illust_detail ================

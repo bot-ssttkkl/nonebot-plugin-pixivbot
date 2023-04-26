@@ -15,7 +15,6 @@ remote_pixiv = context.require(RemotePixivRepo)
 
 
 # 因为要强制从远端获取，所以用这个shared_agen_mgr来缓存
-@context.register_singleton()
 class WatchUserIllustsSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[int, Illust]):
     log_tag = "watch_user_illusts_shared_agen"
 
@@ -26,11 +25,9 @@ class WatchUserIllustsSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[in
             yield await x.get()
 
 
-shared_agen_mgr = context.require(WatchUserIllustsSharedAsyncGeneratorManager)
+shared_agen_mgr = WatchUserIllustsSharedAsyncGeneratorManager()
 
 
-@context.inject
-@context.root.register_singleton()
 class WatchUserIllustsHandler(WatchTaskHandler):
     @classmethod
     def type(cls) -> str:

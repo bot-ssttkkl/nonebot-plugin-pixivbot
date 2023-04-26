@@ -6,7 +6,6 @@ from nonebot import logger
 from pydantic import BaseModel
 
 from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Illust, User, UserPreview
@@ -18,6 +17,10 @@ from .local_repo import LocalPixivRepo
 from .mediator import mediate_single, mediate_many, mediate_append
 from .models import PixivRepoMetadata
 from .remote_repo import RemotePixivRepo
+
+conf = context.require(Config)
+local = context.require(LocalPixivRepo)
+remote = context.require(RemotePixivRepo)
 
 
 class SharedAgenIdentifier(BaseModel):
@@ -34,56 +37,50 @@ class SharedAgenIdentifier(BaseModel):
         frozen = True
 
 
-@context.inject
-@context.register_singleton()
 class PixivSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[SharedAgenIdentifier, Any]):
     log_tag = "pixiv_shared_agen"
-
-    conf = Inject(Config)
-    local = Inject(LocalPixivRepo)
-    remote = Inject(RemotePixivRepo)
 
     def illust_detail_factory(self, illust_id: int,
                               cache_strategy: CacheStrategy) -> AsyncGenerator[Illust, None]:
         return mediate_single(
-            cache_factory=self.local.illust_detail,
-            remote_factory=self.remote.illust_detail,
+            cache_factory=local.illust_detail,
+            remote_factory=remote.illust_detail,
             query_kwargs={"illust_id": illust_id},
-            cache_updater=lambda data, metadata: self.local.update_illust_detail(data, metadata),
+            cache_updater=lambda data, metadata: local.update_illust_detail(data, metadata),
             force_expiration=cache_strategy == CacheStrategy.FORCE_EXPIRATION,
         )
 
     def user_detail_factory(self, user_id: int,
                             cache_strategy: CacheStrategy) -> AsyncGenerator[User, None]:
         return mediate_single(
-            cache_factory=self.local.user_detail,
-            remote_factory=self.remote.user_detail,
+            cache_factory=local.user_detail,
+            remote_factory=remote.user_detail,
             query_kwargs={"user_id": user_id},
-            cache_updater=lambda data, metadata: self.local.update_user_detail(data, metadata),
+            cache_updater=lambda data, metadata: local.update_user_detail(data, metadata),
             force_expiration=cache_strategy == CacheStrategy.FORCE_EXPIRATION,
         )
 
     def search_illust_factory(self, word: str,
                               cache_strategy: CacheStrategy) -> AsyncGenerator[LazyIllust, None]:
         return mediate_append(
-            cache_factory=self.local.search_illust,
-            remote_factory=self.remote.search_illust,
+            cache_factory=local.search_illust,
+            remote_factory=remote.search_illust,
             query_kwargs={"word": word},
-            cache_appender=lambda data, metadata: self.local.append_search_illust(word, data, metadata),
-            front_cache_appender=lambda data, metadata: self.local.append_search_illust(word, data, metadata),
-            max_item=self.conf.pixiv_random_illust_max_item,
-            max_page=self.conf.pixiv_random_illust_max_page,
+            cache_appender=lambda data, metadata: local.append_search_illust(word, data, metadata),
+            front_cache_appender=lambda data, metadata: local.append_search_illust(word, data, metadata),
+            max_item=conf.pixiv_random_illust_max_item,
+            max_page=conf.pixiv_random_illust_max_page,
             force_expiration=cache_strategy == CacheStrategy.FORCE_EXPIRATION,
         )
 
     def search_user_factory(self, word: str,
                             cache_strategy: CacheStrategy) -> AsyncGenerator[User, None]:
         return mediate_append(
-            cache_factory=self.local.search_user,
-            remote_factory=self.remote.search_user,
+            cache_factory=local.search_user,
+            remote_factory=remote.search_user,
             query_kwargs={"word": word},
-            cache_appender=lambda data, metadata: self.local.append_search_user(word, data, metadata),
-            front_cache_appender=lambda data, metadata: self.local.append_search_user(word, data, metadata),
+            cache_appender=lambda data, metadata: local.append_search_user(word, data, metadata),
+            front_cache_appender=lambda data, metadata: local.append_search_user(word, data, metadata),
             max_page=1,
             force_expiration=cache_strategy == CacheStrategy.FORCE_EXPIRATION,
         )
@@ -91,75 +88,75 @@ class PixivSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[SharedAgenIde
     def user_illusts_factory(self, user_id: int,
                              cache_strategy: CacheStrategy) -> AsyncGenerator[LazyIllust, None]:
         return mediate_append(
-            cache_factory=self.local.user_illusts,
-            remote_factory=self.remote.user_illusts,
+            cache_factory=local.user_illusts,
+            remote_factory=remote.user_illusts,
             query_kwargs={"user_id": user_id},
-            cache_appender=lambda data, metadata: self.local.append_user_illusts(user_id, data, metadata),
-            front_cache_appender=lambda data, metadata: self.local.append_user_illusts(user_id, data, metadata,
-                                                                                       append_at_begin=True),
-            max_item=self.conf.pixiv_random_user_illust_max_item,
-            max_page=self.conf.pixiv_random_user_illust_max_page,
+            cache_appender=lambda data, metadata: local.append_user_illusts(user_id, data, metadata),
+            front_cache_appender=lambda data, metadata: local.append_user_illusts(user_id, data, metadata,
+                                                                                  append_at_begin=True),
+            max_item=conf.pixiv_random_user_illust_max_item,
+            max_page=conf.pixiv_random_user_illust_max_page,
             force_expiration=cache_strategy == CacheStrategy.FORCE_EXPIRATION,
         )
 
     def user_bookmarks_factory(self, user_id: int,
                                cache_strategy: CacheStrategy) -> AsyncGenerator[LazyIllust, None]:
         return mediate_append(
-            cache_factory=self.local.user_bookmarks,
-            remote_factory=self.remote.user_bookmarks,
+            cache_factory=local.user_bookmarks,
+            remote_factory=remote.user_bookmarks,
             query_kwargs={"user_id": user_id},
-            cache_appender=lambda data, metadata: self.local.append_user_bookmarks(user_id, data, metadata),
-            front_cache_appender=lambda data, metadata: self.local.append_user_bookmarks(user_id, data, metadata,
-                                                                                         append_at_begin=True),
-            max_item=self.conf.pixiv_random_bookmark_max_item,
-            max_page=self.conf.pixiv_random_bookmark_max_page,
+            cache_appender=lambda data, metadata: local.append_user_bookmarks(user_id, data, metadata),
+            front_cache_appender=lambda data, metadata: local.append_user_bookmarks(user_id, data, metadata,
+                                                                                    append_at_begin=True),
+            max_item=conf.pixiv_random_bookmark_max_item,
+            max_page=conf.pixiv_random_bookmark_max_page,
             force_expiration=cache_strategy == CacheStrategy.FORCE_EXPIRATION,
         )
 
     def recommended_illusts_factory(self, cache_strategy: CacheStrategy) -> AsyncGenerator[LazyIllust, None]:
         return mediate_many(
-            cache_factory=self.local.recommended_illusts,
-            remote_factory=self.remote.recommended_illusts,
+            cache_factory=local.recommended_illusts,
+            remote_factory=remote.recommended_illusts,
             query_kwargs={},
-            cache_invalidator=self.local.invalidate_recommended_illusts,
-            cache_appender=lambda data, metadata: self.local.append_recommended_illusts(data, metadata),
-            max_item=self.conf.pixiv_random_recommended_illust_max_item,
-            max_page=self.conf.pixiv_random_recommended_illust_max_page,
+            cache_invalidator=local.invalidate_recommended_illusts,
+            cache_appender=lambda data, metadata: local.append_recommended_illusts(data, metadata),
+            max_item=conf.pixiv_random_recommended_illust_max_item,
+            max_page=conf.pixiv_random_recommended_illust_max_page,
             force_expiration=cache_strategy == CacheStrategy.FORCE_EXPIRATION,
         )
 
     def related_illusts_factory(self, illust_id: int,
                                 cache_strategy: CacheStrategy) -> AsyncGenerator[LazyIllust, None]:
         return mediate_many(
-            cache_factory=self.local.related_illusts,
-            remote_factory=self.remote.related_illusts,
+            cache_factory=local.related_illusts,
+            remote_factory=remote.related_illusts,
             query_kwargs={"illust_id": illust_id},
-            cache_invalidator=lambda: self.local.invalidate_related_illusts(illust_id),
-            cache_appender=lambda data, metadata: self.local.append_related_illusts(illust_id, data, metadata),
-            max_item=self.conf.pixiv_random_related_illust_max_item,
-            max_page=self.conf.pixiv_random_related_illust_max_page,
+            cache_invalidator=lambda: local.invalidate_related_illusts(illust_id),
+            cache_appender=lambda data, metadata: local.append_related_illusts(illust_id, data, metadata),
+            max_item=conf.pixiv_random_related_illust_max_item,
+            max_page=conf.pixiv_random_related_illust_max_page,
             force_expiration=cache_strategy == CacheStrategy.FORCE_EXPIRATION,
         )
 
     def illust_ranking_factory(self, mode: RankingMode,
                                cache_strategy: CacheStrategy) -> AsyncGenerator[LazyIllust, None]:
         return mediate_many(
-            cache_factory=self.local.illust_ranking,
-            remote_factory=self.remote.illust_ranking,
+            cache_factory=local.illust_ranking,
+            remote_factory=remote.illust_ranking,
             query_kwargs={"mode": mode},
-            cache_invalidator=lambda: self.local.invalidate_illust_ranking(mode),
-            cache_appender=lambda data, metadata: self.local.append_illust_ranking(mode, data, metadata),
-            max_item=self.conf.pixiv_ranking_fetch_item,
+            cache_invalidator=lambda: local.invalidate_illust_ranking(mode),
+            cache_appender=lambda data, metadata: local.append_illust_ranking(mode, data, metadata),
+            max_item=conf.pixiv_ranking_fetch_item,
             force_expiration=cache_strategy == CacheStrategy.FORCE_EXPIRATION,
         )
 
     def image_factory(self, illust_id: int, illust: Illust, page: int,
                       cache_strategy: CacheStrategy) -> AsyncGenerator[bytes, None]:
         return mediate_single(
-            cache_factory=self.local.image,
-            remote_factory=self.remote.image,
+            cache_factory=local.image,
+            remote_factory=remote.image,
             query_kwargs={"illust": illust, "page": page},
-            cache_updater=lambda data, metadata: self.local.update_image(illust.id, page, data, metadata),
+            cache_updater=lambda data, metadata: local.update_image(illust.id, page, data, metadata),
             force_expiration=cache_strategy == CacheStrategy.FORCE_EXPIRATION,
         )
 
@@ -211,23 +208,21 @@ class PixivSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[SharedAgenIde
             await self.set_expires_time(identifier, expires_time.timestamp())
 
 
-@context.inject
 @context.root.register_singleton()
 class MediatorPixivRepo(PixivRepo):
-    _shared_agen_mgr: PixivSharedAsyncGeneratorManager = Inject(PixivSharedAsyncGeneratorManager)
-    _local: LocalPixivRepo = Inject(LocalPixivRepo)
-    _remote: RemotePixivRepo = Inject(RemotePixivRepo)
+    def __init__(self):
+        self.shared_agen_mgr = PixivSharedAsyncGeneratorManager()
 
     async def invalidate_cache(self):
-        await self._shared_agen_mgr.invalidate_all()
-        await self._local.invalidate_all()
+        await self.shared_agen_mgr.invalidate_all()
+        await local.invalidate_all()
 
     async def illust_detail(self, illust_id: int,
                             cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[Illust, None]:
         logger.info(f"[mediator] illust_detail {illust_id} "
                     f"cache_strategy={cache_strategy.name}")
-        async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.ILLUST_DETAIL, illust_id=illust_id),
-                                             cache_strategy) as gen:
+        async with self.shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.ILLUST_DETAIL, illust_id=illust_id),
+                                            cache_strategy) as gen:
             data = None
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):
@@ -241,8 +236,8 @@ class MediatorPixivRepo(PixivRepo):
                           cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[User, None]:
         logger.info(f"[mediator] user_detail {user_id} "
                     f"cache_strategy={cache_strategy.name}")
-        async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.USER_DETAIL, user_id=user_id),
-                                             cache_strategy) as gen:
+        async with self.shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.USER_DETAIL, user_id=user_id),
+                                            cache_strategy) as gen:
             data = None
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):
@@ -256,8 +251,8 @@ class MediatorPixivRepo(PixivRepo):
                             cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[LazyIllust, None]:
         logger.info(f"[mediator] search_illust {word} "
                     f"cache_strategy={cache_strategy.name}")
-        async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.SEARCH_ILLUST, word=word),
-                                             cache_strategy) as gen:
+        async with self.shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.SEARCH_ILLUST, word=word),
+                                            cache_strategy) as gen:
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):
                     yield x
@@ -266,8 +261,8 @@ class MediatorPixivRepo(PixivRepo):
                           cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[User, None]:
         logger.info(f"[mediator] search_user {word} "
                     f"cache_strategy={cache_strategy.name}")
-        async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.SEARCH_USER, word=word),
-                                             cache_strategy) as gen:
+        async with self.shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.SEARCH_USER, word=word),
+                                            cache_strategy) as gen:
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):
                     yield x
@@ -276,8 +271,8 @@ class MediatorPixivRepo(PixivRepo):
                              cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[LazyIllust, None]:
         logger.info(f"[mediator] user_bookmarks {user_id} "
                     f"cache_strategy={cache_strategy.name}")
-        async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.USER_BOOKMARKS, user_id=user_id),
-                                             cache_strategy) as gen:
+        async with self.shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.USER_BOOKMARKS, user_id=user_id),
+                                            cache_strategy) as gen:
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):
                     yield x
@@ -286,8 +281,8 @@ class MediatorPixivRepo(PixivRepo):
                            cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[LazyIllust, None]:
         logger.info(f"[mediator] user_illusts {user_id} "
                     f"cache_strategy={cache_strategy.name}")
-        async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.USER_ILLUSTS, user_id=user_id),
-                                             cache_strategy) as gen:
+        async with self.shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.USER_ILLUSTS, user_id=user_id),
+                                            cache_strategy) as gen:
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):
                     yield x
@@ -317,7 +312,7 @@ class MediatorPixivRepo(PixivRepo):
         gen = []
         peeked = []
 
-        async for user_preview in self._remote.user_following_with_preview(user_id):
+        async for user_preview in remote.user_following_with_preview(user_id):
             if not isinstance(user_preview, PixivRepoMetadata):
                 n += 1
                 gen.append(self._contact_user_illusts_with_preview(user_preview, cache_strategy))
@@ -349,8 +344,8 @@ class MediatorPixivRepo(PixivRepo):
             -> AsyncGenerator[LazyIllust, None]:
         logger.info(f"[mediator] recommended_illusts "
                     f"cache_strategy={cache_strategy.name}")
-        async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.RECOMMENDED_ILLUSTS),
-                                             cache_strategy) as gen:
+        async with self.shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.RECOMMENDED_ILLUSTS),
+                                            cache_strategy) as gen:
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):
                     yield x
@@ -359,8 +354,8 @@ class MediatorPixivRepo(PixivRepo):
                               cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[LazyIllust, None]:
         logger.info(f"[mediator] related_illusts {illust_id} "
                     f"cache_strategy={cache_strategy.name}")
-        async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.RELATED_ILLUSTS, illust_id=illust_id),
-                                             cache_strategy) as gen:
+        async with self.shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.RELATED_ILLUSTS, illust_id=illust_id),
+                                            cache_strategy) as gen:
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):
                     yield x
@@ -372,8 +367,8 @@ class MediatorPixivRepo(PixivRepo):
 
         logger.info(f"[mediator] illust_ranking {mode} "
                     f"cache_strategy={cache_strategy.name}")
-        async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.ILLUST_RANKING, mode=mode),
-                                             cache_strategy) as gen:
+        async with self.shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.ILLUST_RANKING, mode=mode),
+                                            cache_strategy) as gen:
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):
                     yield x
@@ -382,8 +377,8 @@ class MediatorPixivRepo(PixivRepo):
                     cache_strategy: CacheStrategy = CacheStrategy.NORMAL) -> AsyncGenerator[bytes, None]:
         logger.info(f"[mediator] image {illust.id}[{page}] "
                     f"cache_strategy={cache_strategy.name}")
-        async with self._shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.IMAGE, illust_id=illust.id, page=page),
-                                             cache_strategy, illust=illust) as gen:
+        async with self.shared_agen_mgr.get(SharedAgenIdentifier(PixivResType.IMAGE, illust_id=illust.id, page=page),
+                                            cache_strategy, illust=illust) as gen:
             data = None
             async for x in gen:
                 if not isinstance(x, PixivRepoMetadata):

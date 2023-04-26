@@ -7,7 +7,6 @@ from nonebot import logger, Bot, get_bot
 from nonebot.exception import ActionFailed
 from nonebot_plugin_apscheduler import scheduler as apscheduler
 
-from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.interval_task_repo import IntervalTaskRepo
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
@@ -17,16 +16,19 @@ from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestinationFactor
 from nonebot_plugin_pixivbot.utils.lifecycler import on_bot_connect, on_bot_disconnect
 from nonebot_plugin_pixivbot.utils.nonebot import get_bot_user_identifier
 
+pd_factory_mgr = context.require(PostDestinationFactoryManager)
+auth_mgr = context.require(AuthenticatorManager)
+
 T = TypeVar("T", bound=IntervalTask)
 
 
-@context.inject
 class IntervalTaskWorker(ABC, Generic[T]):
     tag: str = ""
-    repo: IntervalTaskRepo[T]
 
-    pd_factory_mgr: PostDestinationFactoryManager = Inject(PostDestinationFactoryManager)
-    auth_mgr: AuthenticatorManager = Inject(AuthenticatorManager)
+    @property
+    @abstractmethod
+    def repo(self) -> IntervalTaskRepo[T]:
+        raise NotImplementedError()
 
     def __init__(self):
         @on_bot_connect(replay=True)
@@ -59,14 +61,14 @@ class IntervalTaskWorker(ABC, Generic[T]):
         logger.info(f"[{self.tag}] triggered \"{item}\"")
 
         bot = get_bot(item.bot.user_id)
-        post_dest = self.pd_factory_mgr.build(bot, item.subscriber.user_id, item.subscriber.group_id)
+        post_dest = pd_factory_mgr.build(bot, item.subscriber.user_id, item.subscriber.group_id)
 
         try:
             await self._handle_trigger(item, post_dest)
         except ActionFailed as e:
             logger.error(f"[{self.tag}] ActionFailed {e}")
 
-            available = self.auth_mgr.available(post_dest)
+            available = auth_mgr.available(post_dest)
             if isawaitable(available):
                 available = await available
 

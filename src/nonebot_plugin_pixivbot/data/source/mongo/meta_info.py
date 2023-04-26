@@ -1,13 +1,11 @@
 from typing import Any
 
-from beanie import Document
 from pymongo import IndexModel
 
-from nonebot_plugin_pixivbot.global_context import context
-from . import MongoDataSource
+from . import MongoDocument
 
 
-class MetaInfo(Document):
+class MetaInfo(MongoDocument):
     key: str
     value: Any
 
@@ -16,6 +14,3 @@ class MetaInfo(Document):
         indexes = [
             IndexModel([("key", 1)], unique=True),
         ]
-
-
-context.require(MongoDataSource).document_models.append(MetaInfo)

@@ -8,7 +8,6 @@ from typing import Sequence, Union, TYPE_CHECKING, overload, Type
 import pytz
 from apscheduler.triggers.interval import IntervalTrigger
 
-from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.subscription import SubscriptionRepo
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.handler.schedule import SubscriptionRandomBookmarkHandler, \
@@ -58,10 +57,12 @@ def parse_schedule(raw_schedule: str) -> Sequence[int]:
 
 
 @context.register_eager_singleton()
-@context.inject
 class Scheduler(IntervalTaskWorker[Subscription[T_UID, T_GID]]):
     tag = "scheduler"
-    repo: SubscriptionRepo = Inject(SubscriptionRepo)
+
+    @property
+    def repo(self) -> SubscriptionRepo:
+        return context.require(SubscriptionRepo)
 
     @classmethod
     def _get_handler_type(cls, type: ScheduleType) -> Type["Handler"]:

@@ -4,9 +4,9 @@ from beanie.odm.operators.update.general import SetOnInsert
 from nonebot import logger
 from pymongo import *
 
-from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Tag, Illust
+from .base import LocalTagRepo
 from ..source.mongo import MongoDataSource, MongoDocument
 
 
@@ -19,23 +19,24 @@ class LocalTag(Tag, MongoDocument):
         ]
 
 
-@context.inject
+data_source = context.require(MongoDataSource)
+
+
 @context.register_singleton()
-class MongoLocalTagRepo:
-    data_source: MongoDataSource = Inject(MongoDataSource)
+class MongoLocalTagRepo(LocalTagRepo):
 
     async def find_by_name(self, name: str) -> Optional[Tag]:
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             result = await LocalTag.find_one(LocalTag.name == name, session=session)
             return result
 
     async def find_by_translated_name(self, translated_name: str) -> Optional[Tag]:
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             result = await LocalTag.find_one(LocalTag.translated_name == translated_name, session=session)
             return result
 
     async def update_one(self, tag: Tag):
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             await LocalTag.find_one(LocalTag.name == tag.name, session=session).upsert(
                 SetOnInsert({LocalTag.translated_name: tag.translated_name}),
                 on_insert=LocalTag(**tag.dict()),
@@ -43,7 +44,7 @@ class MongoLocalTagRepo:
             )
 
     async def update_many(self, tags: Collection[Tag]):
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             # BulkWriter存在bug，upsert不生效
             # https://github.com/roman-right/beanie/issues/224
 

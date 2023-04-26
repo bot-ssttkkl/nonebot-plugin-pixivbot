@@ -26,26 +26,18 @@ require("nonebot_plugin_access_control")
 from . import handler
 from . import service
 
-# ============== load custom protocol =============
-from importlib import import_module
-from nonebot import logger, get_driver
+# ============== load submodule =============
+from nonebot import get_driver, load_plugin
 
-supported_modules = {
+supported_adapters = {
     "OneBot V11": "nonebot_plugin_pixivbot_onebot_v11",
     "Kaiheila": "nonebot_plugin_pixivbot_kook",
     "Telegram": "nonebot_plugin_pixivbot_telegram"
 }
 
-loaded_modules = []
-
 driver = get_driver()
 for adapter in driver._adapters:
-    if adapter in supported_modules:
-        import_module(supported_modules[adapter])
-        loaded_modules.append(adapter)
-        logger.debug(f"Succeeded to load PixivBot for {adapter}")
-
-if len(loaded_modules):
-    logger.success(f"Loaded PixivBot for {', '.join(loaded_modules)}")
+    if adapter in supported_adapters:
+        load_plugin(supported_adapters[adapter])
 
 __all__ = ("context", "__plugin_meta__")

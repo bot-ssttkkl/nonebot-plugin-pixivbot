@@ -9,7 +9,6 @@ from sqlalchemy import select, delete, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Illust, User
@@ -40,12 +39,13 @@ def _extract_metadata(cache, is_set_cache):
     return metadata
 
 
-@context.inject
+conf = context.require(Config)
+data_source = context.require(SqlDataSource)
+local_tags = context.require(LocalTagRepo)
+
+
 @context.register_singleton()
 class SqlPixivRepo(LocalPixivRepo):
-    conf: Config = Inject(Config)
-    data_source: SqlDataSource = Inject(SqlDataSource)
-    local_tag_repo: LocalTagRepo = Inject(LocalTagRepo)
 
     def __init__(self):
         on_startup(replay=True)(
@@ -104,7 +104,7 @@ class SqlPixivRepo(LocalPixivRepo):
     async def _invalidate_illusts(self, session: AsyncSession,
                                   cache_type: str,
                                   key: dict):
-        if self.conf.pixiv_sql_dialect == 'sqlite':
+        if conf.pixiv_sql_dialect == 'sqlite':
             await session.execute(text("PRAGMA foreign_keys = ON;"))
 
         stmt = (delete(IllustSetCache)
@@ -212,7 +212,7 @@ class SqlPixivRepo(LocalPixivRepo):
                     continue
                 x = x.content
             li.append(x)
-        await self.local_tag_repo.update_from_illusts(li)
+        await local_tags.update_from_illusts(li)
 
         return row_count != len(content)
 
@@ -254,7 +254,7 @@ class SqlPixivRepo(LocalPixivRepo):
     async def _invalidate_users(self, session: AsyncSession,
                                 cache_type: str,
                                 key: dict):
-        if self.conf.pixiv_sql_dialect == 'sqlite':
+        if conf.pixiv_sql_dialect == 'sqlite':
             await session.execute(text("PRAGMA foreign_keys = ON;"))
 
         stmt = (delete(UserSetCache)
@@ -320,13 +320,13 @@ class SqlPixivRepo(LocalPixivRepo):
             -> AsyncGenerator[Union[Illust, PixivRepoMetadata], None]:
         logger.info(f"[local] illust_detail {illust_id}")
 
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             stmt = select(IllustDetailCache).where(IllustDetailCache.illust_id == illust_id).limit(1)
             cache = (await session.execute(stmt)).scalar_one_or_none()
 
             if cache is not None:
                 metadata = _extract_metadata(cache, False)
-                _handle_expires_in(metadata, self.conf.pixiv_illust_detail_cache_expires_in)
+                _handle_expires_in(metadata, conf.pixiv_illust_detail_cache_expires_in)
 
                 yield metadata
                 yield Illust(**cache.illust)
@@ -336,7 +336,7 @@ class SqlPixivRepo(LocalPixivRepo):
     async def update_illust_detail(self, illust: Illust, metadata: PixivRepoMetadata):
         logger.info(f"[local] update illust_detail {illust.id} {metadata}")
 
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             stmt = (insert(IllustDetailCache)
                     .values(illust_id=illust.id, illust=illust.dict(), update_time=metadata.update_time))
             stmt = stmt.on_conflict_do_update(index_elements=[IllustDetailCache.illust_id],
@@ -348,21 +348,21 @@ class SqlPixivRepo(LocalPixivRepo):
             await session.execute(stmt)
             await session.commit()
 
-            if self.conf.pixiv_tag_translation_enabled:
-                await self.local_tag_repo.update_from_illusts([illust])
+            if conf.pixiv_tag_translation_enabled:
+                await local_tags.update_from_illusts([illust])
 
     # ================ user_detail ================
     async def user_detail(self, user_id: int) \
             -> AsyncGenerator[Union[User, PixivRepoMetadata], None]:
         logger.info(f"[local] user_detail {user_id}")
 
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             stmt = select(UserDetailCache).where(UserDetailCache.user_id == user_id).limit(1)
             cache = (await session.execute(stmt)).scalar_one_or_none()
 
             if cache is not None:
                 metadata = _extract_metadata(cache, False)
-                _handle_expires_in(metadata, self.conf.pixiv_user_detail_cache_expires_in)
+                _handle_expires_in(metadata, conf.pixiv_user_detail_cache_expires_in)
 
                 yield metadata
                 yield User(**cache.user)
@@ -372,7 +372,7 @@ class SqlPixivRepo(LocalPixivRepo):
     async def update_user_detail(self, user: User, metadata: PixivRepoMetadata):
         logger.info(f"[local] update user_detail {user.id} {metadata}")
 
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             stmt = (insert(UserDetailCache)
                     .values(user_id=user.id, user=user.dict(), update_time=metadata.update_time))
             stmt = stmt.on_conflict_do_update(index_elements=[UserDetailCache.user_id],
@@ -388,14 +388,14 @@ class SqlPixivRepo(LocalPixivRepo):
     async def image(self, illust: Illust, page: int = 0) -> AsyncGenerator[Union[bytes, PixivRepoMetadata], None]:
         logger.info(f"[local] image {illust.id}")
 
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             stmt = select(DownloadCache).where(DownloadCache.illust_id == illust.id,
                                                DownloadCache.page == page).limit(1)
             cache = (await session.execute(stmt)).scalar_one_or_none()
 
             if cache is not None:
                 metadata = _extract_metadata(cache, False)
-                _handle_expires_in(metadata, self.conf.pixiv_download_cache_expires_in)
+                _handle_expires_in(metadata, conf.pixiv_download_cache_expires_in)
 
                 yield metadata
                 yield cache.content
@@ -406,7 +406,7 @@ class SqlPixivRepo(LocalPixivRepo):
                            content: bytes, metadata: PixivRepoMetadata):
         logger.info(f"[local] update image {illust_id} {metadata}")
 
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             stmt = (insert(DownloadCache)
                     .values(illust_id=illust_id, page=page, content=content, update_time=metadata.update_time))
             stmt = stmt.on_conflict_do_update(index_elements=[DownloadCache.illust_id, DownloadCache.page],
@@ -426,14 +426,14 @@ class SqlPixivRepo(LocalPixivRepo):
 
         logger.info(f"[local] illust_ranking {mode}")
 
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             async for x in self._get_illusts(session, "illust_ranking", {"mode": mode},
-                                             expired_in=self.conf.pixiv_illust_ranking_cache_expires_in, offset=offset):
+                                             expired_in=conf.pixiv_illust_ranking_cache_expires_in, offset=offset):
                 yield x
 
     async def invalidate_illust_ranking(self, mode: RankingMode):
         logger.info(f"[local] invalidate illust_ranking")
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             await self._invalidate_illusts(session, "illust_ranking", {"mode": mode})
 
     async def append_illust_ranking(self, mode: RankingMode, content: List[Union[Illust, LazyIllust]],
@@ -441,7 +441,7 @@ class SqlPixivRepo(LocalPixivRepo):
         logger.info(f"[local] append illust_ranking {mode} "
                     f"({len(content)} items) "
                     f"{metadata}")
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             return await self._append_and_check_illusts(session, "illust_ranking", {"mode": mode},
                                                         content=content, metadata=metadata)
 
@@ -449,14 +449,14 @@ class SqlPixivRepo(LocalPixivRepo):
     async def search_illust(self, word: str, *, offset: int = 0) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
         logger.info(f"[local] search_illust {word}")
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             async for x in self._get_illusts(session, "search_illust", {"word": word},
-                                             expired_in=self.conf.pixiv_search_illust_cache_expires_in, offset=offset):
+                                             expired_in=conf.pixiv_search_illust_cache_expires_in, offset=offset):
                 yield x
 
     async def invalidate_search_illust(self, word: str):
         logger.info(f"[local] invalidate search_illust {word}")
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             await self._invalidate_illusts(session, "search_illust", {"word": word})
 
     async def append_search_illust(self, word: str, content: List[Union[Illust, LazyIllust]],
@@ -465,7 +465,7 @@ class SqlPixivRepo(LocalPixivRepo):
         logger.info(f"[local] append search_illust {word} "
                     f"({len(content)} items) "
                     f"{metadata}")
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             return await self._append_and_check_illusts(session, "search_illust", {"word": word},
                                                         content=content, metadata=metadata)
 
@@ -473,14 +473,14 @@ class SqlPixivRepo(LocalPixivRepo):
     async def user_illusts(self, user_id: int, *, offset: int = 0) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
         logger.info(f"[local] user_illusts {user_id}")
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             async for x in self._get_illusts(session, "user_illusts", {"user_id": user_id},
-                                             expired_in=self.conf.pixiv_user_illusts_cache_expires_in, offset=offset):
+                                             expired_in=conf.pixiv_user_illusts_cache_expires_in, offset=offset):
                 yield x
 
     async def invalidate_user_illusts(self, user_id: int):
         logger.info(f"[local] invalidate user_illusts {user_id}")
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             await self._invalidate_illusts(session, "user_illusts", {"user_id": user_id})
 
     async def append_user_illusts(self, user_id: int,
@@ -491,7 +491,7 @@ class SqlPixivRepo(LocalPixivRepo):
                     f"{'at begin ' if append_at_begin else ''}"
                     f"({len(content)} items) "
                     f"{metadata}")
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             return await self._append_and_check_illusts(session, "user_illusts", {"user_id": user_id},
                                                         content=content, metadata=metadata,
                                                         append_at_begin=append_at_begin)
@@ -500,14 +500,14 @@ class SqlPixivRepo(LocalPixivRepo):
     async def user_bookmarks(self, user_id: int = 0, *, offset: int = 0) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
         logger.info(f"[local] user_bookmarks {user_id}")
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             async for x in self._get_illusts(session, "user_bookmarks", {"user_id": user_id},
-                                             expired_in=self.conf.pixiv_user_bookmarks_cache_expires_in, offset=offset):
+                                             expired_in=conf.pixiv_user_bookmarks_cache_expires_in, offset=offset):
                 yield x
 
     async def invalidate_user_bookmarks(self, user_id: int):
         logger.info(f"[local] invalidate user_bookmarks {user_id}")
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             await self._invalidate_illusts(session, "user_bookmarks", {"user_id": user_id})
 
     async def append_user_bookmarks(self, user_id: int,
@@ -518,7 +518,7 @@ class SqlPixivRepo(LocalPixivRepo):
                     f"{'at begin ' if append_at_begin else ''} "
                     f"({len(content)} items) "
                     f"{metadata}")
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             return await self._append_and_check_illusts(session, "user_bookmarks", {"user_id": user_id},
                                                         content=content, metadata=metadata,
                                                         append_at_begin=append_at_begin)
@@ -527,14 +527,14 @@ class SqlPixivRepo(LocalPixivRepo):
     async def recommended_illusts(self, *, offset: int = 0) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
         logger.info(f"[local] recommended_illusts")
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             async for x in self._get_illusts(session, "other", {"type": "recommended_illusts"},
-                                             expired_in=self.conf.pixiv_other_cache_expires_in, offset=offset):
+                                             expired_in=conf.pixiv_other_cache_expires_in, offset=offset):
                 yield x
 
     async def invalidate_recommended_illusts(self):
         logger.info(f"[local] invalidate recommended_illusts")
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             await self._invalidate_illusts(session, "other", {"type": "recommended_illusts"})
 
     async def append_recommended_illusts(self, content: List[Union[Illust, LazyIllust]],
@@ -542,7 +542,7 @@ class SqlPixivRepo(LocalPixivRepo):
         logger.info(f"[local] append recommended_illusts "
                     f"({len(content)} items) "
                     f"{metadata}")
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             return await self._append_and_check_illusts(session, "other", {"type": "recommended_illusts"},
                                                         content=content, metadata=metadata)
 
@@ -550,15 +550,15 @@ class SqlPixivRepo(LocalPixivRepo):
     async def related_illusts(self, illust_id: int, *, offset: int = 0) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
         logger.info(f"[local] related_illusts {illust_id}")
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             async for x in self._get_illusts(session, "related_illusts", {"original_illust_id": illust_id},
-                                             expired_in=self.conf.pixiv_related_illusts_cache_expires_in,
+                                             expired_in=conf.pixiv_related_illusts_cache_expires_in,
                                              offset=offset):
                 yield x
 
     async def invalidate_related_illusts(self, illust_id: int):
         logger.info(f"[local] invalidate related_illusts")
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             await self._invalidate_illusts(session, "related_illusts", {"original_illust_id": illust_id})
 
     async def append_related_illusts(self, illust_id: int, content: List[Union[Illust, LazyIllust]],
@@ -566,7 +566,7 @@ class SqlPixivRepo(LocalPixivRepo):
         logger.info(f"[local] append related_illusts {illust_id} "
                     f"({len(content)} items) "
                     f"{metadata}")
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             return await self._append_and_check_illusts(session, "related_illusts", {"original_illust_id": illust_id},
                                                         content=content, metadata=metadata)
 
@@ -574,14 +574,14 @@ class SqlPixivRepo(LocalPixivRepo):
     async def search_user(self, word: str, *, offset: int = 0) \
             -> AsyncGenerator[Union[User, PixivRepoMetadata], None]:
         logger.info(f"[local] search_user {word}")
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             async for x in self._get_users(session, "search_user", {"word": word},
-                                           expired_in=self.conf.pixiv_search_user_cache_expires_in, offset=offset):
+                                           expired_in=conf.pixiv_search_user_cache_expires_in, offset=offset):
                 yield x
 
     async def invalidate_search_user(self, word: str):
         logger.info(f"[local] invalidate search_user {word}")
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             await self._invalidate_users(session, "search_user", {"word": word})
 
     async def append_search_user(self, word: str, content: List[User],
@@ -589,15 +589,15 @@ class SqlPixivRepo(LocalPixivRepo):
         logger.info(f"[local] append search_user {word} "
                     f"({len(content)} items) "
                     f"{metadata}")
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             return await self._append_and_check_users(session, "search_user", {"word": word},
                                                       content=content, metadata=metadata)
 
     async def invalidate_all(self):
         logger.info(f"[local] invalidate_all")
 
-        async with self.data_source.start_session() as session:
-            if self.conf.pixiv_sql_dialect == 'sqlite':
+        async with data_source.start_session() as session:
+            if conf.pixiv_sql_dialect == 'sqlite':
                 await session.execute(text("PRAGMA foreign_keys = ON;"))
 
             result = await session.execute(delete(IllustSetCache))
@@ -615,74 +615,74 @@ class SqlPixivRepo(LocalPixivRepo):
     async def clean_expired(self):
         logger.info(f"[local] clean_expired")
 
-        async with self.data_source.start_session() as session:
-            if self.conf.pixiv_sql_dialect == 'sqlite':
+        async with data_source.start_session() as session:
+            if conf.pixiv_sql_dialect == 'sqlite':
                 await session.execute(text("PRAGMA foreign_keys = ON;"))
 
             now = datetime.utcnow()
             stmt = delete(IllustDetailCache).where(
-                IllustDetailCache.update_time <= now - timedelta(seconds=self.conf.pixiv_illust_detail_cache_expires_in)
+                IllustDetailCache.update_time <= now - timedelta(seconds=conf.pixiv_illust_detail_cache_expires_in)
             )
             result = await session.execute(stmt)
             logger.success(f"[local] deleted {result.rowcount} illust_detail cache")
 
             stmt = delete(UserDetailCache).where(
-                UserDetailCache.update_time <= now - timedelta(seconds=self.conf.pixiv_user_detail_cache_expires_in)
+                UserDetailCache.update_time <= now - timedelta(seconds=conf.pixiv_user_detail_cache_expires_in)
             )
             result = await session.execute(stmt)
             logger.success(f"[local] deleted {result.rowcount} user_detail cache")
 
             stmt = delete(DownloadCache).where(
-                DownloadCache.update_time <= now - timedelta(seconds=self.conf.pixiv_download_cache_expires_in)
+                DownloadCache.update_time <= now - timedelta(seconds=conf.pixiv_download_cache_expires_in)
             )
             result = await session.execute(stmt)
             logger.success(f"[local] deleted {result.rowcount} download cache")
 
             stmt = delete(IllustSetCache).where(
                 IllustSetCache.cache_type == 'illust_ranking',
-                IllustSetCache.update_time <= now - timedelta(seconds=self.conf.pixiv_illust_ranking_cache_expires_in)
+                IllustSetCache.update_time <= now - timedelta(seconds=conf.pixiv_illust_ranking_cache_expires_in)
             )
             result = await session.execute(stmt)
             logger.success(f"[local] deleted {result.rowcount} illust_ranking cache")
 
             stmt = delete(IllustSetCache).where(
                 IllustSetCache.cache_type == 'search_illust',
-                IllustSetCache.update_time <= now - timedelta(seconds=self.conf.pixiv_search_illust_cache_delete_in)
+                IllustSetCache.update_time <= now - timedelta(seconds=conf.pixiv_search_illust_cache_delete_in)
             )
             result = await session.execute(stmt)
             logger.success(f"[local] deleted {result.rowcount} search_illust cache")
 
             stmt = delete(UserSetCache).where(
                 UserSetCache.cache_type == 'search_user',
-                UserSetCache.update_time <= now - timedelta(seconds=self.conf.pixiv_search_user_cache_delete_in)
+                UserSetCache.update_time <= now - timedelta(seconds=conf.pixiv_search_user_cache_delete_in)
             )
             result = await session.execute(stmt)
             logger.success(f"[local] deleted {result.rowcount} search_user cache")
 
             stmt = delete(IllustSetCache).where(
                 IllustSetCache.cache_type == 'user_illusts',
-                IllustSetCache.update_time <= now - timedelta(seconds=self.conf.pixiv_user_illusts_cache_delete_in)
+                IllustSetCache.update_time <= now - timedelta(seconds=conf.pixiv_user_illusts_cache_delete_in)
             )
             result = await session.execute(stmt)
             logger.success(f"[local] deleted {result.rowcount} user_illusts cache")
 
             stmt = delete(IllustSetCache).where(
                 IllustSetCache.cache_type == 'user_bookmarks',
-                IllustSetCache.update_time <= now - timedelta(seconds=self.conf.pixiv_user_bookmarks_cache_delete_in)
+                IllustSetCache.update_time <= now - timedelta(seconds=conf.pixiv_user_bookmarks_cache_delete_in)
             )
             result = await session.execute(stmt)
             logger.success(f"[local] deleted {result.rowcount} user_bookmarks cache")
 
             stmt = delete(IllustSetCache).where(
                 IllustSetCache.cache_type == 'related_illusts',
-                IllustSetCache.update_time <= now - timedelta(seconds=self.conf.pixiv_related_illusts_cache_expires_in)
+                IllustSetCache.update_time <= now - timedelta(seconds=conf.pixiv_related_illusts_cache_expires_in)
             )
             result = await session.execute(stmt)
             logger.success(f"[local] deleted {result.rowcount} related_illusts cache")
 
             stmt = delete(IllustSetCache).where(
                 IllustSetCache.cache_type == 'other',
-                IllustSetCache.update_time <= now - timedelta(seconds=self.conf.pixiv_other_cache_expires_in)
+                IllustSetCache.update_time <= now - timedelta(seconds=conf.pixiv_other_cache_expires_in)
             )
             result = await session.execute(stmt)
             logger.success(f"[local] deleted {result.rowcount} other cache")

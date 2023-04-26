@@ -3,11 +3,11 @@ from typing import Optional
 from sqlalchemy import select, delete
 from sqlalchemy.orm import Mapped, mapped_column
 
-from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
 from nonebot_plugin_pixivbot.data.utils.sql import insert
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import PixivBinding, T_UID
+from .base import PixivBindingRepo
 
 
 @SqlDataSource.registry.mapped
@@ -19,13 +19,14 @@ class PixivBindingOrm:
     pixiv_user_id: Mapped[int]
 
 
-@context.inject
+data_source = context.require(SqlDataSource)
+
+
 @context.register_singleton()
-class SqlPixivBindingRepo:
-    data_source: SqlDataSource = Inject(SqlDataSource)
+class SqlPixivBindingRepo(PixivBindingRepo):
 
     async def get(self, adapter: str, user_id: T_UID) -> Optional[PixivBinding]:
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             stmt = (select(PixivBindingOrm)
                     .where(PixivBindingOrm.adapter == adapter,
                            PixivBindingOrm.user_id == str(user_id))
@@ -39,7 +40,7 @@ class SqlPixivBindingRepo:
                 return None
 
     async def update(self, binding: PixivBinding[T_UID]):
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             stmt = (insert(PixivBindingOrm)
                     .values(adapter=binding.adapter,
                             user_id=str(binding.user_id),
@@ -52,7 +53,7 @@ class SqlPixivBindingRepo:
             await session.commit()
 
     async def remove(self, adapter: str, user_id: T_UID) -> bool:
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             stmt = (delete(PixivBinding)
                     .where(PixivBindingOrm.adapter == adapter,
                            PixivBindingOrm.user_id == str(user_id)))

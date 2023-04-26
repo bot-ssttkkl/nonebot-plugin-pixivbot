@@ -7,19 +7,18 @@ from io import BytesIO
 from PIL import Image, ImageFile
 
 from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.context import Inject
 from nonebot_plugin_pixivbot.global_context import context
 
+conf = context.require(Config)
 
-@context.inject
+
 @context.register_singleton()
 class Compressor:
-    _conf = Inject(Config)
 
     def __init__(self) -> None:
-        self.enabled = self._conf.pixiv_compression_enabled
-        self.max_size = self._conf.pixiv_compression_max_size
-        self.quantity = self._conf.pixiv_compression_quantity
+        self.enabled = conf.pixiv_compression_enabled
+        self.max_size = conf.pixiv_compression_max_size
+        self.quantity = conf.pixiv_compression_quantity
 
         if self.enabled:
             cpu_count = multiprocessing.cpu_count()

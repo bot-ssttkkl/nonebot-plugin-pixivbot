@@ -5,8 +5,8 @@ from pymongo import IndexModel
 
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import PixivBinding, T_UID
+from .base import PixivBindingRepo
 from ..source.mongo import MongoDataSource, MongoDocument
-from ...context import Inject
 
 
 class PixivBindingDocument(PixivBinding[Any], MongoDocument):
@@ -17,13 +17,14 @@ class PixivBindingDocument(PixivBinding[Any], MongoDocument):
         ]
 
 
-@context.inject
+data_source = context.require(MongoDataSource)
+
+
 @context.register_singleton()
-class MongoPixivBindingRepo:
-    data_source: MongoDataSource = Inject(MongoDataSource)
+class MongoPixivBindingRepo(PixivBindingRepo):
 
     async def get(self, adapter: str, user_id: T_UID) -> Optional[PixivBinding]:
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             result = await PixivBindingDocument.find_one(
                 PixivBindingDocument.adapter == adapter,
                 PixivBindingDocument.user_id == user_id,
@@ -32,7 +33,7 @@ class MongoPixivBindingRepo:
             return result
 
     async def update(self, binding: PixivBinding):
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             await PixivBindingDocument.find_one(
                 PixivBindingDocument.adapter == binding.adapter,
                 PixivBindingDocument.user_id == binding.user_id,
@@ -44,7 +45,7 @@ class MongoPixivBindingRepo:
             )
 
     async def remove(self, adapter: str, user_id: T_UID) -> bool:
-        async with self.data_source.start_session() as session:
+        async with data_source.start_session() as session:
             cnt = await PixivBindingDocument.find_one(
                 PixivBindingDocument.adapter == adapter,
                 PixivBindingDocument.user_id == user_id,

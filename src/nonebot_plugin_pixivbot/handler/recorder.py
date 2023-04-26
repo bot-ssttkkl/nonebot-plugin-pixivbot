@@ -75,8 +75,10 @@ class Recorder:
                 return None
 
 
-@context.inject
-@context.bind_singleton_to(PostmanManager, context.require(PostmanManager))
+origin_postman_mgr = context.require(PostmanManager)
+
+
+@context.bind_singleton_to(PostmanManager, origin_postman_mgr)
 class RecordPostmanManager:
     def __init__(self, delegation: PostmanManager):
         self.delegation = delegation

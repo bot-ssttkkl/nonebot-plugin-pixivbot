@@ -7,15 +7,6 @@ T = TypeVar("T")
 T2 = TypeVar("T2")
 
 
-class Inject:
-    def __init__(self, key):
-        self._key = key
-
-    def __get__(self, instance, owner):
-        context = getattr(instance, "__context__")
-        return context.require(self._key)
-
-
 class Provider(ABC, Generic[T]):
     @abstractmethod
     def provide(self) -> T:
@@ -154,9 +145,5 @@ class Context:
         else:
             return False
 
-    def inject(self, cls: Type[T]):
-        setattr(cls, "__context__", self)
-        return cls
 
-
-__all__ = ("Context", "Inject")
+__all__ = ("Context", )
