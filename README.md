@@ -25,15 +25,11 @@ _✨ PixivBot ✨_
 
 NoneBot插件，支持发送随机Pixiv插画、画师更新推送、定时订阅推送……
 
-## 开始使用
-
 适配协议：
 
 - [Onebot V11](https://onebot.adapters.nonebot.dev/)
 - [KOOK / 开黑啦](https://github.com/Tian-que/nonebot-adapter-kaiheila)
 - [Telegram](https://github.com/nonebot/adapter-telegram)
-
-没有找到需要的协议？欢迎适配。[适配指南](https://github.com/ssttkkl/nonebot-plugin-pixivbot/wiki/%E9%80%82%E9%85%8D%E6%8C%87%E5%8D%97)
 
 ## 触发语句
 
@@ -175,7 +171,9 @@ nonebot_plugin_pixivbot
 
 ## 常见问题
 
-**遇到问题时请先尝试执行`pip install nonebot-plugin-pixivbot -U`更新到最新版本**
+**遇到问题时请先尝试执行`pip install nonebot-plugin-pixivbot -U`更新到最新版本**。
+
+Issue请尽可能带上详细的日志、配置文件与环境信息。功能请求请移步Discussion。
 
 ### 内部错误：<class 'pixivpy_async.error.NoTokenError'>No access_token Found!
 
@@ -257,7 +255,7 @@ pixiv_user_bookmarks_cache_delete_in=2592000
 pixiv_related_illusts_cache_expires_in=86400
 pixiv_other_cache_expires_in=21600
 
-# OneBot平台（主要是gocq）配置
+# QQ平台（主要是gocq）配置
 pixiv_poke_action=random_recommended_illust  # 响应戳一戳动作，可选值：ranking, random_recommended_illust, random_bookmark, 什么都不填即忽略戳一戳动作
 pixiv_onebot_with_link=False  # 发图时是否带上链接（容易被tx盯上）
 pixiv_onebot_send_forward_message=auto  # 发图时是否使用转发消息的形式，可选值：always(永远使用), auto(仅在多张图片时使用), never(永远不使用)
