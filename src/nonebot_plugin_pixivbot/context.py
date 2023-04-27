@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TypeVar, Type, Callable, Union, Generic
+from typing import TypeVar, Type, Callable, Union, Generic, Dict
 
 from nonebot.log import logger
 
@@ -42,7 +42,7 @@ class DynamicProvider(Provider[T], Generic[T]):
 class Context:
     def __init__(self, parent: "Context" = None):
         self._parent = parent
-        self._container = {}
+        self._container: Dict[T, Provider[T]] = {}
 
     @property
     def parent(self) -> "Context":
@@ -108,7 +108,7 @@ class Context:
         """
         bind key (usually the implementation class) to src_key (usually the base class)
         """
-        self._container[key] = self._find_provider(src_key)
+        self._container[key] = DynamicProvider(lambda: self._find_provider(src_key).provide(), use_cache=False)
         logger.trace(f"bind bean {key} to {src_key}")
 
     def bind_singleton_to(self, key: Type[T], *args, **kwargs) -> Callable[[Type[T2]], Type[T2]]:
@@ -126,7 +126,7 @@ class Context:
     def require(self, key: Type[T]) -> T:
         return self._find_provider(key).provide()
 
-    def _find_provider(self, key: Type[T]) -> T:
+    def _find_provider(self, key: Type[T]) -> Provider[T]:
         if key in self._container:
             return self._container[key]
         elif self._parent is not None:
@@ -146,4 +146,4 @@ class Context:
             return False
 
 
-__all__ = ("Context", )
+__all__ = ("Context",)
