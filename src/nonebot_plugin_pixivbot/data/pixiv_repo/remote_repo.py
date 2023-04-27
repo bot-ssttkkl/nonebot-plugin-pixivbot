@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from io import BytesIO
 from typing import TypeVar, Optional, Awaitable, List, Callable, Tuple, AsyncGenerator, Union
 
+from cachetools.func import rr_cache
 from nonebot import logger
 from pixivpy_async import *
 from pixivpy_async.error import TokenError
@@ -138,6 +139,27 @@ class RemotePixivRepo(PixivRepo):
             self._check_error_in_raw_result(raw_result)
             return raw_result
 
+    @staticmethod
+    @rr_cache()  # 因为size足够就不会发生替换，所以缓存用random replacement算法最快
+    def _make_illust_filter(min_view: int = 2 ** 31 - 1, min_bookmark: int = 2 ** 31 - 1):
+        def illust_filter(illust: Illust) -> bool:
+            # 标签过滤
+            for tag in _conf.pixiv_block_tags:
+                if illust.has_tag(tag):
+                    return False
+            # 书签下限过滤
+            if illust.total_bookmarks < min_bookmark:
+                return False
+            # 浏览量下限过滤
+            if illust.total_view < min_view:
+                return False
+            # AI过滤
+            if _conf.pixiv_exclude_ai_illusts and illust.illust_ai_type != 0:
+                return False
+            return True
+
+        return illust_filter
+
     async def _load_page(self, papi_search_func: Callable[..., Awaitable[dict]],
                          element_list_name: str,
                          *, mapper: Optional[Callable[[dict], T]] = None,
@@ -204,35 +226,18 @@ class RemotePixivRepo(PixivRepo):
                 break
 
     async def _get_illusts(self, papi_search_func: Callable[[], Awaitable[dict]],
-                           *, block_tags: Optional[List[str]] = None,
-                           min_bookmark: int = 0,
+                           *, min_bookmark: int = 0,
                            min_view: int = 0,
                            **kwargs) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
         """
         加载插画
         :param papi_search_func: PixivPy-Async的加载方法
-        :param block_tags: 要过滤的标签
         :param min_bookmark: 书签数下限
         :param min_view: 阅读数下限
         :param kwargs: 传给papi_search_func的参数
         :return:
         """
-
-        def illust_filter(illust: Illust) -> bool:
-            # 标签过滤
-            if block_tags is not None:
-                for tag in block_tags:
-                    if illust.has_tag(tag):
-                        return False
-            # 书签下限过滤
-            if illust.total_bookmarks < min_bookmark:
-                return False
-            # 浏览量下限过滤
-            if illust.total_view < min_view:
-                return False
-            return True
-
         total = 0
         broken = 0
 
@@ -240,7 +245,9 @@ class RemotePixivRepo(PixivRepo):
             yield PixivRepoMetadata(pages=0, next_qs=kwargs)
             async for page, metadata in self._load_many_pages(papi_search_func, "illusts",
                                                               mapper=lambda x: Illust.parse_obj(x),
-                                                              filter_item=illust_filter, **kwargs):
+                                                              filter_item=self._make_illust_filter(min_view,
+                                                                                                   min_bookmark),
+                                                              **kwargs):
                 for item in page:
                     total += 1
                     if "limit_unknown_360.png" in item.image_urls.large:
@@ -252,24 +259,14 @@ class RemotePixivRepo(PixivRepo):
         finally:
             logger.debug(f"[remote] got {total} illusts, illust_detail of {broken} are missed")
 
-    async def _get_user_previews(self, papi_search_func: Callable[[], Awaitable[dict]],
-                                 *, block_tags: Optional[List[str]] = None,
-                                 **kwargs) \
+    async def _get_user_previews(self, papi_search_func: Callable[[], Awaitable[dict]], **kwargs) \
             -> AsyncGenerator[Union[PixivRepoMetadata, UserPreview], None]:
         yield PixivRepoMetadata(pages=0, next_qs=kwargs)
         async for page, metadata in self._load_many_pages(papi_search_func, "user_previews",
                                                           mapper=lambda x: UserPreview.parse_obj(x), **kwargs):
             for item in page:
                 item: UserPreview
-                if block_tags is not None:
-                    illusts = []
-                    for x in item.illusts:
-                        for tag in block_tags:
-                            if x.has_tag(tag):
-                                break
-                        else:
-                            illusts.append(x)
-                    item.illusts = illusts
+                item.illusts = list(filter(self._make_illust_filter(), item.illusts))
                 yield item
             yield metadata
 
@@ -310,7 +307,6 @@ class RemotePixivRepo(PixivRepo):
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
         logger.debug(f"[remote] search_illust {word}")
         return self._get_illusts(self._papi.search_illust,
-                                 block_tags=_conf.pixiv_block_tags,
                                  min_bookmark=_conf.pixiv_random_illust_min_bookmark,
                                  min_view=_conf.pixiv_random_illust_min_view,
                                  word=word, **kwargs)
@@ -325,7 +321,6 @@ class RemotePixivRepo(PixivRepo):
             -> AsyncGenerator[Union[UserPreview, PixivRepoMetadata], None]:
         logger.debug(f"[remote] search_user {word}")
         return self._get_user_previews(self._papi.search_user,
-                                       block_tags=_conf.pixiv_block_tags,
                                        word=word, **kwargs)
 
     def user_following(self, user_id: int, **kwargs) \
@@ -338,14 +333,12 @@ class RemotePixivRepo(PixivRepo):
             -> AsyncGenerator[Union[UserPreview, PixivRepoMetadata], None]:
         logger.debug(f"[remote] following_users {user_id}")
         return self._get_user_previews(self._papi.user_following,
-                                       block_tags=_conf.pixiv_block_tags,
                                        user_id=user_id, **kwargs)
 
     def user_illusts(self, user_id: int, **kwargs) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
         logger.debug(f"[remote] user_illusts {user_id}")
         return self._get_illusts(self._papi.user_illusts,
-                                 block_tags=_conf.pixiv_block_tags,
                                  min_bookmark=_conf.pixiv_random_user_illust_min_bookmark,
                                  min_view=_conf.pixiv_random_user_illust_min_view,
                                  user_id=user_id, **kwargs)
@@ -357,7 +350,6 @@ class RemotePixivRepo(PixivRepo):
 
         logger.debug(f"[remote] user_bookmarks {user_id}")
         return self._get_illusts(self._papi.user_bookmarks_illust,
-                                 block_tags=_conf.pixiv_block_tags,
                                  min_bookmark=_conf.pixiv_random_bookmark_min_bookmark,
                                  min_view=_conf.pixiv_random_bookmark_min_view,
                                  user_id=user_id, **kwargs)
@@ -366,7 +358,6 @@ class RemotePixivRepo(PixivRepo):
     #         -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
     #     logger.debug(f"[remote] following_illusts")
     #     return self._get_illusts(self._papi.illust_follow,
-    #                              block_tags=_conf.pixiv_block_tags,
     #                              min_bookmark=_conf.pixiv_random_following_illust_min_bookmark,
     #                              min_view=_conf.pixiv_random_following_illust_min_view,
     #                              **kwargs)
@@ -375,7 +366,6 @@ class RemotePixivRepo(PixivRepo):
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
         logger.debug(f"[remote] recommended_illusts")
         return self._get_illusts(self._papi.illust_recommended,
-                                 block_tags=_conf.pixiv_block_tags,
                                  min_bookmark=_conf.pixiv_random_recommended_illust_min_bookmark,
                                  min_view=_conf.pixiv_random_recommended_illust_min_view,
                                  **kwargs)
@@ -384,7 +374,6 @@ class RemotePixivRepo(PixivRepo):
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
         logger.debug(f"[remote] related_illusts {illust_id}")
         return self._get_illusts(self._papi.illust_related,
-                                 block_tags=_conf.pixiv_block_tags,
                                  min_bookmark=_conf.pixiv_random_related_illust_min_bookmark,
                                  min_view=_conf.pixiv_random_related_illust_min_view,
                                  illust_id=illust_id, **kwargs)
@@ -396,7 +385,6 @@ class RemotePixivRepo(PixivRepo):
 
         logger.debug(f"[remote] illust_ranking {mode}")
         return self._get_illusts(self._papi.illust_ranking,
-                                 block_tags=_conf.pixiv_block_tags,
                                  mode=mode.name, **kwargs)
 
     async def _raw_image(self, illust: Illust, page: int, **kwargs) -> bytes:

@@ -38,6 +38,7 @@ class Illust(BaseModel):
     meta_pages: typing.List[MetaPage]
     total_view: int
     total_bookmarks: int
+    illust_ai_type: int = 0  # 0为非AI作品，其他暂时不知道
 
     def has_tag(self, tag: typing.Union[str, Tag]) -> bool:
         if isinstance(tag, Tag):

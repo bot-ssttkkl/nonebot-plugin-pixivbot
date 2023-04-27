@@ -35,8 +35,6 @@ NoneBot插件，支持发送随机Pixiv插画、画师更新推送、定时订�
 
 没有找到需要的协议？欢迎适配。[适配指南](https://github.com/ssttkkl/nonebot-plugin-pixivbot/wiki/%E9%80%82%E9%85%8D%E6%8C%87%E5%8D%97)
 
-开箱即用的Docker镜像：[ssttkkl/PixivBot](https://github.com/ssttkkl/PixivBot)
-
 ## 触发语句
 
 ### 普通语句
@@ -231,10 +229,12 @@ pixiv_max_item_per_query=10  # 每个查询最多请求的插画数量
 
 pixiv_tag_translation_enabled=True  # 启用搜索关键字翻译功能（平时搜索时记录标签翻译，在查询时判断是否存在对应中日翻译）
 
-pixiv_block_tags=[]  # 当插画含有指定tag时会被过滤
-pixiv_block_action=no_image  # 过滤时的动作，可选值：no_image(不显示插画，回复插画信息), completely_block(只回复过滤提示), no_reply(无回复)
+pixiv_block_tags=[]  # 当插画含有指定tag时会被阻拦
+pixiv_block_action=no_image  # 阻拦时的动作，可选值：no_image(不显示插画，回复插画信息), completely_block(只回复过滤提示), no_reply(无回复)
 
-pixiv_watch_interval=7200  # 更新推送的查询间隔
+pixiv_exclude_ai_illusts=False  # 是否过滤AI绘图作品
+
+pixiv_watch_interval=600  # 更新推送的查询间隔（单位：秒）
 
 # 插画压缩
 pixiv_compression_enabled=False  # 启用插画压缩
