@@ -1,6 +1,8 @@
+from contextlib import asynccontextmanager
 from io import StringIO
 
-from nonebot.adapters.onebot.v11 import Message, MessageSegment
+from nonebot import logger
+from nonebot.adapters.onebot.v11 import Message, MessageSegment, ActionFailed
 
 from nonebot_plugin_pixivbot.enums import BlockAction
 from nonebot_plugin_pixivbot.global_context import context
@@ -10,6 +12,17 @@ from nonebot_plugin_pixivbot_onebot_v11.config import OnebotV11Config
 from nonebot_plugin_pixivbot_onebot_v11.protocol_dep.post_dest import PostDestination
 
 conf = context.require(OnebotV11Config)
+
+
+@asynccontextmanager
+async def feedback_on_action_failed(post_dest: PostDestination):
+    try:
+        yield
+    except ActionFailed as e:
+        logger.error("图片发送失败，可能是机器人被风控")
+        logger.error(e)
+
+        await post_dest.post_single(Message([MessageSegment.text("图片发送失败，可能是机器人被风控")]))
 
 
 @context.register_singleton()
@@ -54,32 +67,35 @@ class Postman(BasePostman[int, int], manager=PostmanManager):
 
     async def send_plain_text(self, message: str,
                               *, post_dest: PostDestination):
-        message = Message([MessageSegment.text(message)])
-        await post_dest.post(message)
+        async with feedback_on_action_failed(post_dest):
+            message = Message([MessageSegment.text(message)])
+            await post_dest.post(message)
 
     async def send_illust(self, model: IllustMessageModel,
                           *, post_dest: PostDestination):
-        message = Message()
-        if model.header is not None:
-            message.append(MessageSegment.text(model.header + '\n'))
+        async with feedback_on_action_failed(post_dest):
+            message = Message()
+            if model.header is not None:
+                message.append(MessageSegment.text(model.header + '\n'))
 
-        message.extend(self.make_illust_msg(model))
-        await post_dest.post(message)
+            message.extend(self.make_illust_msg(model))
+            await post_dest.post(message)
 
     async def send_illusts(self, model: IllustMessagesModel,
                            *, post_dest: PostDestination):
-        if conf.pixiv_onebot_send_forward_message == 'never' or \
-                conf.pixiv_onebot_send_forward_message == 'auto' and len(model.messages) == 1:
-            for x in model.flat():
-                await self.send_illust(x, post_dest=post_dest)
-        else:
-            messages = []
-            if model.header:
-                messages.append(Message([MessageSegment.text(model.header)]))
-            for sub_model in model.messages:
-                messages.append(self.make_illust_msg(sub_model))
+        async with feedback_on_action_failed(post_dest):
+            if conf.pixiv_onebot_send_forward_message == 'never' or \
+                    conf.pixiv_onebot_send_forward_message == 'auto' and len(model.messages) == 1:
+                for x in model.flat():
+                    await self.send_illust(x, post_dest=post_dest)
+            else:
+                messages = []
+                if model.header:
+                    messages.append(Message([MessageSegment.text(model.header)]))
+                for sub_model in model.messages:
+                    messages.append(self.make_illust_msg(sub_model))
 
-            await post_dest.post(messages)
+                await post_dest.post(messages)
 
 
 __all__ = ("Postman",)
