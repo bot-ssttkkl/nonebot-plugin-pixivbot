@@ -177,7 +177,7 @@ Issue请尽可能带上详细的日志、配置文件与环境信息。功能请
 
 ### 内部错误：<class 'pixivpy_async.error.NoTokenError'>No access_token Found!
 
-没登录成功，多半是网络问题
+没登录成功，多半是网络问题。在国内请配置代理。
 
 如果登录成功的话会在bot初始化后有这几句：
 
@@ -186,6 +186,18 @@ Issue请尽可能带上详细的日志、配置文件与环境信息。功能请
 03-13 11:19:36 [DEBUG] nonebot_plugin_pixivbot | access_token: ***************
 03-13 11:19:36 [DEBUG] nonebot_plugin_pixivbot | refresh_token: *****************
 ```
+
+### 如何配置代理
+
+将`pixiv_proxy`配置项设为代理服务器地址（支持http、socks5协议）
+
+```
+pixiv_proxy=socks5://127.0.0.1:7890
+```
+
+### 发送合并转发消息惨遭风控
+
+将`pixiv_onebot_send_forward_message`配置项设为`never`可禁用合并转发
 
 ### 内部错误：<class 'sqlalchemy.exc.OperationalError'>(sqlite3.OperationalError) near "ON": syntax error
 
