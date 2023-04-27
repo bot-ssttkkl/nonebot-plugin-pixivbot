@@ -19,10 +19,9 @@ async def feedback_on_action_failed(post_dest: PostDestination):
     try:
         yield
     except ActionFailed as e:
-        logger.error("图片发送失败，可能是机器人被风控")
-        logger.error(e)
+        logger.opt(exception=e).error("发送失败，可能是机器人被风控")
 
-        await post_dest.post_single(Message([MessageSegment.text("图片发送失败，可能是机器人被风控")]))
+        await post_dest.post_single(Message([MessageSegment.text("发送失败，可能是机器人被风控")]))
 
 
 @context.register_singleton()

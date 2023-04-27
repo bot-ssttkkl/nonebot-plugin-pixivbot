@@ -37,8 +37,7 @@ class IntervalTaskWorker(ABC, Generic[T]):
                 try:
                     self._add_job(task)
                 except Exception as e:
-                    logger.error(f"[{self.tag}] error occurred when adding job for task \"{task}\"")
-                    logger.exception(e)
+                    logger.opt(exception=e).error(f"[{self.tag}] error occurred when adding job for task \"{task}\"")
 
         @on_bot_disconnect()
         async def _(bot: Bot):
@@ -46,8 +45,7 @@ class IntervalTaskWorker(ABC, Generic[T]):
                 try:
                     self._remove_job(task)
                 except Exception as e:
-                    logger.error(f"[{self.tag}] error occurred when removing job for task \"{task}\"")
-                    logger.exception(e)
+                    logger.opt(exception=e).error(f"[{self.tag}] error occurred when removing job for task \"{task}\"")
 
     @classmethod
     def _make_job_id(cls, item: T):
@@ -66,7 +64,7 @@ class IntervalTaskWorker(ABC, Generic[T]):
         try:
             await self._handle_trigger(item, post_dest)
         except ActionFailed as e:
-            logger.error(f"[{self.tag}] ActionFailed {e}")
+            logger.opt(exception=e).error(f"[{self.tag}] action failed when handling task \"{item.code}\"")
 
             available = auth_mgr.available(post_dest)
             if isawaitable(available):

@@ -91,9 +91,7 @@ class RemotePixivRepo(PixivRepo):
             except CancelledError as e:
                 raise e
             except Exception as e:
-                logger.error(
-                    "failed to refresh access token, will retry in 60s.")
-                logger.exception(e)
+                logger.opt(exception=e).error("failed to refresh access token, will retry after 60s.")
                 await sleep(60)
 
     def start(self):

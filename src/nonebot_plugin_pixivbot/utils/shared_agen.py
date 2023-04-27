@@ -58,7 +58,6 @@ class SharedAsyncGeneratorManager(ABC, Generic[T_ID, T_ITEM]):
                                 await self._manager.on_agen_stop(self._identifier, self._got_items)
                                 break
                             except Exception as e:
-                                logger.error(f"error {type(e)} raised by agen {self._identifier}")
                                 await self._manager.on_agen_error(self._identifier, e)
                                 raise e
 
