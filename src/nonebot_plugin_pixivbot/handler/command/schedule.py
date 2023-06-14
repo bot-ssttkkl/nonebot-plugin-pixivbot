@@ -1,22 +1,22 @@
 from io import StringIO
 from typing import Sequence
 
-from nonebot_plugin_pixivbot.model import ScheduleType
-from nonebot_plugin_pixivbot.model import T_UID, T_GID
-from nonebot_plugin_pixivbot.plugin_service import manage_schedule_service
-from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
-from nonebot_plugin_pixivbot.service.scheduler import Scheduler
-from nonebot_plugin_pixivbot.utils.errors import BadRequestError
-from nonebot_plugin_pixivbot.utils.nonebot import default_command_start
+from nonebot_plugin_session import Session
+
 from .subcommand import SubCommandHandler
 from ..pkg_context import context
+from ...model import ScheduleType
+from ...plugin_service import manage_schedule_service
+from ...service.scheduler import Scheduler
+from ...utils.errors import BadRequestError
+from ...utils.nonebot import default_command_start
 
 scheduler = context.require(Scheduler)
 
 
-async def build_subscriptions_msg(post_dest: PostDestination[T_UID, T_GID]):
+async def build_subscriptions_msg(session: Session):
     scheduler = context.require(Scheduler)
-    subscription = [x async for x in scheduler.get_by_subscriber(post_dest)]
+    subscription = [x async for x in scheduler.get_by_subscriber(session)]
     with StringIO() as sio:
         sio.write("当前订阅：\n")
         if len(subscription) > 0:
@@ -50,7 +50,7 @@ class ScheduleHandler(SubCommandHandler, subcommand='schedule', service=manage_s
     async def actual_handle(self, *, type: ScheduleType,
                             schedule: str,
                             args: Sequence[str]):
-        await scheduler.add_task(type, schedule, args, self.post_dest)
+        await scheduler.add_task(type, schedule, args, self.session)
         await self.post_plain_text(message="订阅成功")
 
     async def actual_handle_bad_request(self, err: BadRequestError):
@@ -59,7 +59,7 @@ class ScheduleHandler(SubCommandHandler, subcommand='schedule', service=manage_s
             msg += err.message
             msg += '\n'
 
-        msg += await build_subscriptions_msg(self.post_dest)
+        msg += await build_subscriptions_msg(self.session)
         msg += "\n" \
                f"命令格式：{default_command_start}pixivbot schedule <type> <schedule> [..args]\n" \
                "参数：\n" \
@@ -84,9 +84,9 @@ class UnscheduleHandler(SubCommandHandler, subcommand='unschedule', service=mana
     # noinspection PyMethodOverriding
     async def actual_handle(self, *, code: str):
         if code != "all":
-            ok = await scheduler.remove_task(self.post_dest, code)
+            ok = await scheduler.remove_task(self.session, code)
         else:
-            await scheduler.remove_all_by_subscriber(self.post_dest)
+            await scheduler.remove_all_by_subscriber(self.session)
             ok = True
 
         if ok:
@@ -100,7 +100,7 @@ class UnscheduleHandler(SubCommandHandler, subcommand='unschedule', service=mana
             msg += err.message
             msg += '\n'
 
-        msg += await build_subscriptions_msg(self.post_dest)
+        msg += await build_subscriptions_msg(self.session)
         msg += "\n"
         msg += f"命令格式：{default_command_start}pixivbot unschedule <id>"
         await self.post_plain_text(message=msg)

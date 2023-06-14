@@ -1,15 +1,16 @@
 from typing import Sequence
 
 from nonebot import on_regex
+from nonebot.internal.adapter import Event
 from nonebot.internal.params import Depends
 from nonebot.params import RegexGroup
+from nonebot_plugin_session import extract_session
 
-from nonebot_plugin_pixivbot.plugin_service import random_illust_service
-from nonebot_plugin_pixivbot.protocol_dep.post_dest import post_destination
 from .base import RecordCommonHandler
 from ..pkg_context import context
-from ..utils import get_common_query_rule, get_count
+from ..utils import get_common_query_rule, ArgCount
 from ...config import Config
+from ...plugin_service import random_illust_service
 from ...service.pixiv_service import PixivService
 
 conf = context.require(Config)
@@ -40,7 +41,9 @@ class RandomIllustHandler(RecordCommonHandler, service=random_illust_service):
 
 
 @on_regex("^来(.*)?张(.+)图$", rule=get_common_query_rule(), priority=5).handle()
-async def on_match(matched_groups=RegexGroup(),
-                   post_dest=Depends(post_destination)):
+async def _(event: Event,
+            matched_groups=RegexGroup(),
+            session=Depends(extract_session),
+            count=ArgCount()):
     word = matched_groups[1]
-    await RandomIllustHandler(post_dest).handle(word, count=get_count(matched_groups))
+    await RandomIllustHandler(session, event).handle(word, count=count)

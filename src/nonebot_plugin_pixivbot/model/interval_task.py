@@ -1,11 +1,7 @@
-from typing import Generic
-
-from pydantic.generics import GenericModel
-
-from nonebot_plugin_pixivbot.model import T_UID, T_GID, PostIdentifier, UserIdentifier
+from nonebot_plugin_session import Session
+from pydantic import BaseModel
 
 
-class IntervalTask(GenericModel, Generic[T_UID, T_GID]):
+class IntervalTask(BaseModel):
     code: str = ""
-    bot: UserIdentifier[str]  # 因为Bot.self_id恒为str
-    subscriber: PostIdentifier[T_UID, T_GID]
+    subscriber: Session

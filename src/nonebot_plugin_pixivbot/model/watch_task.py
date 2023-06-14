@@ -1,8 +1,7 @@
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, Generic
+from typing import Any, Dict
 
-from . import T_UID, T_GID
 from .interval_task import IntervalTask
 from ..utils.format import format_kwargs
 
@@ -12,7 +11,7 @@ class WatchType(str, Enum):
     following_illusts = "following_illusts"
 
 
-class WatchTask(IntervalTask[T_UID, T_GID], Generic[T_UID, T_GID]):
+class WatchTask(IntervalTask):
     type: WatchType
     kwargs: Dict[str, Any]
     checkpoint: datetime = datetime.now(timezone.utc)

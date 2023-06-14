@@ -1,8 +1,9 @@
 from nonebot import on_regex
+from nonebot.internal.adapter import Event
 from nonebot.internal.params import Depends
 from nonebot.params import RegexGroup
+from nonebot_plugin_session import extract_session
 
-from nonebot_plugin_pixivbot.protocol_dep.post_dest import post_destination
 from ..common import IllustHandler
 from ..pkg_context import context
 from ..utils import get_common_query_rule
@@ -24,7 +25,8 @@ class IllustLinkHandler(IllustHandler, service=illust_link_service):
 
 @on_regex(r"^(http://|https://)?(www.)?pixiv\.net/artworks/([1-9][0-9]*)/?$", rule=get_common_query_rule(),
           priority=5).handle()
-async def on_match(matched_groups=RegexGroup(),
-                   post_dest=Depends(post_destination)):
+async def _(event: Event,
+            matched_groups=RegexGroup(),
+            session=Depends(extract_session)):
     illust_id = matched_groups[2]
-    await IllustLinkHandler(post_dest).handle(illust_id)
+    await IllustLinkHandler(session, event).handle(illust_id)

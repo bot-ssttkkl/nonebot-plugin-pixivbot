@@ -4,7 +4,7 @@ from typing import Callable, Type, Optional, Iterable, TYPE_CHECKING
 from .base import Interceptor
 
 if TYPE_CHECKING:
-    from nonebot_plugin_pixivbot.handler.base import Handler
+    from ..base import Handler
 
 
 class CombinedInterceptor(Interceptor):

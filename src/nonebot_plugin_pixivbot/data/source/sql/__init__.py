@@ -5,16 +5,15 @@ from typing import AsyncContextManager
 
 from nonebot import get_driver, logger
 from sqlalchemy import select, inspect
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine, AsyncConnection
 from sqlalchemy.orm import registry, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.enums import DataSourceType
-from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.utils.lifecycler import on_startup, on_shutdown
-from ..lifecycle_mixin import DataSourceLifecycleMixin
+from ..lifecycle_mixin import DataSourceLifecycle
 from ...errors import DataSourceNotReadyError
+from ....config import Config
+from ....global_context import context
+from ....utils.lifecycler import on_startup, on_shutdown
 
 conf = context.require(Config)
 
@@ -30,8 +29,9 @@ def json_serializer(obj):
     return json.dumps(obj, default=default_dumps)
 
 
-class SqlDataSource(DataSourceLifecycleMixin):
-    app_db_version = 4
+@context.register_eager_singleton()
+class DataSource(DataSourceLifecycle):
+    app_db_version = 5
     registry = registry()
 
     def __init__(self):
@@ -43,45 +43,39 @@ class SqlDataSource(DataSourceLifecycleMixin):
         on_startup(replay=True)(self.initialize)
         on_shutdown()(self.close)
 
-    async def _raw_get_db_version(self) -> int:
-        async with self._engine.begin() as conn:
-            async with AsyncSession(conn, expire_on_commit=False) as session:
-                from .meta_info import MetaInfo
+    async def _raw_get_db_version(self, conn: AsyncConnection) -> int:
+        async with AsyncSession(conn, expire_on_commit=False) as session:
+            from .meta_info import MetaInfo
 
-                # 判断是否初次建库
-                blank_database = not await conn.run_sync(lambda conn: inspect(conn).has_table("subscription"))
-                if blank_database:
-                    result = MetaInfo(key="db_version", value=str(self.app_db_version))
-                    session.add(result)
-                    await session.commit()
-                    v = self.app_db_version
-                else:
-                    stmt = select(MetaInfo).where(MetaInfo.key == "db_version")
-                    result = (await session.execute(stmt)).scalar_one_or_none()
-                    if result is None:
-                        result = MetaInfo(key="db_version", value="1")
-                        session.add(result)
-                        await session.commit()
-
-                    v = int(result.value)
-
-            await conn.commit()
-            return v
-
-    async def _raw_set_db_version(self, db_version: int):
-        from .meta_info import MetaInfo
-        async with self._engine.begin() as conn:
-            async with AsyncSession(conn, expire_on_commit=False) as session:
+            # 判断是否初次建库
+            blank_database = not await conn.run_sync(lambda conn: inspect(conn).has_table("subscription"))
+            if blank_database:
+                result = MetaInfo(key="db_version", value=str(self.app_db_version))
+                session.add(result)
+                await session.commit()
+                v = self.app_db_version
+            else:
                 stmt = select(MetaInfo).where(MetaInfo.key == "db_version")
                 result = (await session.execute(stmt)).scalar_one_or_none()
                 if result is None:
                     result = MetaInfo(key="db_version", value="1")
                     session.add(result)
+                    await session.commit()
 
-                result.value = str(db_version)
-                await session.commit()
+                v = int(result.value)
+        return v
 
-            await conn.commit()
+    async def _raw_set_db_version(self, db_version: int, conn: AsyncConnection):
+        from .meta_info import MetaInfo
+        async with AsyncSession(conn, expire_on_commit=False) as session:
+            stmt = select(MetaInfo).where(MetaInfo.key == "db_version")
+            result = (await session.execute(stmt)).scalar_one_or_none()
+            if result is None:
+                result = MetaInfo(key="db_version", value="1")
+                session.add(result)
+
+            result.value = str(db_version)
+            await session.commit()
 
     async def initialize(self):
         await self._fire_initializing()
@@ -111,11 +105,13 @@ class SqlDataSource(DataSourceLifecycleMixin):
             await conn.run_sync(lambda conn: MetaInfo.__table__.create(conn, checkfirst=True))
 
             # migrate
-            mig_mgr = SqlMigrationManager(lambda prev, cur: self._raw_set_db_version(cur))
-            db_version = await self._raw_get_db_version()
+            mig_mgr = SqlMigrationManager(lambda prev, cur: self._raw_set_db_version(cur, conn))
+            db_version = await self._raw_get_db_version(conn)
             await mig_mgr.perform_migration(conn, db_version, self.app_db_version)
 
             await conn.run_sync(lambda conn: self.registry.metadata.create_all(conn))
+
+            await conn.commit()
 
         # expire_on_commit=False will prevent attributes from being expired
         # after commit.
@@ -149,7 +145,4 @@ class SqlDataSource(DataSourceLifecycleMixin):
         return self._engine
 
 
-if conf.pixiv_data_source == DataSourceType.sql:
-    context.register_eager_singleton()(SqlDataSource)
-
-__all__ = ("SqlDataSource",)
+__all__ = ("DataSource",)

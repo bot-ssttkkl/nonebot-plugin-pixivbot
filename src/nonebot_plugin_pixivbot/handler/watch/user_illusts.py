@@ -2,13 +2,13 @@ import time
 
 from nonebot import logger
 
-from nonebot_plugin_pixivbot.data.pixiv_repo import PixivRepo
-from nonebot_plugin_pixivbot.data.pixiv_repo.enums import CacheStrategy
-from nonebot_plugin_pixivbot.data.pixiv_repo.remote_repo import RemotePixivRepo
-from nonebot_plugin_pixivbot.model import WatchTask, Illust
-from nonebot_plugin_pixivbot.utils.shared_agen import SharedAsyncGeneratorManager
 from .base import WatchTaskHandler
 from ..pkg_context import context
+from ...data.pixiv_repo import PixivRepo
+from ...data.pixiv_repo.enums import CacheStrategy
+from ...data.pixiv_repo.remote_repo import RemotePixivRepo
+from ...model import WatchTask, Illust
+from ...utils.shared_agen import SharedAsyncGeneratorManager
 
 pixiv = context.require(PixivRepo)
 remote_pixiv = context.require(RemotePixivRepo)

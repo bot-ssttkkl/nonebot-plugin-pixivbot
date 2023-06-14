@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Callable, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from nonebot_plugin_pixivbot.handler.base import Handler
+    from ..base import Handler
 
 
 class Interceptor(ABC):

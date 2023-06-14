@@ -1,22 +1,20 @@
 [tool.poetry]
 name = "nonebot-plugin-pixivbot"
-version = "1.9.0"
+version = "2.0.0dev1"
 description = "Nonebot Plugin PixivBot"
 authors = ["ssttkkl <huang.wen.long@hotmail.com>"]
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/ssttkkl/nonebot-plugin-pixivbot"
 packages = [
-    { include = "nonebot_plugin_pixivbot", from = "src" },
-    { include = "nonebot_plugin_pixivbot_onebot_v11", from = "src" },
-    { include = "nonebot_plugin_pixivbot_kook", from = "src" },
+    { include = "nonebot_plugin_pixivbot", from = "src" }
 ]
 
 [tool.poetry.dependencies]
 python = "^3.9"
 nonebot2 = "^2.0.0"
 nonebot_plugin_apscheduler = "^0.2.0"
-nonebot-plugin-access-control = "^0.4.0"
+nonebot-plugin-access-control = ">=0.5.5"
 PixivPy-Async = "^1.2.14"
 Pillow = "^9.2.0"
 numpy = "^1.23.1"
@@ -27,33 +25,15 @@ tzlocal = "^4.2"
 cachetools = "^5.2.0"
 asyncache = "^0.3.1"
 shortuuid = "^1.0.9"
-
-nonebot-adapter-onebot = { version = "^2.2.1", optional = true }
-nonebot-adapter-kaiheila = { version = "^0.2.0", optional = true }
-nonebot-adapter-telegram = { version = "^0.1.0b8", optional = true }
-
-motor = { version = "^3.0.0", optional = true }
-beanie = { version = "^1.17.0", optional = true }
-
-SQLAlchemy = { version = "^2.0.0", extras = ["asyncio"] }
-aiosqlite = "^0.18.0"
-asyncpg = { version = "^0.27.0", optional = true }
-nonebot-plugin-localstore = "^0.4.1"
+nonebot-plugin-send-anything-anywhere = "^0.2.7"
 
 [tool.poetry.group.dev.dependencies]
 nb-cli = "^1.0.5"
 flake8 = "^6.0.0"
-nonebug = "^0.3.1"
-pytest-mock = "^3.10.0"
-pytest-cov = "^4.0.0"
+asyncpg = "^0.27.0"
 nonebot2 = { extras = ["fastapi", "websocket", "httpx"], version = "^2.0.0" }
-
-[tool.poetry.extras]
-onebot = ["nonebot-adapter-onebot"]
-kook = ["nonebot-adapter-kaiheila"]
-telegram = ["nonebot-adapter-telegram"]
-mongo = ["beanie", "motor"]
-postgresql = ["asyncpg"]
+nonebot-adapter-onebot = "^2.2.1"
+nonebot-adapter-kaiheila = "^0.2.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

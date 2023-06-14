@@ -2,14 +2,14 @@ import time
 
 from nonebot import logger
 
-from nonebot_plugin_pixivbot.data.pixiv_repo import PixivRepo
-from nonebot_plugin_pixivbot.data.pixiv_repo.enums import CacheStrategy
-from nonebot_plugin_pixivbot.handler.watch.base import WatchTaskHandler
-from nonebot_plugin_pixivbot.model import WatchTask, Illust
-from nonebot_plugin_pixivbot.service.pixiv_account_binder import PixivAccountBinder
-from nonebot_plugin_pixivbot.utils.shared_agen import SharedAsyncGeneratorManager
+from .base import WatchTaskHandler
 from ..pkg_context import context
 from ...config import Config
+from ...data.pixiv_repo import PixivRepo
+from ...data.pixiv_repo.enums import CacheStrategy
+from ...model import WatchTask, Illust
+from ...service.pixiv_account_binder import PixivAccountBinder
+from ...utils.shared_agen import SharedAsyncGeneratorManager
 
 conf = context.require(Config)
 binder = context.require(PixivAccountBinder)
@@ -41,13 +41,13 @@ class WatchFollowingIllustsHandler(WatchTaskHandler):
         sender_user_id = task.kwargs.get("sender_user_id", 0)
 
         if not pixiv_user_id and sender_user_id:
-            pixiv_user_id = await binder.get_binding(self.post_dest.adapter, sender_user_id)
+            pixiv_user_id = await binder.get_binding(task.subscriber.platform, sender_user_id)
 
         if not pixiv_user_id:
             pixiv_user_id = conf.pixiv_random_bookmark_user_id
 
         if not pixiv_user_id:
-            logger.warning(f"[watchman] no binding found for {self.post_dest}")
+            logger.warning(f"[watchman] no binding found for {task.subscriber.id1}")
             return
 
         async with shared_agen_mgr.get(pixiv_user_id) as illusts:

@@ -1,13 +1,14 @@
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, TYPE_CHECKING
 
-from nonebot import get_driver, logger
+from nonebot import logger
+from nonebot_plugin_access_control.subject import extract_subjects_from_session
 
 from .base import Interceptor
 from ..pkg_context import context
 
 if TYPE_CHECKING:
-    from nonebot_plugin_pixivbot.handler.base import Handler
+    from ..base import Handler
 
 
 class PermissionInterceptor(Interceptor, ABC):
@@ -24,7 +25,7 @@ class PermissionInterceptor(Interceptor, ABC):
         if p:
             await wrapped_func(*args, **kwargs)
         else:
-            logger.debug(f"permission denied {handler.post_dest}")
+            logger.debug(f"permission denied")
             if not handler.silently:
                 msg = await self.get_permission_denied_msg(handler)
                 if msg:
@@ -51,6 +52,5 @@ class AnyPermissionInterceptor(PermissionInterceptor):
 @context.register_singleton()
 class SuperuserInterceptor(PermissionInterceptor):
     async def has_permission(self, handler: "Handler") -> bool:
-        superusers = get_driver().config.superusers
-        return str(handler.post_dest.user_id) in superusers \
-               or f"{handler.post_dest.adapter}:{handler.post_dest.user_id}" in superusers
+        sbj = extract_subjects_from_session(handler.session)
+        return "superuser" in sbj

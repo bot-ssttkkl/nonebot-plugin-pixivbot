@@ -1,20 +1,22 @@
 from abc import ABC, abstractmethod, ABCMeta
+from asyncio import Event
 from typing import Sequence, Optional
 from typing import Type
 
 from nonebot import logger
+from nonebot_plugin_access_control.subject.extractor import extract_subjects_from_session
+from nonebot_plugin_session import Session
 
-from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.model import Illust, T_UID, T_GID
-from nonebot_plugin_pixivbot.model.message import IllustMessagesModel
-from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
-from nonebot_plugin_pixivbot.protocol_dep.postman import PostmanManager
 from .interceptor.base import Interceptor, DummyInterceptor
 from .interceptor.combined_interceptor import CombinedInterceptor
 from .interceptor.default_error_interceptor import DefaultErrorInterceptor
 from .interceptor.service_interceptor import ServiceInterceptor
 from .pkg_context import context
+from ..config import Config
+from ..model import Illust
+from ..model.message import IllustMessagesModel
 from ..plugin_service import r18_service, r18g_service
+from ..service.postman import Postman
 from ..utils.algorithm import as_unique
 
 conf = context.require(Config)
@@ -79,10 +81,11 @@ class HandlerMeta(ABCMeta):
 class Handler(ABC, metaclass=HandlerMeta):
     interceptor: Interceptor
 
-    def __init__(self, post_dest: PostDestination[T_UID, T_GID],
+    def __init__(self, session: Session, event: Optional[Event] = None,
                  *, silently: bool = False,
                  disable_interceptors: bool = False):
-        self.post_dest = post_dest
+        self.session = session
+        self.event = event
         self.silently = silently
         self.disable_interceptors = disable_interceptors
 
@@ -104,18 +107,12 @@ class Handler(ABC, metaclass=HandlerMeta):
         return {}
 
     async def handle(self, *args, **kwargs):
-        if not self.enabled():
-            return
-
         if not self.disable_interceptors:
             await self.interceptor.intercept(self, self._parse_args_and_actual_handle, *args, **kwargs)
         else:
             await self._parse_args_and_actual_handle(*args, **kwargs)
 
     async def handle_with_parsed_args(self, **kwargs):
-        if not self.enabled():
-            return
-
         if not self.disable_interceptors:
             await self.interceptor.intercept(self, self.actual_handle, **kwargs)
         else:
@@ -199,33 +196,29 @@ class Handler(ABC, metaclass=HandlerMeta):
         _log_interceptors(cls)
 
     async def is_r18_allowed(self) -> bool:
-        return await r18_service.check_by_subject(*self.post_dest.extract_subjects(),
+        return await r18_service.check_by_subject(*extract_subjects_from_session(self.session),
                                                   acquire_rate_limit_token=False)
 
     async def is_r18g_allowed(self) -> bool:
-        return await r18g_service.check_by_subject(*self.post_dest.extract_subjects(),
+        return await r18g_service.check_by_subject(*extract_subjects_from_session(self.session),
                                                    acquire_rate_limit_token=False)
 
     async def post_plain_text(self, message: str):
-
-        postman_manager = context.require(PostmanManager)
-        await postman_manager.send_plain_text(message, post_dest=self.post_dest)
+        await context.require(Postman).post_plain_text(message, self.session)
 
     async def post_illust(self, illust: Illust, *,
                           header: Optional[str] = None,
                           number: Optional[int] = None):
-        postman_manager = context.require(PostmanManager)
         model = await IllustMessagesModel.from_illust(illust, header=header, number=number,
                                                       max_page=conf.pixiv_max_item_per_query,
                                                       block_r18=(not await self.is_r18_allowed()),
                                                       block_r18g=(not await self.is_r18g_allowed()))
         if model:
-            await postman_manager.send_illusts(model, post_dest=self.post_dest)
+            await context.require(Postman).post_illusts(model, self.session)
 
     async def post_illusts(self, illusts: Sequence[Illust], *,
                            header: Optional[str] = None,
                            number: Optional[int] = None):
-        postman_manager = context.require(PostmanManager)
         if len(illusts) == 1:
             await self.post_illust(illusts[0], header=header, number=number)
         else:
@@ -233,7 +226,7 @@ class Handler(ABC, metaclass=HandlerMeta):
                                                            block_r18=(not await self.is_r18_allowed()),
                                                            block_r18g=(not await self.is_r18g_allowed()))
             if model:
-                await postman_manager.send_illusts(model, post_dest=self.post_dest)
+                await context.require(Postman).post_illusts(model, self.session)
 
 
 class EntryHandler(Handler, ABC, interceptors=[context.require(DefaultErrorInterceptor)]):

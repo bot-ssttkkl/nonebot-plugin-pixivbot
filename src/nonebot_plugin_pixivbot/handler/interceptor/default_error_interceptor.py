@@ -11,7 +11,7 @@ from .base import Interceptor
 from ..pkg_context import context
 
 if TYPE_CHECKING:
-    from nonebot_plugin_pixivbot.handler.base import Handler
+    from ..base import Handler
 
 
 @context.register_singleton()

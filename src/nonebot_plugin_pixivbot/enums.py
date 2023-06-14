@@ -1,11 +1,6 @@
 from enum import Enum
 
-__all__ = ("DataSourceType", "BlockAction", "DownloadQuantity", "RandomIllustMethod", "RankingMode",)
-
-
-class DataSourceType(str, Enum):
-    mongo = 'mongo'
-    sql = 'sql'
+__all__ = ("BlockAction", "DownloadQuantity", "RandomIllustMethod", "RankingMode",)
 
 
 class BlockAction(str, Enum):
