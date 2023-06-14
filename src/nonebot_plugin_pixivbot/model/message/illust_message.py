@@ -4,11 +4,11 @@ from typing import Optional
 from pydantic import BaseModel
 from tzlocal import get_localzone
 
-from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.data.pixiv_repo import PixivRepo
-from nonebot_plugin_pixivbot.enums import BlockAction
-from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.model import Illust
+from .. import Illust
+from ...config import Config
+from ...data.pixiv_repo import PixivRepo
+from ...enums import BlockAction
+from ...global_context import context
 
 conf = context.require(Config)
 

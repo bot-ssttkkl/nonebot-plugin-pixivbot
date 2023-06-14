@@ -1,9 +1,8 @@
 from enum import Enum
-from typing import Sequence, Dict, Any, Generic
+from typing import Sequence, Dict, Any
 
 import tzlocal
 
-from . import T_UID, T_GID
 from .interval_task import IntervalTask
 from ..utils.format import format_kwargs
 
@@ -16,7 +15,7 @@ class ScheduleType(str, Enum):
     ranking = "ranking"
 
 
-class Subscription(IntervalTask[T_UID, T_GID], Generic[T_UID, T_GID]):
+class Subscription(IntervalTask):
     type: ScheduleType
     kwargs: Dict[str, Any]
     schedule: Sequence[int]

@@ -4,11 +4,11 @@ from typing import Callable, TYPE_CHECKING
 from aiohttp import ServerConnectionError
 from nonebot import logger
 
-from nonebot_plugin_pixivbot.global_context import context
 from .base import Interceptor
+from ...global_context import context
 
 if TYPE_CHECKING:
-    from nonebot_plugin_pixivbot.handler.base import Handler
+    from ..base import Handler
 
 exception = (asyncio.TimeoutError, ServerConnectionError, ConnectionError)
 

@@ -3,8 +3,8 @@ from typing import Optional, Sequence
 
 from pydantic import BaseModel
 
-from nonebot_plugin_pixivbot.model import Illust
-from nonebot_plugin_pixivbot.model.message.illust_message import IllustMessageModel
+from .illust_message import IllustMessageModel
+from .. import Illust
 
 
 class IllustMessagesModel(BaseModel):

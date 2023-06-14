@@ -4,11 +4,11 @@ from typing import Optional, List
 from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import mapped_column, relationship, Mapped
 
-from nonebot_plugin_pixivbot.data.source.sql import SqlDataSource
-from nonebot_plugin_pixivbot.data.utils.sql import BLOB, JSON, UTCDateTime
+from ...source.sql import DataSource
+from ...utils.sql import BLOB, JSON, UTCDateTime
 
 
-@SqlDataSource.registry.mapped
+@DataSource.registry.mapped
 class DownloadCache:
     __tablename__ = "download_cache"
 
@@ -19,7 +19,7 @@ class DownloadCache:
     update_time: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
 
 
-@SqlDataSource.registry.mapped
+@DataSource.registry.mapped
 class IllustDetailCache:
     __tablename__ = "illust_detail_cache"
 
@@ -29,7 +29,7 @@ class IllustDetailCache:
     update_time: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
 
 
-@SqlDataSource.registry.mapped
+@DataSource.registry.mapped
 class UserDetailCache:
     __tablename__ = "user_detail_cache"
 
@@ -39,7 +39,7 @@ class UserDetailCache:
     update_time: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
 
 
-@SqlDataSource.registry.mapped
+@DataSource.registry.mapped
 class IllustSetCache:
     __tablename__ = "illust_set_cache"
 
@@ -62,7 +62,7 @@ class IllustSetCache:
     )
 
 
-@SqlDataSource.registry.mapped
+@DataSource.registry.mapped
 class IllustSetCacheIllust:
     __tablename__ = "illust_set_cache_illust"
 
@@ -71,7 +71,7 @@ class IllustSetCacheIllust:
     rank: Mapped[int] = mapped_column(default=0)
 
 
-@SqlDataSource.registry.mapped
+@DataSource.registry.mapped
 class UserSetCache:
     __tablename__ = "user_set_cache"
 
@@ -92,7 +92,7 @@ class UserSetCache:
     )
 
 
-@SqlDataSource.registry.mapped
+@DataSource.registry.mapped
 class UserSetCacheUser:
     __tablename__ = "user_set_cache_user"
 

@@ -4,11 +4,11 @@ from nonebot import Bot
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.utils.lifecycler import on_bot_connect
-from nonebot_plugin_pixivbot.utils.nonebot import get_adapter_name
-from .. import SqlDataSource
 from ...migration_manager import DeferrableMigration
+from ...sql import DataSource
+from .....global_context import context
+from .....utils.lifecycler import on_bot_connect
+from .....utils.nonebot import get_adapter_name
 
 
 class SqlV2ToV3(DeferrableMigration):
@@ -17,7 +17,7 @@ class SqlV2ToV3(DeferrableMigration):
     safe = True
 
     async def migrate(self, conn: AsyncConnection, on_migrated: Callable[[], Awaitable[None]]):
-        data_source = context.require(SqlDataSource)
+        data_source = context.require(DataSource)
 
         @on_bot_connect(replay=True, first=True)
         async def _(bot: Bot):

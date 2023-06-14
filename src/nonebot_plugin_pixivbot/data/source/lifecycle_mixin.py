@@ -5,7 +5,7 @@ from typing import Callable, Union, Awaitable
 from nonebot import logger
 
 
-class DataSourceLifecycleMixin:
+class DataSourceLifecycle:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._on_initializing_callbacks = []

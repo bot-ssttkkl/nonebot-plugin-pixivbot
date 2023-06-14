@@ -7,14 +7,16 @@ nonebot-plugin-pixivbot
 """
 from nonebot.plugin import PluginMetadata
 
-from .handler.command.help import help_text
+from .config import Config
+from .usage import usage
 
 __plugin_meta__ = PluginMetadata(
     name='PixivBot',
     description='发送随机Pixiv插画、画师更新推送、定时订阅推送……',
-    usage=help_text,
+    usage=usage,
     type="application",
-    homepage="https://github.com/ssttkkl/nonebot-plugin-pixivbot"
+    homepage="https://github.com/ssttkkl/nonebot-plugin-pixivbot",
+    config=Config,
 )
 
 # =========== require dependency ============
@@ -22,23 +24,11 @@ from nonebot import require
 
 require("nonebot_plugin_apscheduler")
 require("nonebot_plugin_access_control")
+require("nonebot_plugin_session")
+require("nonebot_plugin_saa")
 
 # =========== register handler & service ============
-from . import handler
 from . import service
-
-# ============== load submodule =============
-from nonebot import get_driver, load_plugin
-
-supported_adapters = {
-    "OneBot V11": "nonebot_plugin_pixivbot_onebot_v11",
-    "Kaiheila": "nonebot_plugin_pixivbot_kook",
-    "Telegram": "nonebot_plugin_pixivbot_telegram"
-}
-
-driver = get_driver()
-for adapter in driver._adapters:
-    if adapter in supported_adapters:
-        load_plugin(supported_adapters[adapter])
+from . import handler
 
 __all__ = ("context", "__plugin_meta__")

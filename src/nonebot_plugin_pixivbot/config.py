@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Literal
 from urllib.parse import urlparse
 
 from nonebot import get_driver, logger, require
@@ -10,14 +10,8 @@ require("nonebot_plugin_localstore")
 
 import nonebot_plugin_localstore as store
 
-from nonebot_plugin_pixivbot.enums import *
-from nonebot_plugin_pixivbot.enums import DataSourceType
-from nonebot_plugin_pixivbot.global_context import context
-
-
-def _deprecated_warn(name: str):
-    logger.warning(f"config \"{name}\" is deprecated, use nonebot-plugin-access-control instead "
-                   "(MORE INFO: https://github.com/ssttkkl/nonebot-plugin-pixivbot#%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6)")
+from .enums import *
+from .global_context import context
 
 
 def _get_default_sql_conn_url():
@@ -32,34 +26,24 @@ def _get_default_sql_conn_url():
 @context.register_singleton(**get_driver().config.dict())
 class Config(BaseSettings):
     @root_validator(pre=True, allow_reuse=True)
-    def deprecated_config(cls, values):
+    def deprecated_access_control_config(cls, values):
         for name in {"blacklist", "pixiv_query_cooldown", "pixiv_no_query_cooldown_users"}:
             if name in values:
-                _deprecated_warn(name)
+                logger.warning(f"config \"{name}\" is deprecated, use nonebot-plugin-access-control instead "
+                               "(MORE INFO: https://github.com/ssttkkl/nonebot-plugin-pixivbot#%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6)")
+        return values
+
+    @root_validator(pre=True, allow_reuse=True)
+    def deprecated_mongodb_config(cls, values):
+        if values.get("pixiv_data_source", "sql") == "mongo" or "pixiv_mongo_conn_url" in values:
+            logger.warning("mongo support was removed, use sql instead")
         return values
 
     pixiv_refresh_token: str
 
-    pixiv_data_source: DataSourceType = DataSourceType.sql
-    pixiv_mongo_conn_url: str
-    pixiv_mongo_database_name: str
     pixiv_sql_conn_url: str
     pixiv_sql_dialect: str
     pixiv_use_local_cache: bool = True
-
-    @root_validator(pre=True, allow_reuse=True)
-    def detect_data_source(cls, values):
-        pixiv_data_source = values.get("pixiv_data_source", None)
-        pixiv_mongo_conn_url = values.get("pixiv_mongo_conn_url", None)
-
-        if pixiv_data_source is None:
-            if pixiv_mongo_conn_url is not None:
-                pixiv_data_source = DataSourceType.mongo
-            else:
-                pixiv_data_source = DataSourceType.sql
-
-        values["pixiv_data_source"] = pixiv_data_source
-        return values
 
     @root_validator(pre=True, allow_reuse=True)
     def default_sql_conn_url(cls, values):
@@ -69,20 +53,14 @@ class Config(BaseSettings):
 
     @root_validator(pre=True, allow_reuse=True)
     def detect_sql_dialect(cls, values):
-        pixiv_data_source = values["pixiv_data_source"]
+        values["pixiv_mongo_conn_url"] = ""
+        values["pixiv_mongo_database_name"] = ""
 
-        if pixiv_data_source == DataSourceType.sql:
-            values["pixiv_mongo_conn_url"] = ""
-            values["pixiv_mongo_database_name"] = ""
-
-            url = urlparse(values["pixiv_sql_conn_url"])
-            if '+' in url.scheme:
-                pixiv_sql_dialect = url.scheme.split('+')[0]
-            else:
-                pixiv_sql_dialect = url.scheme
+        url = urlparse(values["pixiv_sql_conn_url"])
+        if '+' in url.scheme:
+            pixiv_sql_dialect = url.scheme.split('+')[0]
         else:
-            pixiv_sql_dialect = ""
-
+            pixiv_sql_dialect = url.scheme
         values["pixiv_sql_dialect"] = pixiv_sql_dialect
 
         return values
@@ -128,6 +106,9 @@ class Config(BaseSettings):
 
     pixiv_query_to_me_only = False
     pixiv_command_to_me_only = False
+
+    pixiv_send_illust_link: bool = False
+    pixiv_send_forward_message: Literal['always', 'auto', 'never'] = 'auto'
 
     pixiv_max_item_per_query = 10
 

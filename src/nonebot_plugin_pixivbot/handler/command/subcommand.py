@@ -1,9 +1,9 @@
 import inspect
 from abc import ABC
 
-from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .command import CommandHandler
 from ..base import Handler, HandlerMeta
+from ...utils.errors import BadRequestError
 
 
 class SubCommandHandlerMeta(HandlerMeta):

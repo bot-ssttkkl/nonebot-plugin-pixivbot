@@ -1,9 +1,9 @@
 from asyncio import wait_for
 from typing import Callable, TYPE_CHECKING
 
-from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.handler.interceptor.base import Interceptor
+from .base import Interceptor
 from ..pkg_context import context
+from ...config import Config
 
 if TYPE_CHECKING:
     from nonebot_plugin_pixivbot.handler.base import Handler

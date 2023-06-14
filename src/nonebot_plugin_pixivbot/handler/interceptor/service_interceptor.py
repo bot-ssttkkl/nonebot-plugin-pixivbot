@@ -1,7 +1,8 @@
 from typing import TYPE_CHECKING, Callable
 
-from nonebot import logger
+from nonebot import get_bot
 from nonebot_plugin_access_control.errors import PermissionDeniedError, RateLimitedError
+from nonebot_plugin_access_control.subject import extract_subjects, extract_subjects_from_session
 
 from .base import Interceptor
 from ..pkg_context import context
@@ -22,16 +23,18 @@ class ServiceInterceptor(Interceptor):
     async def intercept(self, handler: "Handler", wrapped_func: Callable, *args, **kwargs):
         reply = None
 
-        subjects = handler.post_dest.extract_subjects()
+        if handler.event is not None:
+            subjects = extract_subjects(get_bot(handler.session.bot_id), handler.event)
+        else:
+            subjects = extract_subjects_from_session(handler.session)
+
         try:
             await self.service.check_by_subject(*subjects, throw_on_fail=True,
                                                 acquire_rate_limit_token=self.acquire_rate_limit_token)
             await wrapped_func(*args, **kwargs)
         except PermissionDeniedError:
-            logger.debug(f"permission denied {handler.post_dest}")
             reply = conf.access_control_reply_on_permission_denied
         except RateLimitedError:
-            logger.debug(f"rate limited {handler.post_dest}")
             reply = conf.access_control_reply_on_rate_limited
 
         if not handler.silently and reply:

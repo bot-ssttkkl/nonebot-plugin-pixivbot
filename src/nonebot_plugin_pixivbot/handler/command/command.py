@@ -4,8 +4,8 @@ from nonebot import logger
 from nonebot import on_command
 from nonebot.internal.adapter import Event
 from nonebot.internal.params import Depends
+from nonebot_plugin_session import extract_session
 
-from nonebot_plugin_pixivbot.protocol_dep.post_dest import post_destination
 from ..base import EntryHandler
 from ..utils import get_command_rule
 
@@ -44,13 +44,14 @@ class CommandHandler(EntryHandler):
         else:
             handler_type = self.subcommand_handlers[args[0]]
 
-        handler = handler_type(self.post_dest, silently=self.silently, disable_interceptors=self.disable_interceptors)
+        handler = handler_type(self.session, self.event, silently=self.silently,
+                               disable_interceptors=self.disable_interceptors)
         await handler.handle(*args[1:])
 
 
 @on_command("pixivbot", rule=get_command_rule(), priority=5).handle()
 async def _(event: Event,
-            post_dest=Depends(post_destination)):
+            session=Depends(extract_session)):
     raw_args = str(event.get_message()).strip() + ' '  # 末尾加一个空格用于处理边界
 
     args = []
@@ -73,4 +74,4 @@ async def _(event: Event,
     logger.debug(f"command args: {args}")
     args = args[1:]
 
-    await CommandHandler(post_dest).handle(*args)
+    await CommandHandler(session, event).handle(*args)

@@ -1,15 +1,16 @@
 from io import StringIO
 from typing import Sequence
 
-from nonebot_plugin_pixivbot.model import WatchType, T_UID, T_GID
-from nonebot_plugin_pixivbot.plugin_service import manage_watch_service
-from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestination
-from nonebot_plugin_pixivbot.service.pixiv_service import PixivService
-from nonebot_plugin_pixivbot.service.watchman import Watchman
-from nonebot_plugin_pixivbot.utils.errors import BadRequestError
-from nonebot_plugin_pixivbot.utils.nonebot import default_command_start
+from nonebot_plugin_session import Session
+
 from .subcommand import SubCommandHandler
 from ..pkg_context import context
+from ...model import WatchType
+from ...plugin_service import manage_watch_service
+from ...service.pixiv_service import PixivService
+from ...service.watchman import Watchman
+from ...utils.errors import BadRequestError
+from ...utils.nonebot import default_command_start
 
 watchman = context.require(Watchman)
 pixiv = context.require(PixivService)
@@ -24,8 +25,8 @@ async def parse_and_get_user(raw_user: str):
         return await pixiv.get_user(raw_user)
 
 
-async def build_tasks_msg(post_dest: PostDestination[T_UID, T_GID]):
-    tasks = [x async for x in watchman.get_by_subscriber(post_dest)]
+async def build_tasks_msg(session: Session):
+    tasks = [x async for x in watchman.get_by_subscriber(session)]
     with StringIO() as sio:
         sio.write("当前订阅：\n")
         if len(tasks) > 0:
@@ -52,16 +53,14 @@ async def parse_user_illusts_args(args: Sequence[str]):
     return watch_args, message
 
 
-async def parse_following_illusts_args(args: Sequence[str], post_dest: PostDestination[T_UID, T_GID]):
+async def parse_following_illusts_args(args: Sequence[str]):
     if len(args) > 1:
         user = await parse_and_get_user(args[1])
 
-        watch_args = {"pixiv_user_id": user.id,
-                      "sender_user_id": post_dest.user_id}
+        watch_args = {"pixiv_user_id": user.id}
         message = f"{user.name}({user.id})用户的关注者插画更新"
     else:
-        watch_args = {"pixiv_user_id": 0,
-                      "sender_user_id": post_dest.user_id}
+        watch_args = {"pixiv_user_id": 0}
         message = "关注者插画更新"
 
     return watch_args, message
@@ -88,7 +87,7 @@ class WatchHandler(SubCommandHandler, subcommand='watch', service=manage_watch_s
             if type == WatchType.user_illusts:
                 watch_kwargs, message = await parse_user_illusts_args(args)
             elif type == WatchType.following_illusts:
-                watch_kwargs, message = await parse_following_illusts_args(args, self.post_dest)
+                watch_kwargs, message = await parse_following_illusts_args(args)
             else:
                 raise KeyError()
         except KeyError as e:
@@ -102,13 +101,13 @@ class WatchHandler(SubCommandHandler, subcommand='watch', service=manage_watch_s
     # noinspection PyMethodOverriding
     async def actual_handle(self, *, operation: str, **kwargs):
         if operation == 'fetch':
-            ok = await watchman.fetch(kwargs['code'], self.post_dest)
+            ok = await watchman.fetch(kwargs['code'], self.session)
             if ok:
                 await self.post_plain_text("拉取完毕")
             else:
                 raise BadRequestError("不存在该订阅")
         elif operation == 'add':
-            ok = await watchman.add_task(kwargs['type'], kwargs['watch_kwargs'], self.post_dest)
+            ok = await watchman.add_task(kwargs['type'], kwargs['watch_kwargs'], self.session)
             if ok:
                 await self.post_plain_text(kwargs['success_message'])
             else:
@@ -120,7 +119,7 @@ class WatchHandler(SubCommandHandler, subcommand='watch', service=manage_watch_s
             msg += err.message
             msg += '\n\n'
 
-        msg += await build_tasks_msg(self.post_dest)
+        msg += await build_tasks_msg(self.session)
         msg += "\n" \
                f"命令格式：{default_command_start}pixivbot watch <type> [..args]\n" \
                "参数：\n" \
@@ -143,9 +142,9 @@ class UnwatchHandler(SubCommandHandler, subcommand='unwatch', service=manage_wat
     # noinspection PyMethodOverriding
     async def actual_handle(self, *, code: str):
         if code != "all":
-            ok = await watchman.remove_task(self.post_dest, code)
+            ok = await watchman.remove_task(self.session, code)
         else:
-            await watchman.remove_all_by_subscriber(self.post_dest)
+            await watchman.remove_all_by_subscriber(self.session)
             ok = True
 
         if ok:
@@ -159,7 +158,7 @@ class UnwatchHandler(SubCommandHandler, subcommand='unwatch', service=manage_wat
             msg += err.message
             msg += '\n'
 
-        msg += await build_tasks_msg(self.post_dest)
+        msg += await build_tasks_msg(self.session)
         msg += "\n"
         msg += f"命令格式：{default_command_start}pixivbot unwatch <id>"
         await self.post_plain_text(message=msg)
