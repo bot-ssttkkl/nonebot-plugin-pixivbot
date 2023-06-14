@@ -16,7 +16,7 @@ packages = [
 python = "^3.9"
 nonebot2 = "^2.0.0"
 nonebot_plugin_apscheduler = "^0.2.0"
-nonebot-plugin-access-control = "^0.4.0"
+nonebot-plugin-access-control = ">=0.4,<0.6"
 PixivPy-Async = "^1.2.14"
 Pillow = "^9.2.0"
 numpy = "^1.23.1"
