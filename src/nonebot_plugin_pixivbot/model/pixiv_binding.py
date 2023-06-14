@@ -1,11 +1,7 @@
-from typing import Generic
-
-from pydantic.generics import GenericModel
-
-from nonebot_plugin_pixivbot.model import T_UID
+from pydantic import BaseModel
 
 
-class PixivBinding(GenericModel, Generic[T_UID]):
-    adapter: str
-    user_id: T_UID
+class PixivBinding(BaseModel):
+    platform: str
+    user_id: str
     pixiv_user_id: int

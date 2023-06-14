@@ -3,20 +3,20 @@ from typing import Tuple
 from typing import Union
 
 from nonebot import on_regex
+from nonebot.internal.adapter import Event
 from nonebot.internal.params import Depends
 from nonebot.params import RegexGroup
-from nonebot.typing import T_State
+from nonebot_plugin_session import extract_session
 
-from nonebot_plugin_pixivbot.enums import RankingMode
-from nonebot_plugin_pixivbot.plugin_service import ranking_service
-from nonebot_plugin_pixivbot.utils.decode_integer import decode_integer
-from nonebot_plugin_pixivbot.utils.errors import BadRequestError
 from .base import CommonHandler
 from ..pkg_context import context
 from ..utils import get_common_query_rule
 from ...config import Config
-from ...protocol_dep.post_dest import post_destination
+from ...enums import RankingMode
+from ...plugin_service import ranking_service
 from ...service.pixiv_service import PixivService
+from ...utils.decode_integer import decode_integer
+from ...utils.errors import BadRequestError
 
 conf = context.require(Config)
 service = context.require(PixivService)
@@ -99,12 +99,13 @@ class RankingHandler(CommonHandler, service=ranking_service):
 
 
 @on_regex(r"^看看(.*)?榜\s*(.*)?$", rule=get_common_query_rule(), priority=4, block=True).handle()
-async def on_match(matched_groups=RegexGroup(),
-                   post_dest=Depends(post_destination)):
+async def on_match(event: Event,
+                   matched_groups=RegexGroup(),
+                   session=Depends(extract_session)):
     if matched_groups:
         mode = matched_groups[0]
         num = matched_groups[1]
     else:
         mode = None
         num = None
-    await RankingHandler(post_dest).handle(mode, num)
+    await RankingHandler(session, event).handle(mode, num)

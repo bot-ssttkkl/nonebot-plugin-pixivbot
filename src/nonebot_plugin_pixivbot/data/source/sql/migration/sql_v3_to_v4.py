@@ -1,7 +1,7 @@
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from nonebot_plugin_pixivbot.data.source.migration_manager import Migration
+from ...migration_manager import Migration
 
 
 class SqlV3ToV4(Migration):

@@ -8,11 +8,6 @@ from nonebot_plugin_apscheduler import scheduler as apscheduler
 from sqlalchemy import select, delete, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from nonebot_plugin_pixivbot.config import Config
-from nonebot_plugin_pixivbot.enums import RankingMode
-from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.model import Illust, User
-from nonebot_plugin_pixivbot.utils.lifecycler import on_startup
 from .base import LocalPixivRepo
 from .sql_models import IllustDetailCache, UserDetailCache, DownloadCache, IllustSetCache, IllustSetCacheIllust, \
     UserSetCache, UserSetCacheUser
@@ -20,8 +15,13 @@ from ..errors import CacheExpiredError, NoSuchItemError
 from ..lazy_illust import LazyIllust
 from ..models import PixivRepoMetadata
 from ...local_tag import LocalTagRepo
-from ...source.sql import SqlDataSource
+from ...source.sql import DataSource
 from ...utils.sql import insert
+from ....config import Config
+from ....enums import RankingMode
+from ....global_context import context
+from ....model import Illust, User
+from ....utils.lifecycler import on_startup
 
 
 def _handle_expires_in(metadata: PixivRepoMetadata, expires_in: int):
@@ -40,7 +40,7 @@ def _extract_metadata(cache, is_set_cache):
 
 
 conf = context.require(Config)
-data_source = context.require(SqlDataSource)
+data_source = context.require(DataSource)
 local_tags = context.require(LocalTagRepo)
 
 
@@ -439,8 +439,8 @@ class SqlPixivRepo(LocalPixivRepo):
     async def append_illust_ranking(self, mode: RankingMode, content: List[Union[Illust, LazyIllust]],
                                     metadata: PixivRepoMetadata) -> bool:
         logger.debug(f"[local] append illust_ranking {mode} "
-                    f"({len(content)} items) "
-                    f"{metadata}")
+                     f"({len(content)} items) "
+                     f"{metadata}")
         async with data_source.start_session() as session:
             return await self._append_and_check_illusts(session, "illust_ranking", {"mode": mode},
                                                         content=content, metadata=metadata)
@@ -463,8 +463,8 @@ class SqlPixivRepo(LocalPixivRepo):
                                    metadata: PixivRepoMetadata) -> bool:
         # 返回值表示content中是否有已经存在于集合的文档，下同
         logger.debug(f"[local] append search_illust {word} "
-                    f"({len(content)} items) "
-                    f"{metadata}")
+                     f"({len(content)} items) "
+                     f"{metadata}")
         async with data_source.start_session() as session:
             return await self._append_and_check_illusts(session, "search_illust", {"word": word},
                                                         content=content, metadata=metadata)
@@ -488,9 +488,9 @@ class SqlPixivRepo(LocalPixivRepo):
                                   metadata: PixivRepoMetadata,
                                   append_at_begin: bool = False) -> bool:
         logger.debug(f"[local] append user_illusts {user_id} "
-                    f"{'at begin ' if append_at_begin else ''}"
-                    f"({len(content)} items) "
-                    f"{metadata}")
+                     f"{'at begin ' if append_at_begin else ''}"
+                     f"({len(content)} items) "
+                     f"{metadata}")
         async with data_source.start_session() as session:
             return await self._append_and_check_illusts(session, "user_illusts", {"user_id": user_id},
                                                         content=content, metadata=metadata,
@@ -515,9 +515,9 @@ class SqlPixivRepo(LocalPixivRepo):
                                     metadata: PixivRepoMetadata,
                                     append_at_begin: bool = False) -> bool:
         logger.debug(f"[local] append user_bookmarks {user_id} "
-                    f"{'at begin ' if append_at_begin else ''} "
-                    f"({len(content)} items) "
-                    f"{metadata}")
+                     f"{'at begin ' if append_at_begin else ''} "
+                     f"({len(content)} items) "
+                     f"{metadata}")
         async with data_source.start_session() as session:
             return await self._append_and_check_illusts(session, "user_bookmarks", {"user_id": user_id},
                                                         content=content, metadata=metadata,
@@ -540,8 +540,8 @@ class SqlPixivRepo(LocalPixivRepo):
     async def append_recommended_illusts(self, content: List[Union[Illust, LazyIllust]],
                                          metadata: PixivRepoMetadata) -> bool:
         logger.debug(f"[local] append recommended_illusts "
-                    f"({len(content)} items) "
-                    f"{metadata}")
+                     f"({len(content)} items) "
+                     f"{metadata}")
         async with data_source.start_session() as session:
             return await self._append_and_check_illusts(session, "other", {"type": "recommended_illusts"},
                                                         content=content, metadata=metadata)
@@ -564,8 +564,8 @@ class SqlPixivRepo(LocalPixivRepo):
     async def append_related_illusts(self, illust_id: int, content: List[Union[Illust, LazyIllust]],
                                      metadata: PixivRepoMetadata) -> bool:
         logger.debug(f"[local] append related_illusts {illust_id} "
-                    f"({len(content)} items) "
-                    f"{metadata}")
+                     f"({len(content)} items) "
+                     f"{metadata}")
         async with data_source.start_session() as session:
             return await self._append_and_check_illusts(session, "related_illusts", {"original_illust_id": illust_id},
                                                         content=content, metadata=metadata)
@@ -587,8 +587,8 @@ class SqlPixivRepo(LocalPixivRepo):
     async def append_search_user(self, word: str, content: List[User],
                                  metadata: PixivRepoMetadata) -> bool:
         logger.debug(f"[local] append search_user {word} "
-                    f"({len(content)} items) "
-                    f"{metadata}")
+                     f"({len(content)} items) "
+                     f"{metadata}")
         async with data_source.start_session() as session:
             return await self._append_and_check_users(session, "search_user", {"word": word},
                                                       content=content, metadata=metadata)

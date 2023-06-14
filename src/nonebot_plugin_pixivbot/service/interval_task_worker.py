@@ -1,23 +1,17 @@
 from abc import ABC, abstractmethod
-from inspect import isawaitable
 from typing import Generic, TypeVar, AsyncIterable
 
 from apscheduler.triggers.base import BaseTrigger
-from nonebot import logger, Bot, get_bot
+from nonebot import logger, Bot
 from nonebot.exception import ActionFailed
 from nonebot_plugin_apscheduler import scheduler as apscheduler
+from nonebot_plugin_session import Session, SessionIdType
 
-from nonebot_plugin_pixivbot.data.interval_task_repo import IntervalTaskRepo
-from nonebot_plugin_pixivbot.global_context import context
-from nonebot_plugin_pixivbot.model import T_UID, T_GID
-from nonebot_plugin_pixivbot.model.interval_task import IntervalTask
-from nonebot_plugin_pixivbot.protocol_dep.authenticator import AuthenticatorManager
-from nonebot_plugin_pixivbot.protocol_dep.post_dest import PostDestinationFactoryManager, PostDestination
-from nonebot_plugin_pixivbot.utils.lifecycler import on_bot_connect, on_bot_disconnect
-from nonebot_plugin_pixivbot.utils.nonebot import get_bot_user_identifier
-
-pd_factory_mgr = context.require(PostDestinationFactoryManager)
-auth_mgr = context.require(AuthenticatorManager)
+from ..data.interval_task_repo import IntervalTaskRepo
+from ..model.interval_task import IntervalTask
+from ..platform import platform_func
+from ..platform.func_manager import UnsupportedBotError
+from ..utils.lifecycler import on_bot_connect, on_bot_disconnect
 
 T = TypeVar("T", bound=IntervalTask)
 
@@ -33,7 +27,7 @@ class IntervalTaskWorker(ABC, Generic[T]):
     def __init__(self):
         @on_bot_connect(replay=True)
         async def _(bot: Bot):
-            async for task in self.repo.get_by_bot(get_bot_user_identifier(bot)):
+            async for task in self.repo.get_by_bot(bot.self_id):
                 try:
                     self._add_job(task)
                 except Exception as e:
@@ -41,7 +35,7 @@ class IntervalTaskWorker(ABC, Generic[T]):
 
         @on_bot_disconnect()
         async def _(bot: Bot):
-            async for task in self.repo.get_by_bot(get_bot_user_identifier(bot)):
+            async for task in self.repo.get_by_bot(bot.self_id):
                 try:
                     self._remove_job(task)
                 except Exception as e:
@@ -49,30 +43,28 @@ class IntervalTaskWorker(ABC, Generic[T]):
 
     @classmethod
     def _make_job_id(cls, item: T):
-        return f'{cls.tag} {item.subscriber} {item.code}'
+        return f'{cls.tag} {item.subscriber.get_id(SessionIdType.GROUP)} {item.code}'
 
     @abstractmethod
-    async def _handle_trigger(self, item: T, post_dest: PostDestination[T_UID, T_GID]):
+    async def _handle_trigger(self, item: T):
         ...
 
     async def _on_trigger(self, item: T):
         logger.info(f"[{self.tag}] triggered \"{item}\"")
 
-        bot = get_bot(item.bot.user_id)
-        post_dest = pd_factory_mgr.build(bot, item.subscriber.user_id, item.subscriber.group_id)
-
         try:
-            await self._handle_trigger(item, post_dest)
+            await self._handle_trigger(item)
         except ActionFailed as e:
             logger.opt(exception=e).error(f"[{self.tag}] action failed when handling task \"{item.code}\"")
 
-            available = auth_mgr.available(post_dest)
-            if isawaitable(available):
-                available = await available
+            try:
+                available = await platform_func(item.subscriber.bot_type).available(item.subscriber)
+            except UnsupportedBotError:
+                available = True
 
             if not available:
-                logger.info(f"[{self.tag}] {post_dest} is no longer available, removing all his tasks...")
-                await self.remove_all_by_subscriber(post_dest)
+                logger.info(f"[{self.tag}] {item.subscriber} is no longer available, removing all his tasks...")
+                await self.remove_all_by_subscriber(item.subscriber)
 
     @abstractmethod
     def _make_job_trigger(self, item: T) -> BaseTrigger:
@@ -110,9 +102,8 @@ class IntervalTaskWorker(ABC, Generic[T]):
             self._add_job(item)
         return ok
 
-    async def remove_task(self, post_dest: PostDestination[T_UID, T_GID], code: str) -> bool:
-        item = await self.repo.delete_one(get_bot_user_identifier(post_dest.bot),
-                                          post_dest.identifier, code)
+    async def remove_task(self, session: Session, code: str) -> bool:
+        item = await self.repo.delete_one(session, code)
         if item:
             logger.success(f"[{self.tag}] removed task \"{item}\"")
             self._remove_job(item)
@@ -120,14 +111,12 @@ class IntervalTaskWorker(ABC, Generic[T]):
         else:
             return False
 
-    async def remove_all_by_subscriber(self, post_dest: PostDestination[T_UID, T_GID]):
-        old = await self.repo.delete_many_by_subscriber(get_bot_user_identifier(post_dest.bot),
-                                                        post_dest.identifier)
+    async def remove_all_by_subscriber(self, session: Session):
+        old = await self.repo.delete_many_by_session(session)
         for item in old:
             logger.success(f"[{self.tag}] removed task \"{item}\"")
             self._remove_job(item)
 
-    async def get_by_subscriber(self, post_dest: PostDestination[T_UID, T_GID]) -> AsyncIterable[T]:
-        async for x in self.repo.get_by_subscriber(get_bot_user_identifier(post_dest.bot),
-                                                   post_dest.identifier):
+    async def get_by_subscriber(self, session: Session) -> AsyncIterable[T]:
+        async for x in self.repo.get_by_session(session):
             yield x

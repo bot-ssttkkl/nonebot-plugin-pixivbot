@@ -2,14 +2,15 @@ from typing import Sequence
 from typing import Union
 
 from nonebot import on_regex
+from nonebot.internal.adapter import Event
 from nonebot.internal.params import Depends
 from nonebot.params import RegexGroup
+from nonebot_plugin_session import extract_session
 
 from nonebot_plugin_pixivbot.plugin_service import random_user_illust_service
-from nonebot_plugin_pixivbot.protocol_dep.post_dest import post_destination
 from .base import RecordCommonHandler
 from ..pkg_context import context
-from ..utils import get_common_query_rule, get_count
+from ..utils import get_common_query_rule, ArgCount
 from ...config import Config
 from ...service.pixiv_service import PixivService
 
@@ -46,7 +47,9 @@ class RandomUserIllustHandler(RecordCommonHandler, service=random_user_illust_se
 
 
 @on_regex("^来(.*)?张(.+)老师的图$", rule=get_common_query_rule(), priority=4, block=True).handle()
-async def on_match(matched_groups=RegexGroup(),
-                   post_dest=Depends(post_destination)):
+async def _(event: Event,
+            matched_groups=RegexGroup(),
+            session=Depends(extract_session),
+            count=ArgCount()):
     user = matched_groups[1]
-    await RandomUserIllustHandler(post_dest).handle(user, count=get_count(matched_groups))
+    await RandomUserIllustHandler(session, event).handle(user, count=count)

@@ -1,9 +1,9 @@
 from sqlalchemy import Column, String
 
-from nonebot_plugin_pixivbot.data.source import SqlDataSource
+from ..sql import DataSource
 
 
-@SqlDataSource.registry.mapped
+@DataSource.registry.mapped
 class MetaInfo:
     __tablename__ = "meta_info"
 
