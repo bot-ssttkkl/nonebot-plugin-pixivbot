@@ -2,7 +2,7 @@ from typing import Sequence
 
 from nonebot import on_regex
 from nonebot.internal.params import Depends
-from nonebot.typing import T_State
+from nonebot.params import RegexGroup
 
 from nonebot_plugin_pixivbot.model import T_UID
 from nonebot_plugin_pixivbot.plugin_service import random_bookmark_service
@@ -64,6 +64,6 @@ class RandomBookmarkHandler(RecordCommonHandler, service=random_bookmark_service
 
 
 @on_regex("^来(.*)?张私家车$", rule=get_common_query_rule(), priority=5).handle()
-async def on_match(state: T_State,
+async def on_match(matched_groups=RegexGroup(),
                    post_dest=Depends(post_destination)):
-    await RandomBookmarkHandler(post_dest).handle(count=get_count(state))
+    await RandomBookmarkHandler(post_dest).handle(count=get_count(matched_groups))

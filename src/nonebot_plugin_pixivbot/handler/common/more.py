@@ -1,6 +1,6 @@
 from nonebot import on_regex
 from nonebot.internal.params import Depends
-from nonebot.typing import T_State
+from nonebot.params import RegexGroup
 
 from nonebot_plugin_pixivbot.plugin_service import more_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import post_destination
@@ -34,6 +34,6 @@ class MoreHandler(CommonHandler, service=more_service):
 
 
 @on_regex("^还要((.*)张)?$", rule=get_common_query_rule(), priority=1, block=True).handle()
-async def on_match(state: T_State,
+async def on_match(matched_groups=RegexGroup(),
                    post_dest=Depends(post_destination)):
-    await MoreHandler(post_dest).handle(count=get_count(state, 1))
+    await MoreHandler(post_dest).handle(count=get_count(matched_groups, 1))

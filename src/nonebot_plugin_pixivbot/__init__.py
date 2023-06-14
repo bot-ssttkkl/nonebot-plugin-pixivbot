@@ -13,7 +13,8 @@ __plugin_meta__ = PluginMetadata(
     name='PixivBot',
     description='发送随机Pixiv插画、画师更新推送、定时订阅推送……',
     usage=help_text,
-    extra={'version': '1.4.0'}
+    type="application",
+    homepage="https://github.com/ssttkkl/nonebot-plugin-pixivbot"
 )
 
 # =========== require dependency ============

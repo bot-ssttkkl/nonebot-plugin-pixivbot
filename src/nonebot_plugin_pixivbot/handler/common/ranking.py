@@ -4,6 +4,7 @@ from typing import Union
 
 from nonebot import on_regex
 from nonebot.internal.params import Depends
+from nonebot.params import RegexGroup
 from nonebot.typing import T_State
 
 from nonebot_plugin_pixivbot.enums import RankingMode
@@ -98,11 +99,11 @@ class RankingHandler(CommonHandler, service=ranking_service):
 
 
 @on_regex(r"^看看(.*)?榜\s*(.*)?$", rule=get_common_query_rule(), priority=4, block=True).handle()
-async def on_match(state: T_State,
+async def on_match(matched_groups=RegexGroup(),
                    post_dest=Depends(post_destination)):
-    if "_matched_groups" in state:
-        mode = state["_matched_groups"][0]
-        num = state["_matched_groups"][1]
+    if matched_groups:
+        mode = matched_groups[0]
+        num = matched_groups[1]
     else:
         mode = None
         num = None

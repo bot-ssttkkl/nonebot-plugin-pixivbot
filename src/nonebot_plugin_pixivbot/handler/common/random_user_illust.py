@@ -3,7 +3,7 @@ from typing import Union
 
 from nonebot import on_regex
 from nonebot.internal.params import Depends
-from nonebot.typing import T_State
+from nonebot.params import RegexGroup
 
 from nonebot_plugin_pixivbot.plugin_service import random_user_illust_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import post_destination
@@ -46,7 +46,7 @@ class RandomUserIllustHandler(RecordCommonHandler, service=random_user_illust_se
 
 
 @on_regex("^来(.*)?张(.+)老师的图$", rule=get_common_query_rule(), priority=4, block=True).handle()
-async def on_match(state: T_State,
+async def on_match(matched_groups=RegexGroup(),
                    post_dest=Depends(post_destination)):
-    user = state["_matched_groups"][1]
-    await RandomUserIllustHandler(post_dest).handle(user, count=get_count(state))
+    user = matched_groups[1]
+    await RandomUserIllustHandler(post_dest).handle(user, count=get_count(matched_groups))

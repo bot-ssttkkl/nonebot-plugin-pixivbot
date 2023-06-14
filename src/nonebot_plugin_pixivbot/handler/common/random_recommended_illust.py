@@ -1,6 +1,6 @@
 from nonebot import on_regex
 from nonebot.internal.params import Depends
-from nonebot.typing import T_State
+from nonebot.params import RegexGroup
 
 from nonebot_plugin_pixivbot.plugin_service import random_recommended_illust_service
 from nonebot_plugin_pixivbot.protocol_dep.post_dest import post_destination
@@ -33,6 +33,6 @@ class RandomRecommendedIllustHandler(RecordCommonHandler, service=random_recomme
 
 
 @on_regex("^来(.*)?张图$", rule=get_common_query_rule(), priority=3, block=True).handle()
-async def on_match(state: T_State,
+async def on_match(matched_groups=RegexGroup(),
                    post_dest=Depends(post_destination)):
-    await RandomRecommendedIllustHandler(post_dest).handle(count=get_count(state))
+    await RandomRecommendedIllustHandler(post_dest).handle(count=get_count(matched_groups))

@@ -2,7 +2,7 @@ from typing import Generic, Sequence
 
 from nonebot import on_regex
 from nonebot.internal.params import Depends
-from nonebot.typing import T_State
+from nonebot.params import RegexGroup
 
 from nonebot_plugin_pixivbot.model import T_UID, T_GID
 from nonebot_plugin_pixivbot.plugin_service import illust_service
@@ -40,7 +40,7 @@ class IllustHandler(CommonHandler, Generic[T_UID, T_GID], service=illust_service
 
 
 @on_regex(r"^看看图\s*([1-9][0-9]*)$", rule=get_common_query_rule(), priority=5).handle()
-async def on_match(state: T_State,
+async def on_match(matched_groups=RegexGroup(),
                    post_dest=Depends(post_destination)):
-    illust_id = state["_matched_groups"][0]
+    illust_id = matched_groups[0]
     await IllustHandler(post_dest).handle(illust_id)
