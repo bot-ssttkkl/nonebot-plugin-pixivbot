@@ -5,7 +5,7 @@ from typing import Optional, Union
 from nonebot import get_bot, logger
 from nonebot.exception import ActionFailed
 from nonebot.internal.adapter import Event
-from nonebot_plugin_saa import MessageFactory, Text, Image, AggregatedMessageFactory, extract_target
+from nonebot_plugin_saa import MessageFactory, Text, Image, AggregatedMessageFactory, extract_target, Reply
 from nonebot_plugin_session import Session
 from nonebot_plugin_session.saa import get_saa_target
 
@@ -77,8 +77,8 @@ class Postman:
             from nonebot.adapters.qqguild.exception import AuditException
             try:
                 await msg.send_to(target, bot)
-            except AuditException as e:
-                await e.get_audit_result()
+            except AuditException:
+                pass
         else:
             await msg.send_to(target, bot)
 
