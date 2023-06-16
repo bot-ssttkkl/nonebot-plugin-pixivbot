@@ -107,6 +107,9 @@ class Config(BaseSettings):
     pixiv_query_to_me_only = False
     pixiv_command_to_me_only = False
 
+    pixiv_poke_action: Literal[
+        "", "ranking", "random_recommended_illust", "random_bookmark"] = "random_recommended_illust"
+
     pixiv_send_illust_link: bool = False
     pixiv_send_forward_message: Literal['always', 'auto', 'never'] = 'auto'
 
