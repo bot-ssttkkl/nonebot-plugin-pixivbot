@@ -74,6 +74,7 @@ class Postman:
             target = get_saa_target(session)
 
         if bot.type == "QQ Guild":  # QQ频道发消息要审核
+            target = get_saa_target(session)  # SAA的QQ频道实现有bug，频道消息at机器人时会当作私聊目标
             from nonebot.adapters.qqguild.exception import AuditException
             try:
                 await msg.send_to(target, bot)
