@@ -1,9 +1,10 @@
+from argparse import Namespace
 from io import StringIO
-from typing import Sequence
 
+from nonebot.rule import ArgumentParser
 from nonebot_plugin_session import Session
 
-from .subcommand import SubCommandHandler
+from .command import SubCommandHandler
 from ..pkg_context import context
 from ...model import WatchType
 from ...plugin_service import manage_watch_service
@@ -41,75 +42,73 @@ async def build_tasks_msg(session: Session):
         return sio.getvalue()
 
 
-async def parse_user_illusts_args(args: Sequence[str]):
-    if len(args) < 2:
-        raise BadRequestError()
+async def parse_user_illusts_args(args: Namespace):
+    if not args.user:
+        raise BadRequestError("请指定要订阅的用户")
 
-    user = await parse_and_get_user(args[1])
+    user = await parse_and_get_user(args.user)
 
     watch_args = {"user_id": user.id}
-    message = f"{user.name}({user.id})老师的插画更新"
+    message = f"成功订阅{user.name}({user.id})老师的插画更新"
 
     return watch_args, message
 
 
-async def parse_following_illusts_args(args: Sequence[str]):
-    if len(args) > 1:
-        user = await parse_and_get_user(args[1])
+async def parse_following_illusts_args(args: Namespace):
+    if args.user:
+        user = await parse_and_get_user(args.user)
 
         watch_args = {"pixiv_user_id": user.id}
-        message = f"{user.name}({user.id})用户的关注者插画更新"
+        message = f"成功订阅{user.name}({user.id})用户的关注者插画更新"
     else:
         watch_args = {"pixiv_user_id": 0}
-        message = "关注者插画更新"
+        message = "成功订阅关注者插画更新"
 
     return watch_args, message
 
 
-class WatchHandler(SubCommandHandler, subcommand='watch', service=manage_watch_service):
+def use_watch_parser(parser: ArgumentParser):
+    subparsers = parser.add_subparsers(title="type", dest="type", required=True)
 
+    fetch_parser = subparsers.add_parser("fetch")
+    fetch_parser.add_argument("code")
+
+    user_illusts_parser = subparsers.add_parser("user_illusts")
+    user_illusts_parser.add_argument("--user", required=True)
+
+    following_illusts_parser = subparsers.add_parser("following_illusts")
+    following_illusts_parser.add_argument("--user")
+
+
+class WatchHandler(SubCommandHandler, subcommand='watch', service=manage_watch_service,
+                   use_subcommand_parser=use_watch_parser):
     @classmethod
     def type(cls) -> str:
         return "watch"
 
-    async def parse_args(self, args: Sequence[str]) -> dict:
-        if len(args) == 0:
-            raise BadRequestError()
-
-        if args[0] == 'fetch':
-            if len(args) < 2:
-                raise BadRequestError("请指定订阅ID")
-            return {"operation": "fetch",
-                    "code": args[1]}
-
-        try:
-            type = WatchType[args[0]]
-            if type == WatchType.user_illusts:
-                watch_kwargs, message = await parse_user_illusts_args(args)
-            elif type == WatchType.following_illusts:
-                watch_kwargs, message = await parse_following_illusts_args(args)
-            else:
-                raise KeyError()
-        except KeyError as e:
-            raise BadRequestError(f"未知订阅类型：{args[0]}") from e
-
-        return {"operation": "add",
-                "type": type,
-                "watch_kwargs": watch_kwargs,
-                "success_message": "成功订阅" + message}
-
     # noinspection PyMethodOverriding
-    async def actual_handle(self, *, operation: str, **kwargs):
-        if operation == 'fetch':
-            ok = await watchman.fetch(kwargs['code'], self.session)
+    async def actual_handle(self, *, args: Namespace):
+        if not args.type:
+            raise BadRequestError()
+        elif args.type == 'fetch':
+            if not args.code:
+                raise BadRequestError("请指定订阅ID")
+            ok = await watchman.fetch(args.code, self.session)
             if ok:
                 await self.post_plain_text("拉取完毕")
             else:
                 raise BadRequestError("不存在该订阅")
-        elif operation == 'add':
-            ok = await watchman.add_task(kwargs['type'], kwargs['watch_kwargs'], self.session)
+        else:
+            if args.type == "user_illusts":
+                watch_kwargs, success_message = await parse_user_illusts_args(args)
+            elif args.type == "following_illusts":
+                watch_kwargs, success_message = await parse_following_illusts_args(args)
+            else:
+                raise BadRequestError()
+
+            ok = await watchman.add_task(WatchType(args.type), watch_kwargs, self.session)
             if ok:
-                await self.post_plain_text(kwargs['success_message'])
+                await self.post_plain_text(success_message)
             else:
                 raise BadRequestError("该订阅已存在")
 
@@ -125,24 +124,26 @@ class WatchHandler(SubCommandHandler, subcommand='watch', service=manage_watch_s
                "参数：\n" \
                "  <type>：可选值有user_illusts, following_illusts\n" \
                "  [...args]：根据<type>不同需要提供不同的参数\n" \
-               f"示例：{default_command_start}pixivbot watch user_illusts <用户名>\n"
+               f"示例：{default_command_start}pixivbot watch user_illusts --user <用户名>\n"
         await self.post_plain_text(message=msg)
 
 
-class UnwatchHandler(SubCommandHandler, subcommand='unwatch', service=manage_watch_service):
+def use_unwatch_parser(parser: ArgumentParser):
+    parser.add_argument("code")
+
+
+class UnwatchHandler(SubCommandHandler, subcommand='unwatch', service=manage_watch_service,
+                     use_subcommand_parser=use_unwatch_parser):
     @classmethod
     def type(cls) -> str:
         return "unwatch"
 
-    async def parse_args(self, args: Sequence[str]) -> dict:
-        if len(args) == 0:
-            raise BadRequestError()
-        return {"code": args[0]}
-
     # noinspection PyMethodOverriding
-    async def actual_handle(self, *, code: str):
-        if code != "all":
-            ok = await watchman.remove_task(self.session, code)
+    async def actual_handle(self, *, args: Namespace):
+        if not args.code:
+            raise BadRequestError()
+        elif args.code != "all":
+            ok = await watchman.remove_task(self.session, args.code)
         else:
             await watchman.remove_all_by_subscriber(self.session)
             ok = True

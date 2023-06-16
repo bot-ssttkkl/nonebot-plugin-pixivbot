@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Sequence, Dict, Any
+from typing import Dict, Any, NamedTuple, Union
 
 import tzlocal
 
@@ -15,16 +15,41 @@ class ScheduleType(str, Enum):
     ranking = "ranking"
 
 
+class IntervalSchedule(NamedTuple):
+    start_hour: int
+    start_minute: int
+    interval_hours: int
+    interval_minutes: int
+
+
+class CronSchedule(NamedTuple):
+    second: str
+    minute: str
+    hour: str
+    day: str
+    month: str
+    day_of_week: str
+
+
 class Subscription(IntervalTask):
     type: ScheduleType
     kwargs: Dict[str, Any]
-    schedule: Sequence[int]
+    schedule: Union[IntervalSchedule, CronSchedule]
     tz: str = tzlocal.get_localzone_name()
 
     @property
     def schedule_text(self) -> str:
-        return f'{str(self.schedule[0]).zfill(2)}:{str(self.schedule[1]).zfill(2)}' \
-               f'+{str(self.schedule[2]).zfill(2)}:{str(self.schedule[3]).zfill(2)}*x'
+        if isinstance(self.schedule, IntervalSchedule):
+            offset_hour, offset_minute, hours, minutes = self.schedule
+            if hours == 24 and minutes == 0:
+                return f'{str(offset_hour).zfill(2)}:{str(offset_minute).zfill(2)}'
+            elif offset_hour == 0 and offset_minute == 0:
+                return f'{str(hours).zfill(2)}:{str(minutes).zfill(2)}*x'
+            else:
+                return f'{str(offset_hour).zfill(2)}:{str(offset_minute).zfill(2)}' \
+                       f'+{str(hours).zfill(2)}:{str(minutes).zfill(2)}*x'
+        else:
+            return " ".join(self.schedule)
 
     @property
     def args_text(self) -> str:

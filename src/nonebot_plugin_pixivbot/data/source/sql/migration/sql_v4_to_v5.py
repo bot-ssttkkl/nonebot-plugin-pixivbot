@@ -42,7 +42,8 @@ def convert_session(bot: str, subscriber: Union[str, bytes, dict]) -> Session:
     else:
         raise RuntimeError("Unknown adapter: " + bot_adapter)
 
-    session = Session(bot_id=bot_id, bot_type=bot_type, platform=platform, level=level, id1=subscriber["user_id"] or "0",
+    session = Session(bot_id=bot_id, bot_type=bot_type, platform=platform, level=level,
+                      id1=subscriber["user_id"] or "0",
                       id2=subscriber["group_id"])
     return session
 
@@ -127,12 +128,8 @@ class SqlV4ToV5(Migration):
                 session_id = (await get_or_add_session_model(session, db_sess)).id
 
                 kwargs = convert_kwargs(kwargs)
-
                 if not isinstance(kwargs, str):
                     kwargs = json.dumps(kwargs)
-
-                if not isinstance(schedule, str):
-                    schedule = json.dumps(schedule)
 
                 await conn.execute(
                     text("insert into subscription(id, session_id, code, type, kwargs, bot_id, schedule, tz) "

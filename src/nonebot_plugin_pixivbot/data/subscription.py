@@ -12,6 +12,7 @@ from .utils.shortuuid import gen_code
 from .utils.sql import insert, JSON
 from ..global_context import context
 from ..model import Subscription, ScheduleType
+from ..model.subscription import IntervalSchedule, CronSchedule
 
 
 @DataSource.registry.mapped
@@ -24,7 +25,7 @@ class SubscriptionOrm:
     type: Mapped[ScheduleType]
     kwargs: Mapped[dict] = mapped_column(JSON, default=dict)
     bot_id: Mapped[str]
-    schedule: Mapped[dict] = mapped_column(JSON)
+    schedule: Mapped[list] = mapped_column(JSON)
     tz: Mapped[str] = mapped_column(default=tzlocal.get_localzone_name)
 
     __table_args__ = (
@@ -38,11 +39,15 @@ nb_session_repo = context.require(NbSessionRepo)
 
 async def _to_model(item: SubscriptionOrm) -> Subscription:
     subscriber = await nb_session_repo.get_session(item.session_id)
+    if len(item.schedule) == 4:
+        schedule = IntervalSchedule(*item.schedule)
+    else:
+        schedule = CronSchedule(*item.schedule)
     return Subscription(subscriber=subscriber,
                         code=item.code,
                         type=item.type,
                         kwargs=item.kwargs,
-                        schedule=item.schedule,
+                        schedule=schedule,
                         tz=item.tz)
 
 
