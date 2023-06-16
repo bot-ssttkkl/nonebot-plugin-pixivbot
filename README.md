@@ -25,12 +25,6 @@ _✨ PixivBot ✨_
 
 NoneBot插件，支持发送随机Pixiv插画、画师更新推送、定时订阅推送……
 
-适配协议：
-
-- [Onebot V11](https://onebot.adapters.nonebot.dev/)
-- [KOOK / 开黑啦](https://github.com/Tian-que/nonebot-adapter-kaiheila)
-- [Telegram](https://github.com/nonebot/adapter-telegram)
-
 ## 触发语句
 
 ### 普通语句
@@ -57,31 +51,29 @@ NoneBot插件，支持发送随机Pixiv插画、画师更新推送、定时订�
 
 - **/pixivbot schedule \<type\> \<schedule\> [..args]**：为本群（本用户）订阅类型为<type>的定时推送功能，时间满足<schedule>时进行推送
     - \<type\>：可选值有ranking, random_bookmark, random_recommended_illust, random_illust, random_user_illust
-    - \<schedule\>：有三种格式，*00:30\*x*为每隔30分钟进行一次推送，*12:00*为每天12:00进行一次推送，*00:10+00:30\*x*为从今天00:
-      10开始每隔30分钟进行一次推送（开始时间若是一个过去的时间点，则从下一个开始推送的时间点进行推送）
+    - \<schedule\>：格式为HH:mm（每日固定时间点推送）或HH:mm*x（间隔时间推送），或者使用cron表达式
     - [..args]：
-        - \<type\>为ranking时，接受\<mode\> \<range\>
-            - 示例：/pixivbot schedle ranking 12:00 day 1-10
-        - \<type\>为random_bookmark时，接受\<pixiv_user_id\>（可空）
+        - \<type\>为ranking时，接受mode、range
+            - 示例：/pixivbot schedle ranking 12:00 --mode day --range 1-10
+        - \<type\>为random_bookmark时，接受user
             - 示例：/pixivbot schedle random_bookmark 01:00*x
-            - 示例：/pixivbot schedle random_bookmark 01:00*x 114514
-        - \<type\>为random_illust时，接受\<word\>，若需要输入空格请用反斜杠`\ `
-            - 示例：/pixivbot schedle random_illust 01:00*x
-            - 示例：/pixivbot schedle random_illust 01:00*x ロリ
-            - 示例：/pixivbot schedle random_illust 01:00*x Hatsune\ Miku
-        - \<type\>为random_user_illust时，接受\<user\>
-            - 示例：/pixivbot schedle random_user_illust 01:00*x 森倉円
+            - 示例：/pixivbot schedle random_bookmark 01:00*x --user 114514
+        - \<type\>为random_illust时，接受word（必需）
+            - 示例：/pixivbot schedle random_illust "0 */2 * * * *" --word ロリ
+            - 示例：/pixivbot schedle random_illust "0 */2 * * * *" --word "Hatsune Miku"
+        - \<type\>为random_user_illust时，接受user（必需）
+            - 示例：/pixivbot schedle random_user_illust 01:00*x --user 森倉円
         - \<type\>为random_recommend_illust时，不接受参数
 - **/pixivbot schedule**：查看本群（本用户）的所有定时推送订阅
 - **/pixivbot unschedule \<id\>**：取消本群（本用户）的指定的定时推送订阅
 - **/pixivbot watch \<type\> [..args]**：为本群（本用户）订阅类型为<type>的更新推送功能
     - \<type\>：可选值有user_illusts, following_illusts
     - [..args]：
-        - \<type\>为user_illusts时，接受\<user\>
-            - 示例：/pixivbot watch user_illusts 森倉円
-        - \<type\>为following_illusts时，接受\<pixiv_user_id\>（可空）
+        - \<type\>为user_illusts时，接受user（必需）
+            - 示例：/pixivbot watch user_illusts --user 森倉円
+        - \<type\>为following_illusts时，接受user
             - 示例：/pixivbot watch following_illusts
-            - 示例：/pixivbot watch following_illusts 114514
+            - 示例：/pixivbot watch following_illusts --user 114514
 - **/pixivbot watch**：查看本群（本用户）的所有更新推送订阅
 - **/pixivbot watch fetch \<id\>**：【调试用命令】立刻手动触发一次指定的更新推送订阅
 - **/pixivbot unwatch \<id\> [..args]**：取消本群（本用户）的指定的更新推送订阅
@@ -117,15 +109,6 @@ PixivBot需要使用数据库存放订阅以及缓存，默认使用SQLite。
 - pixiv_sql_conn_url=`postgresql+asyncpg://<用户名>:<密码>@<主机>:<端口>/<数据库名>`
 
 并且安装`nonebot-plugin-pixivbot[postgresql]`
-
-### MongoDB
-
-若需要使用MongoDB，请设置配置项：
-
-- pixiv_mongo_conn_url=`mongodb://<用户名>:<密码>@<主机>:<端口>/<用户所属的数据库>`
-- pixiv_mongo_database_name=`连接的MongoDB数据库`
-
-并且安装`nonebot-plugin-pixivbot[mongo]`
 
 ## 权限控制
 
@@ -217,10 +200,7 @@ pixiv_refresh_token=  # 前面获取的REFRESH_TOKEN
 
 ```
 # 数据库配置
-pixiv_data_source=  # 使用的数据库类型，可选值：sql，mongo。若未设置，则根据是否设置了pixiv_mongo_conn_url自动判断。
 pixiv_sql_conn_url=sqlite+aiosqlite:///pixiv_bot.db  # SQL连接URL，仅支持SQLite与PostgreSQL（通过SQLAlchemy进行连接，必须使用异步的DBAPI）
-pixiv_mongo_conn_url=  # MongoDB连接URL，格式：mongodb://<用户名>:<密码>@<主机>:<端口>/<数据库>。
-pixiv_mongo_database_name=  # 连接的MongoDB数据库
 pixiv_use_local_cache=True  # 是否启用本地缓存
 
 # 连接配置
@@ -269,8 +249,8 @@ pixiv_other_cache_expires_in=21600
 
 # QQ平台（主要是gocq）配置
 pixiv_poke_action=random_recommended_illust  # 响应戳一戳动作，可选值：ranking, random_recommended_illust, random_bookmark, 什么都不填即忽略戳一戳动作
-pixiv_onebot_with_link=False  # 发图时是否带上链接（容易被tx盯上）
-pixiv_onebot_send_forward_message=auto  # 发图时是否使用转发消息的形式，可选值：always(永远使用), auto(仅在多张图片时使用), never(永远不使用)
+pixiv_send_illust_with_link=False  # 发图时是否带上链接（容易被tx盯上）
+pixiv_send_forward_message=auto  # 发图时是否使用转发消息的形式，可选值：always(永远使用), auto(仅在多张图片时使用), never(永远不使用)
 
 # 功能配置
 pixiv_more_enabled=True  # 启用重复上一次请求（还要）功能
