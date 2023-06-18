@@ -108,7 +108,7 @@ PixivBot需要使用数据库存放订阅以及缓存，默认使用SQLite。
 
 - pixiv_sql_conn_url=`postgresql+asyncpg://<用户名>:<密码>@<主机>:<端口>/<数据库名>`
 
-并且安装`nonebot-plugin-pixivbot[postgresql]`
+并且执行`pip install asyncpg`安装asyncpg包
 
 ## 权限控制
 
