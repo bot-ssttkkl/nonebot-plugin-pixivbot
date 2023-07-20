@@ -222,6 +222,8 @@ pixiv_tag_translation_enabled=True  # 启用搜索关键字翻译功能（平时
 pixiv_block_tags=[]  # 当插画含有指定tag时会被阻拦
 pixiv_block_action=no_image  # 阻拦时的动作，可选值：no_image(不显示插画，回复插画信息), completely_block(只回复过滤提示), no_reply(无回复)
 
+pixiv_send_illust_link=False  # 发图时是否带上链接（容易被tx盯上）
+
 pixiv_exclude_ai_illusts=False  # 是否过滤AI绘图作品
 
 pixiv_watch_interval=600  # 更新推送的查询间隔（单位：秒）
@@ -249,7 +251,6 @@ pixiv_other_cache_expires_in=21600
 
 # QQ平台（主要是gocq）配置
 pixiv_poke_action=random_recommended_illust  # 响应戳一戳动作，可选值：ranking, random_recommended_illust, random_bookmark, 什么都不填即忽略戳一戳动作
-pixiv_send_illust_with_link=False  # 发图时是否带上链接（容易被tx盯上）
 pixiv_send_forward_message=auto  # 发图时是否使用转发消息的形式，可选值：always(永远使用), auto(仅在多张图片时使用), never(永远不使用)
 
 # 功能配置
