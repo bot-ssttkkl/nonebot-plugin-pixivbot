@@ -5,10 +5,6 @@ nonebot-plugin-pixivbot
 @License        : MIT
 @GitHub         : https://github.com/ssttkkl/nonebot-plugin-pixivbot
 """
-from nonebot.plugin import PluginMetadata
-
-from .config import Config
-from .usage import usage
 
 # =========== require dependency ============
 from nonebot import require
@@ -17,9 +13,14 @@ require("nonebot_plugin_apscheduler")
 require("nonebot_plugin_access_control")
 require("nonebot_plugin_session")
 require("nonebot_plugin_saa")
+require("ssttkkl_nonebot_utils")
 
 # =========== plugin meta ============
+from nonebot.plugin import PluginMetadata
 from nonebot_plugin_saa import __plugin_meta__ as saa_meta
+
+from .config import Config
+from .usage import usage
 
 __plugin_meta__ = PluginMetadata(
     name='PixivBot',
