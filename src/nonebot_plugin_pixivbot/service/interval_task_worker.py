@@ -6,11 +6,11 @@ from nonebot import logger, Bot
 from nonebot.exception import ActionFailed
 from nonebot_plugin_apscheduler import scheduler as apscheduler
 from nonebot_plugin_session import Session, SessionIdType
+from ssttkkl_nonebot_utils.platform import platform_func
+from ssttkkl_nonebot_utils.platform.func_manager import UnsupportedBotError
 
 from ..data.interval_task_repo import IntervalTaskRepo
 from ..model.interval_task import IntervalTask
-from ..platform import platform_func
-from ..platform.func_manager import UnsupportedBotError
 from ..utils.lifecycler import on_bot_connect, on_bot_disconnect
 
 T = TypeVar("T", bound=IntervalTask)
@@ -58,7 +58,7 @@ class IntervalTaskWorker(ABC, Generic[T]):
             logger.opt(exception=e).error(f"[{self.tag}] action failed when handling task \"{item.code}\"")
 
             try:
-                available = await platform_func(item.subscriber.bot_type).available(item.subscriber)
+                available = await platform_func(item.subscriber.bot_type).is_destination_available(item.subscriber)
             except UnsupportedBotError:
                 available = True
 
