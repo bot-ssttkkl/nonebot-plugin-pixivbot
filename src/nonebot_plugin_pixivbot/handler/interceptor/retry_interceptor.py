@@ -22,7 +22,7 @@ class RetryInterceptor(Interceptor):
             try:
                 return await wrapped_func(*args, **kwargs)
             except exception as e:
-                logger.opt(exception=e).error(f"Network error occurred while handling, retrying... {i + 1}/10")
+                logger.opt(exception=e).warning(f"Network error occurred while handling, retrying... {i + 1}/10")
                 err = e
             except Exception as e:
                 raise e

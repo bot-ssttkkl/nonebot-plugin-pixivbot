@@ -9,4 +9,9 @@ class RateLimitError(QueryError):
         super().__init__("Rate Limit")
 
 
-__all__ = ("QueryError", "RateLimitError", "BadRequestError")
+class PostIllustError(QueryError):
+    def __str__(self):
+        super().__init__("发送图片失败")
+
+
+__all__ = ("QueryError", "RateLimitError", "BadRequestError", "PostIllustError")

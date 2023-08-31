@@ -1,17 +1,20 @@
+from functools import partial
 from pathlib import Path
 from typing import Optional, List, Literal
 from urllib.parse import urlparse
 
-from nonebot import get_driver, logger, require
+from nonebot import logger, require
 from pydantic import BaseSettings, validator, root_validator
 from pydantic.fields import ModelField
+from ssttkkl_nonebot_utils.config_loader import load_conf
+
+from .global_context import context
 
 require("nonebot_plugin_localstore")
 
 import nonebot_plugin_localstore as store
 
 from .enums import *
-from .global_context import context
 
 
 def _get_default_sql_conn_url():
@@ -23,7 +26,6 @@ def _get_default_sql_conn_url():
     return "sqlite+aiosqlite:///" + str(data_file)
 
 
-@context.register_singleton(**get_driver().config.dict())
 class Config(BaseSettings):
     @root_validator(pre=True, allow_reuse=True)
     def deprecated_access_control_config(cls, values):
@@ -186,5 +188,7 @@ class Config(BaseSettings):
     class Config:
         extra = "ignore"
 
+
+context.register_lazy(Config, partial(load_conf, Config))
 
 __all__ = ("Config",)

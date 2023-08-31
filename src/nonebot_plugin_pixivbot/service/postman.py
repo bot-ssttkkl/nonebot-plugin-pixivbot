@@ -2,10 +2,10 @@ from contextlib import asynccontextmanager
 from io import StringIO
 from typing import Optional, Union
 
-from nonebot import get_bot, logger
+from nonebot import get_bot
 from nonebot.exception import ActionFailed
 from nonebot.internal.adapter import Event
-from nonebot_plugin_saa import MessageFactory, Text, Image, AggregatedMessageFactory, extract_target, Reply
+from nonebot_plugin_saa import MessageFactory, Text, Image, AggregatedMessageFactory, extract_target
 from nonebot_plugin_session import Session
 from nonebot_plugin_session.saa import get_saa_target
 
@@ -13,6 +13,7 @@ from ..config import Config
 from ..enums import BlockAction
 from ..global_context import context
 from ..model.message import IllustMessageModel, IllustMessagesModel
+from ..utils.errors import PostIllustError
 
 conf = context.require(Config)
 
@@ -21,13 +22,11 @@ conf = context.require(Config)
 class Postman:
 
     @asynccontextmanager
-    async def _feedback_on_action_failed(self, session: Session):
+    async def _feedback_on_action_failed(self):
         try:
             yield
         except ActionFailed as e:
-            logger.opt(exception=e).error("图片发送失败")
-
-            await self.post_plain_text("图片发送失败", session)
+            raise PostIllustError() from e
 
     def _make_illust_msg(self, model: IllustMessageModel) -> MessageFactory:
         msg = MessageFactory([])
@@ -88,7 +87,7 @@ class Postman:
         await self._post(msg, session, event)
 
     async def post_illust(self, model: IllustMessageModel, session: Session, event: Optional[Event] = None):
-        async with self._feedback_on_action_failed(session):
+        async with self._feedback_on_action_failed():
             msg = MessageFactory([])
             if model.header is not None:
                 msg.append(Text(model.header + '\n'))
@@ -98,7 +97,7 @@ class Postman:
             await self._post(msg, session, event)
 
     async def post_illusts(self, model: IllustMessagesModel, session: Session, event: Optional[Event] = None):
-        async with self._feedback_on_action_failed(session):
+        async with self._feedback_on_action_failed():
             if (session.bot_type != "OneBot V11" or
                     conf.pixiv_send_forward_message == 'never' or
                     conf.pixiv_send_forward_message == 'auto' and len(model.messages) == 1):

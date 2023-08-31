@@ -16,6 +16,7 @@ require("nonebot_plugin_saa")
 require("ssttkkl_nonebot_utils")
 
 # =========== plugin meta ============
+from nonebot import logger
 from nonebot.plugin import PluginMetadata
 from nonebot_plugin_saa import __plugin_meta__ as saa_meta
 
@@ -33,7 +34,12 @@ __plugin_meta__ = PluginMetadata(
 )
 
 # =========== register handler & service ============
-from . import service
-from . import handler
+from ssttkkl_nonebot_utils.config_loader import ConfigError
+
+try:
+    from . import service
+    from . import handler
+except ConfigError as e:
+    logger.error(e)
 
 __all__ = ("context", "__plugin_meta__")

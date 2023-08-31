@@ -1,9 +1,11 @@
+import asyncio
 from asyncio import sleep, create_task, CancelledError, Semaphore, Task
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from io import BytesIO
 from typing import TypeVar, Optional, Awaitable, List, Callable, Tuple, AsyncGenerator, Union
 
+import aiohttp
 from cachetools.func import rr_cache
 from nonebot import logger
 from pixivpy_async import *
@@ -90,6 +92,9 @@ class RemotePixivRepo(PixivRepo):
                 await sleep(result.expires_in * 0.8)
             except CancelledError as e:
                 raise e
+            except (ConnectionError, aiohttp.ServerConnectionError, asyncio.TimeoutError):
+                logger.warning("failed to refresh access token, will retry after 60s.")
+                await sleep(60)
             except Exception as e:
                 logger.opt(exception=e).error("failed to refresh access token, will retry after 60s.")
                 await sleep(60)
