@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .base import LocalPixivRepo
 from .sql_models import IllustDetailCache, UserDetailCache, DownloadCache, IllustSetCache, IllustSetCacheIllust, \
     UserSetCache, UserSetCacheUser
-from ..errors import CacheExpiredError, NoSuchItemError
+from ..errors import NoSuchItemError
 from ..lazy_illust import LazyIllust
 from ..models import PixivRepoMetadata
 from ...local_tag import LocalTagRepo
@@ -22,11 +22,6 @@ from ....enums import RankingMode
 from ....global_context import context
 from ....model import Illust, User
 from ....utils.lifecycler import on_startup
-
-
-def _handle_expires_in(metadata: PixivRepoMetadata, expires_in: int):
-    if datetime.now(timezone.utc) - metadata.update_time >= timedelta(seconds=expires_in):
-        raise CacheExpiredError(metadata)
 
 
 def _extract_metadata(cache, is_set_cache):
@@ -70,8 +65,7 @@ class SqlPixivRepo(LocalPixivRepo):
         if cache is None:
             raise NoSuchItemError()
 
-        metadata = _extract_metadata(cache, True)
-        _handle_expires_in(metadata, expired_in)
+        metadata = _extract_metadata(cache, True).check_is_expired(expired_in)
 
         yield metadata.copy(update={"pages": 0})
 
@@ -228,8 +222,7 @@ class SqlPixivRepo(LocalPixivRepo):
         if cache is None:
             raise NoSuchItemError()
 
-        metadata = _extract_metadata(cache, True)
-        _handle_expires_in(metadata, expired_in)
+        metadata = _extract_metadata(cache, True).check_is_expired(expired_in)
 
         yield metadata.copy(update={"pages": 0})
 
@@ -325,8 +318,7 @@ class SqlPixivRepo(LocalPixivRepo):
             cache = (await session.execute(stmt)).scalar_one_or_none()
 
             if cache is not None:
-                metadata = _extract_metadata(cache, False)
-                _handle_expires_in(metadata, conf.pixiv_illust_detail_cache_expires_in)
+                metadata = _extract_metadata(cache, False).check_is_expired(conf.pixiv_illust_detail_cache_expires_in)
 
                 yield metadata
                 yield Illust(**cache.illust)
@@ -361,8 +353,7 @@ class SqlPixivRepo(LocalPixivRepo):
             cache = (await session.execute(stmt)).scalar_one_or_none()
 
             if cache is not None:
-                metadata = _extract_metadata(cache, False)
-                _handle_expires_in(metadata, conf.pixiv_user_detail_cache_expires_in)
+                metadata = _extract_metadata(cache, False).check_is_expired(conf.pixiv_user_detail_cache_expires_in)
 
                 yield metadata
                 yield User(**cache.user)
@@ -394,8 +385,7 @@ class SqlPixivRepo(LocalPixivRepo):
             cache = (await session.execute(stmt)).scalar_one_or_none()
 
             if cache is not None:
-                metadata = _extract_metadata(cache, False)
-                _handle_expires_in(metadata, conf.pixiv_download_cache_expires_in)
+                metadata = _extract_metadata(cache, False).check_is_expired(conf.pixiv_download_cache_expires_in)
 
                 yield metadata
                 yield cache.content
@@ -467,7 +457,7 @@ class SqlPixivRepo(LocalPixivRepo):
                      f"{metadata}")
         async with data_source.start_session() as session:
             return await self._append_and_check_illusts(session, "search_illust", {"word": word},
-                                                        content=content, metadata=metadata)
+                                                        content=content, metadata=metadata,append_at_begin=True)
 
     # ================ user_illusts ================
     async def user_illusts(self, user_id: int, *, offset: int = 0) \

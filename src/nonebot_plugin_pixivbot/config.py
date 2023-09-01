@@ -45,7 +45,6 @@ class Config(BaseSettings):
 
     pixiv_sql_conn_url: str
     pixiv_sql_dialect: str
-    pixiv_use_local_cache: bool = True
 
     @root_validator(pre=True, allow_reuse=True)
     def default_sql_conn_url(cls, values):
@@ -66,6 +65,9 @@ class Config(BaseSettings):
         values["pixiv_sql_dialect"] = pixiv_sql_dialect
 
         return values
+
+    pixiv_use_local_cache: bool = True
+    pixiv_local_cache_type: Literal["sql", "file"] = "file"
 
     pixiv_proxy: Optional[str]
     pixiv_query_timeout: float = 60.0

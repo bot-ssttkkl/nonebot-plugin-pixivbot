@@ -210,7 +210,7 @@ class RemotePixivRepo(PixivRepo):
         next_qs = kwargs
 
         while True:
-            logger.debug(f"[remote] loading page {loaded_pages}")
+            logger.info(f"[remote] loading page {loaded_pages}")
             page, metadata = await self._load_page(papi_search_func, element_list_name, mapper=mapper,
                                                    filter_item=filter_item, **next_qs)
 
@@ -260,7 +260,7 @@ class RemotePixivRepo(PixivRepo):
                         yield LazyIllust(item.id, item)
                 yield metadata
         finally:
-            logger.debug(f"[remote] got {total} illusts, illust_detail of {broken} are missed")
+            logger.info(f"[remote] got {total} illusts, illust_detail of {broken} are missed")
 
     async def _get_user_previews(self, papi_search_func: Callable[[], Awaitable[dict]], **kwargs) \
             -> AsyncGenerator[Union[PixivRepoMetadata, UserPreview], None]:

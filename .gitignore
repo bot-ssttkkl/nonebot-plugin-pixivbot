@@ -143,5 +143,4 @@ dmypy.json
 .idea
 
 .env.*
-bot.py
 *.db

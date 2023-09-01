@@ -50,7 +50,7 @@ class SingleMediator(Mediator, Generic[T]):
             if metadata:
                 # 先update再yield，受到SharedAsyncGeneratorManager的影响finally内的语句无法按时执行
                 await self.cache_updater(query_kwargs, content, metadata)
-                logger.info(f"[{self.tag}] cache updated  ({format_kwargs(**query_kwargs)})")
+                logger.debug(f"[{self.tag}] cache updated  ({format_kwargs(**query_kwargs)})")
 
                 yield metadata
                 yield content
@@ -120,7 +120,7 @@ class ManyMediator(Mediator, Generic[T]):
 
                 if len(buffer) > 0:
                     await self.cache_appender(query_kwargs, buffer, item)
-                    logger.info(f"[{self.tag}] cache appended  ({format_kwargs(**query_kwargs)})")
+                    logger.debug(f"[{self.tag}] cache appended  ({format_kwargs(**query_kwargs)})")
 
                     for x in buffer:
                         yield x

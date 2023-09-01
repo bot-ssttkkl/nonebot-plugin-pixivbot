@@ -69,8 +69,7 @@ class Postman:
         bot = get_bot(session.bot_id)
         if event is not None:
             # QQ频道里，msg.send_to会视为推送消息，深夜发不出去
-            target = extract_target(event)
-            await msg._do_send(bot, target, event, reply=True, at_sender=False)
+            await msg.send(reply=True)
         else:
             target = get_saa_target(session)
             await msg.send_to(target, bot)
