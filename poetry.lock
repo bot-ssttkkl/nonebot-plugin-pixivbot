@@ -1430,14 +1430,14 @@ typing-extensions = ">=4.0.0,<5.0.0"
 
 [[package]]
 name = "nonebot-adapter-qqguild"
-version = "0.2.4"
+version = "0.2.5"
 description = "QQ Guild adapter for nonebot2"
 category = "dev"
 optional = false
 python-versions = ">=3.8,<4.0"
 files = [
-    {file = "nonebot_adapter_qqguild-0.2.4-py3-none-any.whl", hash = "sha256:607f764e5cc30ecead025751f9b8b4d7b4a194f5e399cb0478dc93c6aeec5a4f"},
-    {file = "nonebot_adapter_qqguild-0.2.4.tar.gz", hash = "sha256:25688197947da73fbf7706fa88398b69e7144c765c30f38747a0b6275851807e"},
+    {file = "nonebot_adapter_qqguild-0.2.5-py3-none-any.whl", hash = "sha256:9fa3e1a86d5ba6bb49bd8f6b1766e0d70204a97026316c4f6426bc09abb8e9fb"},
+    {file = "nonebot_adapter_qqguild-0.2.5.tar.gz", hash = "sha256:b6fef5daf54a4ce41221945a6fb3c5c63763a9950377f1e3e50191602b8b8098"},
 ]
 
 [package.dependencies]
@@ -2177,14 +2177,14 @@ sqlcipher = ["sqlcipher3-binary"]
 
 [[package]]
 name = "ssttkkl-nonebot-utils"
-version = "0.1.5"
+version = "0.1.8"
 description = ""
 category = "main"
 optional = false
 python-versions = ">=3.9,<4.0"
 files = [
-    {file = "ssttkkl_nonebot_utils-0.1.5-py3-none-any.whl", hash = "sha256:4fd0bc53c9591fd3bd8d222d30ed4e810add248956b2a79222792de485f99934"},
-    {file = "ssttkkl_nonebot_utils-0.1.5.tar.gz", hash = "sha256:371c0a6e5dbb05d776e750c0deccee9efd743f9180c48f7570cd9099b9bd73b2"},
+    {file = "ssttkkl_nonebot_utils-0.1.8-py3-none-any.whl", hash = "sha256:06a1f2218eb37839f4690c087e6efc59ce30d89325712f1de26eb9f648984b28"},
+    {file = "ssttkkl_nonebot_utils-0.1.8.tar.gz", hash = "sha256:2336c5c16fb6c09dfbc50b948f12acf9676a83b1592be8eac1dd948ffc09b5a3"},
 ]
 
 [package.dependencies]
@@ -2752,4 +2752,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "303e801be591c08a431efbd4487c8ce20d212ba54e76167d10fb46ffcb71faef"
+content-hash = "aeadf102d1c3048cac5d7164bc437b8a79ca7a5cef6d56f619163393cd6de055"

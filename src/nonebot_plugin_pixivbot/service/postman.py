@@ -68,18 +68,11 @@ class Postman:
                     session: Session, event: Optional[Event] = None):
         bot = get_bot(session.bot_id)
         if event is not None:
+            # QQ频道里，msg.send_to会视为推送消息，深夜发不出去
             target = extract_target(event)
+            await msg._do_send(bot, target, event, reply=True, at_sender=False)
         else:
             target = get_saa_target(session)
-
-        if bot.type == "QQ Guild":  # QQ频道发消息要审核
-            target = get_saa_target(session)  # SAA的QQ频道实现有bug，频道消息at机器人时会当作私聊目标
-            from nonebot.adapters.qqguild.exception import AuditException
-            try:
-                await msg.send_to(target, bot)
-            except AuditException:
-                pass
-        else:
             await msg.send_to(target, bot)
 
     async def post_plain_text(self, message: str, session: Session, event: Optional[Event] = None):
