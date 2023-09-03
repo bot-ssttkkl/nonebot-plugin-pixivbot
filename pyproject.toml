@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nonebot-plugin-pixivbot"
-version = "2.0.3"
+version = "2.0.4"
 description = "Nonebot Plugin PixivBot"
 authors = ["ssttkkl <huang.wen.long@hotmail.com>"]
 readme = "README.md"
@@ -26,7 +26,7 @@ tzlocal = ">=5.0.1"
 cachetools = ">=5.2.0"
 asyncache = ">=0.3.1"
 shortuuid = ">=1.0.9"
-ssttkkl-nonebot-utils = ">=0.1.8"
+ssttkkl-nonebot-utils = ">=0.1.14"
 aiofiles = ">=23.2.1"
 
 [tool.poetry.group.dev.dependencies]

@@ -5,7 +5,7 @@ from typing import Optional, Union
 from nonebot import get_bot
 from nonebot.exception import ActionFailed
 from nonebot.internal.adapter import Event
-from nonebot_plugin_saa import MessageFactory, Text, Image, AggregatedMessageFactory, extract_target
+from nonebot_plugin_saa import MessageFactory, Text, Image, AggregatedMessageFactory
 from nonebot_plugin_session import Session
 from nonebot_plugin_session.saa import get_saa_target
 
@@ -69,7 +69,10 @@ class Postman:
         bot = get_bot(session.bot_id)
         if event is not None:
             # QQ频道里，msg.send_to会视为推送消息，深夜发不出去
-            await msg.send(reply=True)
+            if isinstance(msg, MessageFactory):
+                await msg.send(reply=True)
+            else:
+                await msg.send()
         else:
             target = get_saa_target(session)
             await msg.send_to(target, bot)
