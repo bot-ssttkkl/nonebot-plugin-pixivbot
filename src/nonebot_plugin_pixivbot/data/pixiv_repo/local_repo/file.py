@@ -283,7 +283,7 @@ class FilePixivRepo(LocalPixivRepo):
     # ================ recommended_illusts ================
     async def recommended_illusts(self, *, offset: int = 0) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
-        logger.debug(f"[local] recommended_illusts")
+        logger.debug("[local] recommended_illusts")
 
         file = self.root / "other" / "recommended_illusts.json"
         async for x in self._read_list(file, Illust, conf.pixiv_other_cache_expires_in, offset):
@@ -293,7 +293,7 @@ class FilePixivRepo(LocalPixivRepo):
                 yield LazyIllust(x.id, x)
 
     async def invalidate_recommended_illusts(self):
-        logger.debug(f"[local] invalidate recommended_illusts")
+        logger.debug("[local] invalidate recommended_illusts")
         file = self.root / "other" / "recommended_illusts.json"
         os.remove(file)
 
@@ -323,7 +323,7 @@ class FilePixivRepo(LocalPixivRepo):
                 yield LazyIllust(x.id, x)
 
     async def invalidate_related_illusts(self, illust_id: int):
-        logger.debug(f"[local] invalidate related_illusts")
+        logger.debug("[local] invalidate related_illusts")
         file = self.root / "related_illusts" / f"{illust_id}.json"
         os.remove(file)
 
@@ -356,7 +356,7 @@ class FilePixivRepo(LocalPixivRepo):
                 yield LazyIllust(x.id, x)
 
     async def invalidate_illust_ranking(self, mode: RankingMode):
-        logger.debug(f"[local] invalidate illust_ranking")
+        logger.debug("[local] invalidate illust_ranking")
         file = self.root / "illust_ranking" / f"{mode}.json"
         os.remove(file)
 
@@ -428,6 +428,6 @@ class FilePixivRepo(LocalPixivRepo):
         os.removedirs(self.root)
 
     async def clean_expired(self):
-        logger.debug(f"[local] clean_expired")
+        logger.debug("[local] clean_expired")
 
         # TODO

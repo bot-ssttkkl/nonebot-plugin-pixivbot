@@ -39,5 +39,5 @@ class DefaultErrorInterceptor(Interceptor):
             if not handler.silently:
                 await handler.post_plain_text(msg)
 
-        async with error_handlers.run_excepting(receive_error_message):
+        async with error_handlers.run_excepting(receive_error_message, reraise_unhandled=True):
             await wrapped_func(*args, **kwargs)

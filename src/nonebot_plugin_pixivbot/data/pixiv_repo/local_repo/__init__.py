@@ -19,7 +19,7 @@ elif conf.pixiv_local_cache_type == "file":
     from .file import FilePixivRepo
 
     context.bind(LocalPixivRepo, FilePixivRepo)
-    logger.info(f"local cache: enabled (file)")
+    logger.info("local cache: enabled (file)")
 else:
     raise RuntimeError(f"invalid pixiv_local_cache_type: {conf.pixiv_local_cache_type}")
 

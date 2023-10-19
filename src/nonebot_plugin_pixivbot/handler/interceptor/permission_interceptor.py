@@ -25,7 +25,7 @@ class PermissionInterceptor(Interceptor, ABC):
         if p:
             await wrapped_func(*args, **kwargs)
         else:
-            logger.debug(f"permission denied")
+            logger.debug("permission denied")
             if not handler.silently:
                 msg = await self.get_permission_denied_msg(handler)
                 if msg:

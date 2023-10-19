@@ -134,7 +134,7 @@ async def _fire_shutdown():
     await _no_bot_connect.wait()
     await _mutex.acquire()
     try:
-        logger.trace(f"[lifecycler] firing on shutdown")
+        logger.trace("[lifecycler] firing on shutdown")
         cors = [f() for f in _on_shutdown_callback]
         cors = [create_task(x) for x in cors if isawaitable(x)]
         if len(cors) > 0:

@@ -367,7 +367,7 @@ class RemotePixivRepo(PixivRepo):
 
     def recommended_illusts(self, **kwargs) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
-        logger.debug(f"[remote] recommended_illusts")
+        logger.debug("[remote] recommended_illusts")
         return self._get_illusts(self._papi.illust_recommended,
                                  min_bookmark=_conf.pixiv_random_recommended_illust_min_bookmark,
                                  min_view=_conf.pixiv_random_recommended_illust_min_view,

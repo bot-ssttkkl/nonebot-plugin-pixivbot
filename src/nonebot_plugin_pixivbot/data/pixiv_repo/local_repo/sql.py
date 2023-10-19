@@ -422,7 +422,7 @@ class SqlPixivRepo(LocalPixivRepo):
                 yield x
 
     async def invalidate_illust_ranking(self, mode: RankingMode):
-        logger.debug(f"[local] invalidate illust_ranking")
+        logger.debug("[local] invalidate illust_ranking")
         async with data_source.start_session() as session:
             await self._invalidate_illusts(session, "illust_ranking", {"mode": mode})
 
@@ -516,14 +516,14 @@ class SqlPixivRepo(LocalPixivRepo):
     # ================ recommended_illusts ================
     async def recommended_illusts(self, *, offset: int = 0) \
             -> AsyncGenerator[Union[LazyIllust, PixivRepoMetadata], None]:
-        logger.debug(f"[local] recommended_illusts")
+        logger.debug("[local] recommended_illusts")
         async with data_source.start_session() as session:
             async for x in self._get_illusts(session, "other", {"type": "recommended_illusts"},
                                              expired_in=conf.pixiv_other_cache_expires_in, offset=offset):
                 yield x
 
     async def invalidate_recommended_illusts(self):
-        logger.debug(f"[local] invalidate recommended_illusts")
+        logger.debug("[local] invalidate recommended_illusts")
         async with data_source.start_session() as session:
             await self._invalidate_illusts(session, "other", {"type": "recommended_illusts"})
 
@@ -547,7 +547,7 @@ class SqlPixivRepo(LocalPixivRepo):
                 yield x
 
     async def invalidate_related_illusts(self, illust_id: int):
-        logger.debug(f"[local] invalidate related_illusts")
+        logger.debug("[local] invalidate related_illusts")
         async with data_source.start_session() as session:
             await self._invalidate_illusts(session, "related_illusts", {"original_illust_id": illust_id})
 
@@ -584,7 +584,7 @@ class SqlPixivRepo(LocalPixivRepo):
                                                       content=content, metadata=metadata)
 
     async def invalidate_all(self):
-        logger.debug(f"[local] invalidate_all")
+        logger.debug("[local] invalidate_all")
 
         async with data_source.start_session() as session:
             if conf.pixiv_sql_dialect == 'sqlite':
@@ -603,7 +603,7 @@ class SqlPixivRepo(LocalPixivRepo):
             await session.commit()
 
     async def clean_expired(self):
-        logger.debug(f"[local] clean_expired")
+        logger.debug("[local] clean_expired")
 
         async with data_source.start_session() as session:
             if conf.pixiv_sql_dialect == 'sqlite':
