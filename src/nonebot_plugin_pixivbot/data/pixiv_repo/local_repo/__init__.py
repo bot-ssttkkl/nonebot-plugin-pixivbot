@@ -1,5 +1,6 @@
 from nonebot import logger
 
+from . import sql_models  # noqa # 必须导入，保证表存在
 from .base import LocalPixivRepo
 from ....config import Config
 from ....global_context import context

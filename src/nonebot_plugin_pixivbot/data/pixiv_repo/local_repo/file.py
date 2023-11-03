@@ -1,10 +1,15 @@
 import json
 import os
+from datetime import datetime
+from functools import partial
 from pathlib import Path
 from typing import AsyncGenerator, Union, Generic, TypeVar, Type, List, Callable, Any
 
 import aiofiles
+from apscheduler.triggers.interval import IntervalTrigger
 from nonebot import logger
+from nonebot.utils import run_sync
+from nonebot_plugin_apscheduler import scheduler as apscheduler
 from nonebot_plugin_localstore import get_cache_dir
 from pydantic import ValidationError, BaseModel
 from pydantic.generics import GenericModel
@@ -18,6 +23,7 @@ from ....config import Config
 from ....enums import RankingMode
 from ....global_context import context
 from ....model import Illust, User
+from ....utils.lifecycler import on_startup
 
 T = TypeVar("T")
 
@@ -39,6 +45,18 @@ def mkdirs_for_parent(path: Path):
 class FilePixivRepo(LocalPixivRepo):
     def __init__(self):
         self.root = get_cache_dir("nonebot_plugin_pixivbot")
+        if not isinstance(self.root, Path):
+            self.root = Path(self.root)
+
+        on_startup(replay=True)(
+            partial(
+                apscheduler.add_job,
+                self.clean_expired,
+                id='pixivbot_sql_pixiv_repo_clean_expired',
+                trigger=IntervalTrigger(hours=2),
+                max_instances=1
+            )
+        )
 
     T_Content = TypeVar("T_Content", bound=BaseModel)
 
@@ -378,7 +396,7 @@ class FilePixivRepo(LocalPixivRepo):
         logger.debug(f"[local] image {illust.id}")
 
         metadata_file = self.root / "image" / \
-            f"{illust.id}_{page}_metadata.json"
+                        f"{illust.id}_{page}_metadata.json"
         image_file = self.root / "image" / f"{illust.id}_{page}.jpg"
 
         if not metadata_file.exists() or image_file:
@@ -411,10 +429,9 @@ class FilePixivRepo(LocalPixivRepo):
         logger.debug(f"[local] update image {illust_id} {metadata}")
 
         metadata_file = self.root / "image" / \
-            f"{illust_id}_{page}_metadata.json"
+                        f"{illust_id}_{page}_metadata.json"
         image_file = self.root / "image" / f"{illust_id}_{page}.jpg"
 
-        
         mkdirs_for_parent(metadata_file)
         mkdirs_for_parent(image_file)
 
@@ -427,7 +444,63 @@ class FilePixivRepo(LocalPixivRepo):
     async def invalidate_all(self):
         os.removedirs(self.root)
 
+    def _clean_expired_under_dir(self, dir: Path, expire_time: int, now: datetime):
+        if not dir.exists():
+            return 0
+
+        cnt = 0
+        for entry in os.scandir(dir):
+            if not entry.is_file():
+                continue
+
+            if datetime.fromtimestamp(entry.stat().st_mtime + expire_time) <= now:
+                os.remove(entry.path)
+                cnt += 1
+
+        return cnt
+
     async def clean_expired(self):
         logger.debug("[local] clean_expired")
 
-        # TODO
+        @run_sync
+        def do_clean():
+            now = datetime.now()
+
+            cnt = self._clean_expired_under_dir(self.root / "illust_detail", conf.pixiv_illust_detail_cache_expires_in,
+                                                now)
+            logger.success(f"[local] deleted {cnt} illust_detail cache")
+
+            cnt = self._clean_expired_under_dir(self.root / "user_detail", conf.pixiv_user_detail_cache_expires_in, now)
+            logger.success(f"[local] deleted {cnt} user_detail cache")
+
+            cnt = self._clean_expired_under_dir(self.root / "search_illust", conf.pixiv_search_illust_cache_delete_in,
+                                                now)
+            logger.success(f"[local] deleted {cnt} search_illust cache")
+
+            cnt = self._clean_expired_under_dir(self.root / "search_user", conf.pixiv_search_user_cache_delete_in, now)
+            logger.success(f"[local] deleted {cnt} search_user cache")
+
+            cnt = self._clean_expired_under_dir(self.root / "user_illusts", conf.pixiv_user_illusts_cache_expires_in,
+                                                now)
+            logger.success(f"[local] deleted {cnt} user_illusts cache")
+
+            cnt = self._clean_expired_under_dir(self.root / "user_bookmarks",
+                                                conf.pixiv_user_bookmarks_cache_expires_in, now)
+            logger.success(f"[local] deleted {cnt} user_bookmarks cache")
+
+            cnt = self._clean_expired_under_dir(self.root / "other", conf.pixiv_other_cache_expires_in, now)
+            logger.success(f"[local] deleted {cnt} other cache")
+
+            cnt = self._clean_expired_under_dir(self.root / "related_illusts",
+                                                conf.pixiv_related_illusts_cache_expires_in,
+                                                now)
+            logger.success(f"[local] deleted {cnt} related_illusts cache")
+
+            cnt = self._clean_expired_under_dir(self.root / "illust_ranking",
+                                                conf.pixiv_illust_ranking_cache_expires_in, now)
+            logger.success(f"[local] deleted {cnt} illust_ranking cache")
+
+            cnt = self._clean_expired_under_dir(self.root / "image", conf.pixiv_download_cache_expires_in, now)
+            logger.success(f"[local] deleted {cnt // 2} image cache")
+
+        await do_clean()
