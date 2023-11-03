@@ -1,11 +1,10 @@
 import json
 from typing import Union
 
-from nonebot_plugin_datastore.db import get_engine
 from nonebot_plugin_session import Session, SessionLevel
-from nonebot_plugin_session.model import get_or_add_session_model
+from nonebot_plugin_session_orm import get_session_persist_id
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 from nonebot_plugin_pixivbot import Config
 from nonebot_plugin_pixivbot.global_context import context
@@ -119,24 +118,23 @@ class SqlV4ToV5(Migration):
                 );
             """))
 
-        async with AsyncSession(get_engine()) as db_sess:
-            result = await conn.execute(
-                text("select id, subscriber, code, type, kwargs, bot, schedule, tz from subscription_old;"))
+        result = await conn.execute(
+            text("select id, subscriber, code, type, kwargs, bot, schedule, tz from subscription_old;"))
 
-            for id, subscriber, code, type, kwargs, bot, schedule, tz in result.fetchall():
-                session = convert_session(bot, subscriber)
-                session_id = (await get_or_add_session_model(session, db_sess)).id
+        for id, subscriber, code, type, kwargs, bot, schedule, tz in result.fetchall():
+            session = convert_session(bot, subscriber)
+            session_id = await get_session_persist_id(session)
 
-                kwargs = convert_kwargs(kwargs)
-                if not isinstance(kwargs, str):
-                    kwargs = json.dumps(kwargs)
+            kwargs = convert_kwargs(kwargs)
+            if not isinstance(kwargs, str):
+                kwargs = json.dumps(kwargs)
 
-                await conn.execute(
-                    text("insert into subscription(id, session_id, code, type, kwargs, bot_id, schedule, tz) "
-                         "values (:id, :session_id, :code, :type, :kwargs, :bot_id, :schedule, :tz);"),
-                    dict(id=id, session_id=session_id, code=code, type=type, kwargs=kwargs, bot_id=session.bot_id,
-                         schedule=schedule, tz=tz)
-                )
+            await conn.execute(
+                text("insert into subscription(id, session_id, code, type, kwargs, bot_id, schedule, tz) "
+                     "values (:id, :session_id, :code, :type, :kwargs, :bot_id, :schedule, :tz);"),
+                dict(id=id, session_id=session_id, code=code, type=type, kwargs=kwargs, bot_id=session.bot_id,
+                     schedule=schedule, tz=tz)
+            )
 
         await conn.execute(text("drop table subscription_old;"))
 
@@ -175,27 +173,26 @@ class SqlV4ToV5(Migration):
                 );
             """))
 
-        async with AsyncSession(get_engine()) as db_sess:
-            result = await conn.execute(
-                text("select id, subscriber, code, type, kwargs, bot, checkpoint from watch_task_old;"))
+        result = await conn.execute(
+            text("select id, subscriber, code, type, kwargs, bot, checkpoint from watch_task_old;"))
 
-            for id, subscriber, code, type, kwargs, bot, checkpoint in result.fetchall():
-                session = convert_session(bot, subscriber)
-                session_id = (await get_or_add_session_model(session, db_sess)).id
+        for id, subscriber, code, type, kwargs, bot, checkpoint in result.fetchall():
+            session = convert_session(bot, subscriber)
+            session_id = await get_session_persist_id(session)
 
-                kwargs = convert_kwargs(kwargs)
+            kwargs = convert_kwargs(kwargs)
 
-                if not isinstance(kwargs, str):
-                    kwargs = json.dumps(kwargs)
+            if not isinstance(kwargs, str):
+                kwargs = json.dumps(kwargs)
 
-                if not isinstance(schedule, str):
-                    schedule = json.dumps(schedule)
+            if not isinstance(schedule, str):
+                schedule = json.dumps(schedule)
 
-                await conn.execute(
-                    text("insert into watch_task(id, session_id, code, type, kwargs, bot_id, checkpoint) "
-                         "values (:id, :session_id, :code, :type, :kwargs, :bot_id, :checkpoint);"),
-                    dict(id=id, session_id=session_id, code=code, type=type, kwargs=kwargs, bot_id=session.bot_id,
-                         checkpoint=checkpoint)
-                )
+            await conn.execute(
+                text("insert into watch_task(id, session_id, code, type, kwargs, bot_id, checkpoint) "
+                     "values (:id, :session_id, :code, :type, :kwargs, :bot_id, :checkpoint);"),
+                dict(id=id, session_id=session_id, code=code, type=type, kwargs=kwargs, bot_id=session.bot_id,
+                     checkpoint=checkpoint)
+            )
 
         await conn.execute(text("drop table watch_task_old;"))

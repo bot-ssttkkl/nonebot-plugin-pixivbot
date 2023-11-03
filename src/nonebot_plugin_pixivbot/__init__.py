@@ -12,6 +12,8 @@ from nonebot import require
 require("nonebot_plugin_apscheduler")
 require("nonebot_plugin_access_control")
 require("nonebot_plugin_session")
+require("nonebot_plugin_session_orm")
+require("nonebot_plugin_session_saa")
 require("nonebot_plugin_saa")
 require("nonebot_plugin_localstore")
 require("ssttkkl_nonebot_utils")

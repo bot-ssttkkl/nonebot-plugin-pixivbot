@@ -7,7 +7,7 @@ from nonebot.exception import ActionFailed
 from nonebot.internal.adapter import Event
 from nonebot_plugin_saa import MessageFactory, Text, Image, AggregatedMessageFactory
 from nonebot_plugin_session import Session
-from nonebot_plugin_session.saa import get_saa_target
+from nonebot_plugin_session_saa import get_saa_target
 
 from ..config import Config
 from ..enums import BlockAction
