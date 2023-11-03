@@ -11,11 +11,12 @@ from nonebot import require
 
 require("nonebot_plugin_apscheduler")
 require("nonebot_plugin_access_control")
+require("nonebot_plugin_localstore")
+require("nonebot_plugin_orm")
 require("nonebot_plugin_session")
 require("nonebot_plugin_session_orm")
 require("nonebot_plugin_session_saa")
 require("nonebot_plugin_saa")
-require("nonebot_plugin_localstore")
 require("ssttkkl_nonebot_utils")
 
 # =========== plugin meta ============
@@ -26,6 +27,8 @@ from nonebot_plugin_saa import __plugin_meta__ as saa_meta
 from .config import Config
 from .usage import usage
 
+from .data import migrations as orm_migrations
+
 __plugin_meta__ = PluginMetadata(
     name='PixivBot',
     description='发送随机Pixiv插画、画师更新推送、定时订阅推送……',
@@ -33,7 +36,8 @@ __plugin_meta__ = PluginMetadata(
     type="application",
     homepage="https://github.com/bot-ssttkkl/nonebot-plugin-pixivbot",
     config=Config,
-    supported_adapters=saa_meta.supported_adapters
+    supported_adapters=saa_meta.supported_adapters,
+    extra={"orm_version_location": orm_migrations},
 )
 
 # =========== register handler & service ============

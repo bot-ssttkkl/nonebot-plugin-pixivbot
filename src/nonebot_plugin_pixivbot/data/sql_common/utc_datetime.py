@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
+from typing import Optional
 
 import tzlocal
-from sqlalchemy import TypeDecorator, DateTime
+from sqlalchemy import TypeDecorator, DateTime, Dialect
 
 
 class UTCDateTime(TypeDecorator):
@@ -9,7 +10,7 @@ class UTCDateTime(TypeDecorator):
     LOCAL_TIMEZONE = tzlocal.get_localzone()
     cache_ok = True
 
-    def process_bind_param(self, value: datetime, dialect):
+    def process_bind_param(self, value: Optional[datetime], dialect: Dialect) -> Optional[datetime]:
         if value is None:
             return None
 
@@ -18,7 +19,7 @@ class UTCDateTime(TypeDecorator):
 
         return value.astimezone(timezone.utc).replace(tzinfo=None)
 
-    def process_result_value(self, value, dialect):
+    def process_result_value(self, value: Optional[datetime], dialect: Dialect) -> Optional[datetime]:
         if value is None:
             return None
 

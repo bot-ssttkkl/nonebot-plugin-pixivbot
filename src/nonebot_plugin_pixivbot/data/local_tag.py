@@ -1,31 +1,28 @@
 from typing import Optional, Collection
 
 from nonebot import logger
+from nonebot_plugin_orm import Model
 from sqlalchemy import select
 from sqlalchemy.orm import mapped_column, Mapped
 
-from .source.sql import DataSource
-from .utils.sql import insert
+from .utils.session import use_pixivbot_session
+from .sql_common import insert
 from ..global_context import context
 from ..model import Tag, Illust
 
 
-@DataSource.registry.mapped
-class LocalTag:
-    __tablename__ = "local_tag"
+class LocalTag(Model):
+    __tablename__ = "pixivbot_local_tag"
 
     name: Mapped[str] = mapped_column(primary_key=True)
     translated_name: Mapped[str] = mapped_column(index=True)
-
-
-data_source = context.require(DataSource)
 
 
 @context.register_singleton()
 class LocalTagRepo:
 
     async def find_by_name(self, name: str) -> Optional[Tag]:
-        async with data_source.start_session() as session:
+        async with use_pixivbot_session() as session:
             stmt = select(LocalTag).where(LocalTag.name == name).limit(1)
             local_tag = (await session.execute(stmt)).scalar_one_or_none()
             if local_tag is not None:
@@ -34,7 +31,7 @@ class LocalTagRepo:
                 return None
 
     async def find_by_translated_name(self, translated_name: str) -> Optional[Tag]:
-        async with data_source.start_session() as session:
+        async with use_pixivbot_session() as session:
             stmt = select(LocalTag).where(LocalTag.translated_name == translated_name).limit(1)
             local_tag = (await session.execute(stmt)).scalar_one_or_none()
             if local_tag is not None:
@@ -49,7 +46,7 @@ class LocalTagRepo:
         if len(tags) == 0:
             return
 
-        async with data_source.start_session() as session:
+        async with use_pixivbot_session() as session:
             stmt = insert(LocalTag).values([t.dict() for t in tags])
             stmt = stmt.on_conflict_do_update(index_elements=[LocalTag.name],
                                               set_={

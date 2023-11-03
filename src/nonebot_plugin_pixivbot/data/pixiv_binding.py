@@ -1,31 +1,28 @@
 from typing import Optional
 
+from nonebot_plugin_orm import Model
 from sqlalchemy import select, delete
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .source.sql import DataSource
-from .utils.sql import insert
+from .utils.session import use_pixivbot_session
+from .sql_common import insert
 from ..global_context import context
 from ..model import PixivBinding
 
 
-@DataSource.registry.mapped
-class PixivBindingOrm:
-    __tablename__ = "pixiv_binding"
+class PixivBindingOrm(Model):
+    __tablename__ = "pixivbot_pixiv_binding"
 
     platform: Mapped[str] = mapped_column(primary_key=True)
     user_id: Mapped[str] = mapped_column(primary_key=True)
     pixiv_user_id: Mapped[int]
 
 
-data_source = context.require(DataSource)
-
-
 @context.register_singleton()
 class PixivBindingRepo:
 
     async def get(self, platform: str, user_id: str) -> Optional[PixivBinding]:
-        async with data_source.start_session() as session:
+        async with use_pixivbot_session() as session:
             stmt = (select(PixivBindingOrm)
                     .where(PixivBindingOrm.platform == platform,
                            PixivBindingOrm.user_id == user_id)
@@ -39,7 +36,7 @@ class PixivBindingRepo:
                 return None
 
     async def update(self, binding: PixivBinding):
-        async with data_source.start_session() as session:
+        async with use_pixivbot_session() as session:
             stmt = (insert(PixivBindingOrm)
                     .values(platform=binding.platform,
                             user_id=binding.user_id,
@@ -52,7 +49,7 @@ class PixivBindingRepo:
             await session.commit()
 
     async def remove(self, platform: str, user_id: str) -> bool:
-        async with data_source.start_session() as session:
+        async with use_pixivbot_session() as session:
             stmt = (delete(PixivBindingOrm)
                     .where(PixivBindingOrm.platform == platform,
                            PixivBindingOrm.user_id == user_id))

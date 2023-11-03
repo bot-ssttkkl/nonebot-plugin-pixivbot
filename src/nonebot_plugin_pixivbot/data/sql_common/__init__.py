@@ -18,5 +18,6 @@ JSON = _JSON
 BLOB = _BLOB
 
 from .utc_datetime import UTCDateTime
+from .pydantic import PydanticModel
 
-__all__ = ("insert", "JSON", "BLOB", "UTCDateTime")
+__all__ = ("insert", "JSON", "BLOB", "UTCDateTime", "PydanticModel")

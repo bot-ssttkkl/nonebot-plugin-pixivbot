@@ -10,7 +10,7 @@ class RateLimitError(QueryError):
 
 
 class PostIllustError(QueryError):
-    def __str__(self):
+    def __init__(self):
         super().__init__("发送图片失败")
 
 

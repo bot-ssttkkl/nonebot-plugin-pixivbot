@@ -1,16 +1,18 @@
 from datetime import datetime
 from typing import Optional, List
 
+from nonebot_plugin_orm import Model
 from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import mapped_column, relationship, Mapped
 
-from ...source.sql import DataSource
-from ...utils.sql import BLOB, JSON, UTCDateTime
+from ...sql_common import BLOB, JSON, UTCDateTime
+from ...sql_common.pydantic import PydanticModel
+from ....model import Illust, User
+from ....utils.json import dumps_default
 
 
-@DataSource.registry.mapped
-class DownloadCache:
-    __tablename__ = "download_cache"
+class DownloadCache(Model):
+    __tablename__ = "pixivbot_download_cache"
 
     illust_id: Mapped[int] = mapped_column(primary_key=True)
     page: Mapped[int] = mapped_column(primary_key=True, default=0)
@@ -19,29 +21,26 @@ class DownloadCache:
     update_time: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
 
 
-@DataSource.registry.mapped
-class IllustDetailCache:
-    __tablename__ = "illust_detail_cache"
+class IllustDetailCache(Model):
+    __tablename__ = "pixivbot_illust_detail_cache"
 
     illust_id: Mapped[int] = mapped_column(primary_key=True)
-    illust: Mapped[dict] = mapped_column(JSON)
+    illust: Mapped[Illust] = mapped_column(PydanticModel(Illust, dumps_default=dumps_default))
 
     update_time: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
 
 
-@DataSource.registry.mapped
-class UserDetailCache:
-    __tablename__ = "user_detail_cache"
+class UserDetailCache(Model):
+    __tablename__ = "pixivbot_user_detail_cache"
 
     user_id: Mapped[int] = mapped_column(primary_key=True)
-    user: Mapped[dict] = mapped_column(JSON)
+    user: Mapped[User] = mapped_column(PydanticModel(User, dumps_default=dumps_default))
 
     update_time: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
 
 
-@DataSource.registry.mapped
-class IllustSetCache:
-    __tablename__ = "illust_set_cache"
+class IllustSetCache(Model):
+    __tablename__ = "pixivbot_illust_set_cache"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     cache_type: Mapped[str]
@@ -58,22 +57,22 @@ class IllustSetCache:
     size: Mapped[int] = mapped_column(default=0)
 
     __table_args__ = (
-        UniqueConstraint('cache_type', 'key'),
+        UniqueConstraint('cache_type', 'key',
+                         name="uq_pixivbot_illust_set_cache_cache_type_key"),
     )
 
 
-@DataSource.registry.mapped
-class IllustSetCacheIllust:
-    __tablename__ = "illust_set_cache_illust"
+class IllustSetCacheIllust(Model):
+    __tablename__ = "pixivbot_illust_set_cache_illust"
 
-    cache_id: Mapped[int] = mapped_column(ForeignKey("illust_set_cache.id", ondelete="cascade"), primary_key=True)
+    cache_id: Mapped[int] = mapped_column(ForeignKey("pixivbot_illust_set_cache.id", ondelete="cascade"),
+                                          primary_key=True)
     illust_id: Mapped[int] = mapped_column(primary_key=True)
     rank: Mapped[int] = mapped_column(default=0)
 
 
-@DataSource.registry.mapped
-class UserSetCache:
-    __tablename__ = "user_set_cache"
+class UserSetCache(Model):
+    __tablename__ = "pixivbot_user_set_cache"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     cache_type: Mapped[str]
@@ -88,13 +87,14 @@ class UserSetCache:
                                                                passive_deletes=True)
 
     __table_args__ = (
-        UniqueConstraint('cache_type', 'key'),
+        UniqueConstraint('cache_type', 'key',
+                         name="uq_pixivbot_user_set_cache_cache_type_key"),
     )
 
 
-@DataSource.registry.mapped
-class UserSetCacheUser:
-    __tablename__ = "user_set_cache_user"
+class UserSetCacheUser(Model):
+    __tablename__ = "pixivbot_user_set_cache_user"
 
-    cache_id: Mapped[int] = mapped_column(ForeignKey("user_set_cache.id", ondelete="cascade"), primary_key=True)
+    cache_id: Mapped[int] = mapped_column(ForeignKey("pixivbot_user_set_cache.id", ondelete="cascade"),
+                                          primary_key=True)
     user_id: Mapped[int] = mapped_column(primary_key=True)
