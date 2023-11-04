@@ -3,30 +3,17 @@ from pathlib import Path
 from typing import Optional, List, Literal
 from urllib.parse import urlparse
 
-from nonebot import logger, require
+import nonebot_plugin_localstore as store
+from nonebot import logger
 from pydantic import BaseSettings, validator, root_validator
 from pydantic.fields import ModelField
 from ssttkkl_nonebot_utils.config_loader import load_conf
 
+from .enums import BlockAction, RankingMode, RandomIllustMethod
 from .global_context import context
 
-require("nonebot_plugin_localstore")
 
-import nonebot_plugin_localstore as store
-
-from .enums import *
-
-
-def _get_default_sql_conn_url():
-    # 旧版本的sqlite数据库在working directory
-    data_file = Path("pixiv_bot.db")
-    if not data_file.exists():
-        data_file = store.get_data_file("nonebot_plugin_pixivbot", "pixiv_bot.db")
-
-    return "sqlite+aiosqlite:///" + str(data_file)
-
-
-class Config(BaseSettings):
+class DeprecatedConfig(BaseSettings):
     @root_validator(pre=True, allow_reuse=True)
     def deprecated_access_control_config(cls, values):
         for name in {"blacklist", "pixiv_query_cooldown", "pixiv_no_query_cooldown_users"}:
@@ -41,28 +28,63 @@ class Config(BaseSettings):
             logger.warning("mongo support was removed, use sql instead")
         return values
 
-    pixiv_refresh_token: str
-
-    pixiv_sql_conn_url: str
-    pixiv_sql_dialect: str
-
     @root_validator(pre=True, allow_reuse=True)
-    def default_sql_conn_url(cls, values):
-        if "pixiv_sql_conn_url" not in values:
-            values["pixiv_sql_conn_url"] = _get_default_sql_conn_url()
+    def deprecated_sql_config(cls, values):
+        if "pixiv_data_source" in values or "pixiv_sql_conn_url" in values:
+            logger.warning("sql configuration was deprecated, config nonebot-plugin-orm instead")
         return values
 
     @root_validator(pre=True, allow_reuse=True)
-    def detect_sql_dialect(cls, values):
-        values["pixiv_mongo_conn_url"] = ""
-        values["pixiv_mongo_database_name"] = ""
+    def default_sql_conn_url(cls, values):
+        if "pixiv_sql_conn_url" in values:
+            return values
 
-        url = urlparse(values["pixiv_sql_conn_url"])
-        if '+' in url.scheme:
-            pixiv_sql_dialect = url.scheme.split('+')[0]
+        # 旧版本的sqlite数据库在working directory
+        data_file = Path("pixiv_bot.db")
+        if not data_file.exists():
+            data_file = store.get_data_file("nonebot_plugin_pixivbot", "pixiv_bot.db")
+
+        values["pixiv_sql_conn_url"] = "sqlite+aiosqlite:///" + str(data_file)
+        return values
+
+    pixiv_sql_conn_url: str
+
+    class Config:
+        extra = "ignore"
+
+
+class Config(DeprecatedConfig):
+    pixiv_refresh_token: str
+
+    sqlalchemy_dialect: str
+
+    @root_validator(pre=True, allow_reuse=True)
+    def detect_plugin_sqlalchemy_database_url(cls, values):
+        sqlalchemy_binds = values.get("sqlalchemy_binds", {})
+
+        if "nonebot_plugin_pixivbot" in sqlalchemy_binds:
+            if isinstance(sqlalchemy_binds["nonebot_plugin_pixivbot"], str):
+                sqlalchemy_database_url = sqlalchemy_binds["nonebot_plugin_pixivbot"]
+            else:
+                sqlalchemy_database_url = sqlalchemy_binds["nonebot_plugin_pixivbot"]["url"]
+        elif "" in sqlalchemy_binds:
+            if isinstance(sqlalchemy_binds[""], str):
+                sqlalchemy_database_url = sqlalchemy_binds[""]
+            else:
+                sqlalchemy_database_url = sqlalchemy_binds[""]["url"]
         else:
-            pixiv_sql_dialect = url.scheme
-        values["pixiv_sql_dialect"] = pixiv_sql_dialect
+            sqlalchemy_database_url = values.get("sqlalchemy_database_url")
+
+        if sqlalchemy_database_url is not None:
+            url = urlparse(values["pixiv_sql_conn_url"])
+            if '+' in url.scheme:
+                sqlalchemy_dialect = url.scheme.split('+')[0]
+            else:
+                sqlalchemy_dialect = url.scheme
+        else:
+            sqlalchemy_dialect = "sqlite"
+
+        values["sqlalchemy_dialect"] = sqlalchemy_dialect
 
         return values
 
