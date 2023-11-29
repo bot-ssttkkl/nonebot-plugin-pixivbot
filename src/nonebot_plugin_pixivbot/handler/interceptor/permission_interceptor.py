@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Callable, Optional, TYPE_CHECKING
 
 from nonebot import logger
-from nonebot_plugin_access_control.subject import extract_subjects_from_session
+from nonebot_plugin_access_control.subject.extractor import extract_subjects_from_session
 
 from .base import Interceptor
 from ..pkg_context import context

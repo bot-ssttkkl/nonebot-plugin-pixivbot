@@ -1,8 +1,9 @@
 from typing import TYPE_CHECKING, Callable
 
 from nonebot import get_bot
-from nonebot_plugin_access_control.errors import PermissionDeniedError, RateLimitedError
-from nonebot_plugin_access_control.subject import extract_subjects, extract_subjects_from_session
+from nonebot_plugin_access_control.subject.extractor import extract_subjects_from_session
+from nonebot_plugin_access_control_api.errors import PermissionDeniedError, RateLimitedError
+from nonebot_plugin_access_control_api.subject import extract_subjects
 
 from .base import Interceptor
 from ..pkg_context import context
@@ -10,7 +11,7 @@ from ...config import Config
 
 if TYPE_CHECKING:
     from nonebot_plugin_pixivbot.handler.base import Handler
-    from nonebot_plugin_access_control.service import Service
+    from nonebot_plugin_access_control_api.service import Service
 
 conf = context.require(Config)
 
