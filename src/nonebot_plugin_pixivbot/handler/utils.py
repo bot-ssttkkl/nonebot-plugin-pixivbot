@@ -39,4 +39,4 @@ def get_command_rule():
     return rule
 
 
-__all__ = ("get_count", "get_common_query_rule", "get_command_rule", "get_post_dest")
+__all__ = ("get_common_query_rule", "get_command_rule")
