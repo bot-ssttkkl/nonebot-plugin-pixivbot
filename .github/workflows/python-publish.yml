@@ -1,57 +1,54 @@
-# This workflow will upload a Python Package using Twine when a release is created
-# For more information see: https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions#publishing-to-package-registries
-
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-name: Upload Python Package
+name: Release
 
 on:
-  release:
-    types: [ published ]
-
-permissions:
-  contents: read
+  push:
+    tags:
+      - v*
 
 jobs:
-  upload:
+  publish-pypi-github:
     runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://pypi.org/p/nonebot-plugin-pixivbot
+    permissions:
+      id-token: write # IMPORTANT: this permission is mandatory for trusted publishing
+      # write permission is required to create a github release
+      contents: write
+      # write permission is required for autolabeler
+      # otherwise, read permission is required at least
+      pull-requests: write
+
     steps:
-      #----------------------------------------------
-      #       check-out repo and set-up python
-      #----------------------------------------------
-      - name: Check out repository
-        uses: actions/checkout@v2
-      - name: Set up python
-        id: setup-python
-        uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+
+      - name: Setup Python environment
+        uses: actions/setup-python@v3
         with:
-          python-version: 3.x
-      #----------------------------------------------
-      #  -----  install & configure poetry  -----
-      #----------------------------------------------
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-      #----------------------------------------------
-      # install dependencies if cache does not exist
-      #----------------------------------------------
-      - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --no-interaction --no-root
-      #----------------------------------------------
-      #               build & publish
-      #----------------------------------------------
-      - name: Build package
-        run: poetry build
-      - name: Upload distribution
-        uses: actions/upload-artifact@v3
+          python-version: "3.11"
+
+      - name: Setup Poetry
+        run: |
+          pip install poetry
+
+      - run: |
+          echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - uses: release-drafter/release-drafter@v5
         with:
-          name: distribution
-          path: dist/*
-      - name: Publish package
-        uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
+          name: Release ${{ env.TAG_NAME }}
+          tag: ${{ env.TAG_NAME }}
+          publish: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish PyPI and Github
+        run: |
+          poetry build
+          ls dist/
+          gh release upload --clobber ${{ env.TAG_NAME }} dist/*.tar.gz dist/*.whl
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish pypi
+        uses: pypa/gh-action-pypi-publish@release/v1

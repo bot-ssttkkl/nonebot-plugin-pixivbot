@@ -44,6 +44,8 @@ nonebot-adapter-onebot = "^2.2.1"
 nonebot-adapter-kaiheila = "^0.2.0"
 nonebot-adapter-qqguild = "^0.2.2"
 autopep8 = "^2.0.4"
+nonebug = "^0.3.6"
+pytest-asyncio = "^0.23.6"
 
 [tool.nonebot]
 plugins = ["nonebot_plugin_pixivbot"]
