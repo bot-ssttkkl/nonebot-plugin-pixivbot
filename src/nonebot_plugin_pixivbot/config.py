@@ -118,6 +118,7 @@ class Config(BaseSettings):
     pixiv_send_forward_message: Literal['always', 'auto', 'never'] = 'auto'
 
     pixiv_max_item_per_query = 10
+    pixiv_max_page_per_illust = 10
 
     pixiv_tag_translation_enabled = True
 
