@@ -4,9 +4,9 @@ from typing import Optional, List, Literal
 from urllib.parse import urlparse
 
 from nonebot import logger, require
-from pydantic import BaseSettings, validator, root_validator
+from pydantic import validator, root_validator
 from pydantic.fields import ModelField
-from ssttkkl_nonebot_utils.config_loader import load_conf
+from ssttkkl_nonebot_utils.config_loader import BaseSettings, load_conf
 
 from .global_context import context
 
