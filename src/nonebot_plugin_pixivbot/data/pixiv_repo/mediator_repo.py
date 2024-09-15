@@ -5,6 +5,7 @@ from frozendict import frozendict
 from nonebot import logger
 from pydantic import BaseModel
 
+from nonebot.compat import PYDANTIC_V2
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.enums import RankingMode
 from nonebot_plugin_pixivbot.global_context import context
@@ -36,6 +37,7 @@ class SharedAgenIdentifier(BaseModel):
 
     class Config:
         frozen = True
+        arbitrary_types_allowed = True
 
 
 class PixivSharedAsyncGeneratorManager(SharedAsyncGeneratorManager[SharedAgenIdentifier, Any]):
