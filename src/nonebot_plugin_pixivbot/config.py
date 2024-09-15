@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from functools import partial
 from pathlib import Path
 from typing import Optional, List, Literal, Any, Dict
@@ -155,13 +156,13 @@ class Config(BaseSettings):
 
     pixiv_ranking_query_enabled: bool = True
     pixiv_ranking_default_mode: RankingMode = RankingMode.day
-    pixiv_ranking_default_range: conlist(int, min_length=2, max_length=2) = [1, 3]
+    pixiv_ranking_default_range: Sequence[int] = [1, 3]
     pixiv_ranking_fetch_item: int = 150
     pixiv_ranking_max_item_per_query: int = 10
 
     @compatible_field_validator('pixiv_ranking_default_range')
     def ranking_default_range_validator(cls, v, values, field: dict):
-        if v[0] > v[1]:
+        if len(v) != 2 or v[0] > v[1]:
             raise ValueError(f'illegal {field["name"]} value: {v}')
         return v
 
