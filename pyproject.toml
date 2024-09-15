@@ -12,7 +12,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.9"
-nonebot2 = "^2.0"
+nonebot2 = "^2.3"
 nonebot_plugin_apscheduler = ">=0.3.0"
 nonebot-plugin-access-control = "^1.2"
 nonebot-plugin-session = ">=0.2.0"
@@ -39,7 +39,7 @@ nb-cli = "^1.0.5"
 flake8 = "^6.0.0"
 #asyncpg = "^0.27.0"
 aiohttp-socks = ">=0.8.0"
-nonebot2 = { extras = ["fastapi", "websocket", "httpx"], version = "^2.0" }
+nonebot2 = { extras = ["fastapi", "websocket", "httpx"], version = "^2.3" }
 autopep8 = "^2.0.4"
 nonebug = "^0.3.6"
 pytest = "^7.4.3"
