@@ -210,7 +210,7 @@ class Handler(ABC, metaclass=HandlerMeta):
                           header: Optional[str] = None,
                           number: Optional[int] = None):
         model = await IllustMessagesModel.from_illust(illust, header=header, number=number,
-                                                      max_page=conf.pixiv_max_item_per_query,
+                                                      max_page=conf.pixiv_max_page_per_illust,
                                                       block_r18=(not await self.is_r18_allowed()),
                                                       block_r18g=(not await self.is_r18g_allowed()))
         if model:

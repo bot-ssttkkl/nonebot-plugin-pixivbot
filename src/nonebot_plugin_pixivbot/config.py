@@ -4,9 +4,9 @@ from typing import Optional, List, Literal
 from urllib.parse import urlparse
 
 from nonebot import logger, require
-from pydantic import BaseSettings, validator, root_validator
+from pydantic import validator, root_validator
 from pydantic.fields import ModelField
-from ssttkkl_nonebot_utils.config_loader import load_conf
+from ssttkkl_nonebot_utils.config_loader import BaseSettings, load_conf
 
 from .global_context import context
 
@@ -118,6 +118,7 @@ class Config(BaseSettings):
     pixiv_send_forward_message: Literal['always', 'auto', 'never'] = 'auto'
 
     pixiv_max_item_per_query = 10
+    pixiv_max_page_per_illust = 10
 
     pixiv_tag_translation_enabled = True
 

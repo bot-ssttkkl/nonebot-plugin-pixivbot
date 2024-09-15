@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nonebot-plugin-pixivbot"
-version = "2.1.2"
+version = "2.1.4"
 description = "Nonebot Plugin PixivBot"
 authors = ["ssttkkl <huang.wen.long@hotmail.com>"]
 readme = "README.md"
@@ -12,14 +12,14 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.9"
-nonebot2 = "^2.0.0"
+nonebot2 = "^2.0"
 nonebot_plugin_apscheduler = ">=0.3.0"
-nonebot-plugin-access-control = "^1.1.0"
-nonebot-plugin-session = "^0.2.0"
-nonebot-plugin-session-orm = "^0.1.1"
-nonebot-plugin-session-saa = "^0.1.0"
+nonebot-plugin-access-control = "^1.2"
+nonebot-plugin-session = ">=0.2.0"
+nonebot-plugin-session-orm = ">=0.1.1"
+nonebot-plugin-session-saa = ">=0.1.0"
 nonebot-plugin-send-anything-anywhere = ">=0.3.0"
-nonebot-plugin-localstore = "^0.5.1"
+nonebot-plugin-localstore = ">=0.5.1"
 PixivPy-Async = "^1.2.14"
 Pillow = ">=10.3.0"
 numpy = ">=1.23.1"
@@ -29,7 +29,7 @@ tzlocal = ">=5.0.1"
 cachetools = ">=5.2.0"
 asyncache = ">=0.3.1"
 shortuuid = ">=1.0.9"
-ssttkkl-nonebot-utils = ">=0.1.14"
+ssttkkl-nonebot-utils = ">=0.1.21"
 aiofiles = ">=23.2.1"
 SQLAlchemy = { version = "^2.0.0", extras = ["asyncio"] }
 aiosqlite = ">=0.18.0"
@@ -37,9 +37,9 @@ aiosqlite = ">=0.18.0"
 [tool.poetry.group.dev.dependencies]
 nb-cli = "^1.0.5"
 flake8 = "^6.0.0"
-asyncpg = "^0.27.0"
+#asyncpg = "^0.27.0"
 aiohttp-socks = ">=0.8.0"
-nonebot2 = { extras = ["fastapi", "websocket", "httpx"], version = "^2.0.0" }
+nonebot2 = { extras = ["fastapi", "websocket", "httpx"], version = "^2.0" }
 nonebot-adapter-onebot = "^2.2.1"
 nonebot-adapter-kaiheila = "^0.2.0"
 nonebot-adapter-qqguild = "^0.2.2"
