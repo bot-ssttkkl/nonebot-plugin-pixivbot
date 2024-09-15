@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nonebot-plugin-pixivbot"
-version = "2.1.3"
+version = "2.1.4"
 description = "Nonebot Plugin PixivBot"
 authors = ["ssttkkl <huang.wen.long@hotmail.com>"]
 readme = "README.md"
@@ -13,7 +13,7 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.9"
 nonebot2 = "^2.0"
-nonebot_plugin_apscheduler = "^0.3"
+nonebot_plugin_apscheduler = ">=0.3.0"
 nonebot-plugin-access-control = "^1.2"
 nonebot-plugin-session = ">=0.2.0"
 nonebot-plugin-session-orm = ">=0.1.1"
