@@ -14,6 +14,7 @@ jobs:
       matrix:
         os: [ macos-latest, windows-latest, ubuntu-latest ]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
+        pydantic: ["pydantic>=2.0.0", "pydantic<2.0.0"]
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -27,5 +28,6 @@ jobs:
         pip install poetry
         poetry export --with=dev --without-hashes -o requirements.txt
         pip install -r requirements.txt
+        pip install "${{ matrix.pydantic }}"
     - name: Test with pytest
       run: pytest
