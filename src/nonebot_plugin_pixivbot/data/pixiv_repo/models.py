@@ -6,8 +6,8 @@ from pydantic import BaseModel, Field
 
 class PixivRepoMetadata(BaseModel):
     update_time: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    pages: Optional[int]
-    next_qs: Optional[dict]
+    pages: Optional[int] = None
+    next_qs: Optional[dict] = None
 
     def check_is_expired(self, expires_in: int) -> "PixivRepoMetadata":
         if datetime.now(timezone.utc) - self.update_time >= timedelta(seconds=expires_in):

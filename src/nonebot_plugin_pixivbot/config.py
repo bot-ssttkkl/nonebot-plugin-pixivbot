@@ -5,11 +5,11 @@ from typing import Optional, List, Literal, Any, Dict
 from urllib.parse import urlparse
 
 import nonebot_plugin_localstore as store
-from nonebot import logger
 from nonebot.compat import PYDANTIC_V2
-from pydantic import conlist
-from ssttkkl_nonebot_utils.config_loader import BaseSettings, load_conf
+from pydantic import BaseModel
 
+from ssttkkl_nonebot_utils.config_loader import load_conf
+from ssttkkl_nonebot_utils.pyc import field_validator
 from .enums import *
 from .enums import RandomIllustMethod
 from .global_context import context
@@ -24,61 +24,7 @@ def _get_default_sql_conn_url():
     return "sqlite+aiosqlite:///" + str(data_file)
 
 
-def compatible_model_pre_validator(func):
-    if PYDANTIC_V2:
-        from pydantic import model_validator
-
-        @model_validator(mode='before')
-        @classmethod
-        def checker(cls, values: dict[str]):
-            return func(cls, values)
-
-        return checker
-    else:
-        from pydantic import root_validator
-        return root_validator(pre=True, allow_reuse=True)(func)
-
-
-def compatible_field_validator(*fields: str):
-    def wrapper(func):
-        if PYDANTIC_V2:
-            from pydantic import field_validator
-            from pydantic_core.core_schema import ValidationInfo
-
-            @field_validator(*fields)
-            @classmethod
-            def checker(cls, v: str, info: ValidationInfo):
-                return func(cls, v, info.data, {"name": info.field_name})
-
-            return checker
-        else:
-            from pydantic import validator
-            from pydantic.fields import ModelField
-
-            @validator(*fields, allow_reuse=True)
-            def checker(cls, v: str, values: Dict[str, Any], field: ModelField):
-                return func(cls, v, values, {"name": field.name})
-
-            return checker
-
-    return wrapper
-
-
-class Config(BaseSettings):
-    @compatible_model_pre_validator
-    def deprecated_access_control_config(cls, values: Dict[str, Any]):
-        for name in {"blacklist", "pixiv_query_cooldown", "pixiv_no_query_cooldown_users"}:
-            if name in values:
-                logger.warning(f"config \"{name}\" is deprecated, use nonebot-plugin-access-control instead "
-                               "(MORE INFO: https://github.com/ssttkkl/nonebot-plugin-pixivbot#%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6)")
-        return values
-
-    @compatible_model_pre_validator
-    def deprecated_mongodb_config(cls, values: Dict[str, Any]):
-        if values.get("pixiv_data_source", "sql") == "mongo" or "pixiv_mongo_conn_url" in values:
-            logger.warning("mongo support was removed, use sql instead")
-        return values
-
+class Config(BaseModel):
     pixiv_refresh_token: str
 
     pixiv_sql_conn_url: str = _get_default_sql_conn_url()
@@ -123,16 +69,8 @@ class Config(BaseSettings):
     pixiv_download_custom_domain: Optional[str] = None
 
     pixiv_compression_enabled: bool = False
-    pixiv_compression_max_size: Optional[int] = None
-    pixiv_compression_quantity: Optional[float] = None
-
-    # 不加allow_reuse跑pytest会报错
-    @compatible_field_validator('pixiv_compression_max_size', 'pixiv_compression_quantity')
-    def compression_validator(cls, v, values, field: dict):
-        if values['pixiv_compression_enabled'] and v is None:
-            raise ValueError(
-                f'pixiv_compression_enabled is True but {field["name"]} got None.')
-        return v
+    pixiv_compression_max_size: int = 1200
+    pixiv_compression_quantity: float = 0.8
 
     pixiv_query_to_me_only: bool = False
     pixiv_command_to_me_only: bool = False
@@ -160,10 +98,10 @@ class Config(BaseSettings):
     pixiv_ranking_fetch_item: int = 150
     pixiv_ranking_max_item_per_query: int = 10
 
-    @compatible_field_validator('pixiv_ranking_default_range')
-    def ranking_default_range_validator(cls, v, values, field: dict):
+    @field_validator('pixiv_ranking_default_range', mode="after")
+    def ranking_default_range_validator(cls, v):
         if len(v) != 2 or v[0] > v[1]:
-            raise ValueError(f'illegal {field["name"]} value: {v}')
+            raise ValueError(f'illegal pixiv_ranking_default_range value: {v}')
         return v
 
     pixiv_random_illust_query_enabled: bool = True
