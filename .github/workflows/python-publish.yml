@@ -27,9 +27,10 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Setup Poetry
-        run: |
-          pip install poetry
+      - name: Setup PDM
+        uses: pdm-project/setup-pdm@v4
+        with:
+          python-version: ${{ matrix.python-version }}
 
       - run: |
           echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
@@ -42,9 +43,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish PyPI and Github
+      - name: Build
         run: |
-          poetry build
+          pdm build
           ls dist/
           gh release upload --clobber ${{ env.TAG_NAME }} dist/*.tar.gz dist/*.whl
         env:
