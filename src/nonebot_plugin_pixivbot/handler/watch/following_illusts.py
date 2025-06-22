@@ -53,13 +53,21 @@ class WatchFollowingIllustsHandler(WatchTaskHandler):
             return
 
         async with shared_agen_mgr.get(pixiv_user_id) as illusts:
+            get_illust_count = 0  # 初始化已获取的作品数量
+            new_illusts = []  # 存储待发送作品到列表
             async for illust in illusts:
                 if illust.create_date <= task.checkpoint:
                     break
-
-                # 在成功推送后才设置任务的checkpoint为作品时间
-                task.checkpoint = illust.create_date
+                new_illusts.append(illust)  # 将作品存入待发送列表
+                get_illust_count += 1
+                # 只获取x个作品就退出, 避免Rate Limit
+                if get_illust_count >= conf.pixiv_watch_fetch_count:
+                    break
+            if new_illusts:
+                # 按时间正序(从旧到新)发送作品
+                for illust in reversed(new_illusts):
+                    logger.info(f"[watchman] send illust {illust.id} to {task.subscriber}")
+                    await self.post_illust(illust, header="您关注的画师更新了")
+                # 所有作品发送完后再将任务的checkpoint设为最新作品的时间
+                task.checkpoint = new_illusts[0].create_date
                 await WatchTaskRepo.update(self, task)
-                
-                logger.info(f"[watchman] send illust {illust.id} to {task.subscriber}")
-                await self.post_illust(illust, header="您关注的画师更新了")
