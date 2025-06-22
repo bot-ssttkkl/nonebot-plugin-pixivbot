@@ -1,6 +1,7 @@
 import time
 
 from nonebot import logger
+from datetime import datetime, timedelta, timezone
 
 from .base import WatchTaskHandler
 from ..pkg_context import context
@@ -10,6 +11,7 @@ from ...data.pixiv_repo.enums import CacheStrategy
 from ...model import WatchTask, Illust
 from ...service.pixiv_account_binder import PixivAccountBinder
 from ...utils.shared_agen import SharedAsyncGeneratorManager
+from ...data.watch_task import WatchTaskRepo
 
 conf = context.require(Config)
 binder = context.require(PixivAccountBinder)
@@ -54,5 +56,10 @@ class WatchFollowingIllustsHandler(WatchTaskHandler):
             async for illust in illusts:
                 if illust.create_date <= task.checkpoint:
                     break
+
+                # 在成功推送后才设置任务的checkpoint为作品时间
+                task.checkpoint = illust.create_date
+                await WatchTaskRepo.update(self, task)
+                
                 logger.info(f"[watchman] send illust {illust.id} to {task.subscriber}")
                 await self.post_illust(illust, header="您关注的画师更新了")
