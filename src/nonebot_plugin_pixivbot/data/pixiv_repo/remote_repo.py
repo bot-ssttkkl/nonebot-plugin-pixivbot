@@ -157,7 +157,7 @@ class RemotePixivRepo(PixivRepo):
             if illust.total_view < min_view:
                 return False
             # AI过滤
-            if _conf.pixiv_exclude_ai_illusts and illust.illust_ai_type != 0:
+            if _conf.pixiv_exclude_ai_illusts and illust.illust_ai_type == 2:
                 return False
             return True
 
@@ -269,7 +269,7 @@ class RemotePixivRepo(PixivRepo):
                                                           mapper=lambda x: UserPreview.parse_obj(x), **kwargs):
             for item in page:
                 item: UserPreview
-                item.illusts = list(filter(self._make_illust_filter(), item.illusts))
+                item.illusts = list(filter(self._make_illust_filter(0, 0), item.illusts))
                 yield item
             yield metadata
 

@@ -44,9 +44,6 @@ class Watchman(IntervalTaskWorker[WatchTask]):
             handler = handler_type(item.subscriber, silently=not manually, disable_interceptors=manually)
             await handler.handle_with_parsed_args(task=item)
         finally:
-            # 保存checkpoint，避免一次异常后下一次重复推送
-            # 但是会存在丢失推送的问题
-            item.checkpoint = datetime.now(timezone.utc)
             await self.repo.update(item)
 
     def _make_job_trigger(self, item: WatchTask) -> IntervalTrigger:

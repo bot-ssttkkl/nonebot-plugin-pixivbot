@@ -94,7 +94,7 @@ class RankingHandler(CommonHandler, service=ranking_service):
         self.validate_range(range)
         illusts = await service.illust_ranking(mode, range)
         await self.post_illusts(illusts,
-                                header=f"这是您点的{self.mode_mapping[mode]}榜",
+                                header=f"随机{self.mode_mapping[mode]}榜",
                                 number=range[0])
 
 

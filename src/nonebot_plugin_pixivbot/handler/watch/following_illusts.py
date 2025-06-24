@@ -51,8 +51,15 @@ class WatchFollowingIllustsHandler(WatchTaskHandler):
             return
 
         async with shared_agen_mgr.get(pixiv_user_id) as illusts:
+            latest_create_date = task.checkpoint
             async for illust in illusts:
+                if illust.create_date > latest_create_date:
+                    latest_create_date = illust.create_date
+                
                 if illust.create_date <= task.checkpoint:
                     break
+                
                 logger.info(f"[watchman] send illust {illust.id} to {task.subscriber}")
                 await self.post_illust(illust, header="您关注的画师更新了")
+            
+            task.checkpoint = latest_create_date

@@ -61,6 +61,20 @@ class Postman:
             else:
                 sio.write(f"P站ID：{model.id}")
 
+            sio.write("\n")
+            if conf.pixiv_send_illust_tags:
+                sio.write("Tags：" + "，".join(
+                    f"{tag.name}({tag.translated_name})" if tag.translated_name and conf.pixiv_tag_translation_enabled else tag.name
+                    for tag in model.tags
+                ))
+
+            sio.write("\n")
+            if conf.pixiv_send_illust_total_view:
+                sio.write(f"浏览量：{model.total_view}\n")
+
+            if conf.pixiv_send_illust_total_bookmarks:
+                sio.write(f"收藏量：{model.total_bookmarks}\n")
+
             msg.append(Text(sio.getvalue()))
         return msg
 

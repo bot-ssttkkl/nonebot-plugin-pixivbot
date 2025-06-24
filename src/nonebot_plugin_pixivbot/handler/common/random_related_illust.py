@@ -42,7 +42,7 @@ class RandomRelatedIllustHandler(RecordCommonHandler, service=random_related_ill
                                                       exclude_r18g=(not await self.is_r18g_allowed()))
 
         await self.post_illusts(illusts,
-                                header=f"这是您点的[{illust_id}]的相关图片")
+                                header=f"随机[{illust_id}]的相关图片")
 
 
 @on_regex("^不够色$", rule=get_common_query_rule(), priority=1, block=True).handle()

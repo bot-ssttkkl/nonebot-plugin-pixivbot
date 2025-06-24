@@ -43,7 +43,7 @@ class RandomUserIllustHandler(RecordCommonHandler, service=random_user_illust_se
                                                              exclude_r18g=(not await self.is_r18g_allowed()))
 
         await self.post_illusts(illusts,
-                                header=f"这是您点的{userinfo.name}({userinfo.id})老师的图")
+                                header=f"随机{userinfo.name}({userinfo.id})老师的图")
 
 
 @on_regex("^来(.*)?张(.+)老师的图$", rule=get_common_query_rule(), priority=4, block=True).handle()

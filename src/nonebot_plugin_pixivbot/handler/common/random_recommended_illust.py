@@ -29,7 +29,7 @@ class RandomRecommendedIllustHandler(RecordCommonHandler, service=random_recomme
                                                           exclude_r18g=(not await self.is_r18g_allowed()))
 
         await self.post_illusts(illusts,
-                                header="这是您点的图")
+                                header="随机插画")
 
 
 @on_regex("^来(.*)?张图$", rule=get_common_query_rule(), priority=3, block=True).handle()

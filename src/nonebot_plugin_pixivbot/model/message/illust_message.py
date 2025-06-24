@@ -29,6 +29,10 @@ class IllustMessageModel(BaseModel):
     create_time: str = ""
     link: str = ""
     image: bytes = bytes(0)
+    tags: list = []
+    total_view: int = 0
+    total_bookmarks: int = 0
+
 
     header: Optional[str]
     number: Optional[int]
@@ -69,5 +73,8 @@ class IllustMessageModel(BaseModel):
         model.author = f"{illust.user.name} ({illust.user.id})"
         model.create_time = illust.create_date.astimezone(get_localzone()).strftime('%Y-%m-%d %H:%M:%S')
         model.link = f"https://www.pixiv.net/artworks/{illust.id}"
+        model.tags = illust.tags
+        model.total_view = illust.total_view
+        model.total_bookmarks = illust.total_bookmarks
 
         return model

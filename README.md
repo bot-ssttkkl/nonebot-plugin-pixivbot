@@ -42,8 +42,8 @@ NoneBot插件，支持发送随机Pixiv插画、画师更新推送、定时订�
     - 示例：来张Rella老师的图、来五张Rella老师的图
 - **看看图<插画ID>**：查看ID对应的插画
     - 示例：看看图114514
-- **来<数量>张私家车**：从书签中随机抽选一张插画（发送者需绑定Pixiv账号，或者在配置中指定默认Pixiv账号）
-    - 示例：来张私家车、来五张私家车
+- **来<数量>张书签**：从书签中随机抽选一张插画（发送者需绑定Pixiv账号，或者在配置中指定默认Pixiv账号）
+    - 示例：来张书签、来五张书签
 - **还要**：重复上一次请求
 - **不够色**：获取上一张插画的相关插画
 
@@ -54,15 +54,15 @@ NoneBot插件，支持发送随机Pixiv插画、画师更新推送、定时订�
     - \<schedule\>：格式为HH:mm（每日固定时间点推送）或HH:mm*x（间隔时间推送），或者使用cron表达式
     - [..args]：
         - \<type\>为ranking时，接受mode、range
-            - 示例：/pixivbot schedle ranking 12:00 --mode day --range 1-10
+            - 示例：/pixivbot schedule ranking 12:00 --mode day --range 1-10
         - \<type\>为random_bookmark时，接受user
-            - 示例：/pixivbot schedle random_bookmark 01:00*x
-            - 示例：/pixivbot schedle random_bookmark 01:00*x --user 114514
+            - 示例：/pixivbot schedule random_bookmark 01:00*x
+            - 示例：/pixivbot schedule random_bookmark 01:00*x --user 114514
         - \<type\>为random_illust时，接受word（必需）
-            - 示例：/pixivbot schedle random_illust "0 */2 * * * *" --word ロリ
-            - 示例：/pixivbot schedle random_illust "0 */2 * * * *" --word "Hatsune Miku"
+            - 示例：/pixivbot schedule random_illust "0 */2 * * * *" --word ロリ
+            - 示例：/pixivbot schedule random_illust "0 */2 * * * *" --word "Hatsune Miku"
         - \<type\>为random_user_illust时，接受user（必需）
-            - 示例：/pixivbot schedle random_user_illust 01:00*x --user 森倉円
+            - 示例：/pixivbot schedule random_user_illust 01:00*x --user 森倉円
         - \<type\>为random_recommend_illust时，不接受参数
 - **/pixivbot schedule**：查看本群（本用户）的所有定时推送订阅
 - **/pixivbot unschedule \<id\>**：取消本群（本用户）的指定的定时推送订阅
@@ -120,7 +120,7 @@ nonebot_plugin_pixivbot
 │   ├── illust  （看看图）
 │   ├── ranking  （看看榜）
 │   ├── more  （还要）
-│   ├── random_bookmark  （来张私家车）
+│   ├── random_bookmark  （来张书签）
 │   ├── random_illust  （来张xx图）
 │   ├── random_recommended_illust  （来张图）
 │   ├── random_related_illust  （不够色）
@@ -180,7 +180,7 @@ pixiv_proxy=socks5://127.0.0.1:7890
 
 ### 发送合并转发消息惨遭风控
 
-将`pixiv_onebot_send_forward_message`配置项设为`never`可禁用合并转发
+将`pixiv_send_forward_message`配置项设为`never`可禁用合并转发
 
 ### 内部错误：<class 'sqlalchemy.exc.OperationalError'>(sqlite3.OperationalError) near "ON": syntax error
 
@@ -223,6 +223,9 @@ pixiv_block_tags=[]  # 当插画含有指定tag时会被阻拦
 pixiv_block_action=no_image  # 阻拦时的动作，可选值：no_image(不显示插画，回复插画信息), completely_block(只回复过滤提示), no_reply(无回复)
 
 pixiv_send_illust_link=False  # 发图时是否带上链接（容易被tx盯上）
+pixiv_send_illust_tags=False  # 发图时是否带上Tag
+pixiv_send_illust_total_view  # 发图时是否带上浏览量
+pixiv_send_illust_total_bookmarks  # 发图时是否带上收藏量
 
 pixiv_exclude_ai_illusts=False  # 是否过滤AI绘图作品
 
@@ -293,7 +296,7 @@ pixiv_random_user_illust_min_view=0
 pixiv_random_user_illust_max_page=2147483647
 pixiv_random_user_illust_max_item=2147483647
 
-pixiv_random_bookmark_query_enabled=True  # 启用用户书签随机抽选（来张私家车）功能
+pixiv_random_bookmark_query_enabled=True  # 启用用户书签随机抽选（来张书签）功能
 pixiv_random_bookmark_user_id=0  # 当QQ用户未绑定Pixiv账号时，从该Pixiv账号的书签内抽选
 pixiv_random_bookmark_method=uniform
 pixiv_random_bookmark_min_bookmark=0
