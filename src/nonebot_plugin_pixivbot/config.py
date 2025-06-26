@@ -82,6 +82,8 @@ class Config(BaseModel):
     pixiv_send_illust_tags: bool = False
     pixiv_send_illust_total_view: bool = False
     pixiv_send_illust_total_bookmarks: bool = False
+    pixiv_send_illust_is_bookmarks: bool = False
+    pixiv_send_illust_width_and_height: bool = False
     pixiv_send_forward_message: Literal['always', 'auto', 'never'] = 'auto'
 
     pixiv_max_item_per_query: int = 10

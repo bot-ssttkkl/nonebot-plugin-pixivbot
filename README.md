@@ -226,6 +226,8 @@ pixiv_send_illust_link=False  # 发图时是否带上链接（容易被tx盯上�
 pixiv_send_illust_tags=False  # 发图时是否带上Tag
 pixiv_send_illust_total_view  # 发图时是否带上浏览量
 pixiv_send_illust_total_bookmarks  # 发图时是否带上收藏量
+pixiv_send_illust_is_bookmarks  # 发图时是否带上当前插画的收藏状态
+pixiv_send_illust_width_and_height  # 发图时是否带上插画尺寸
 
 pixiv_exclude_ai_illusts=False  # 是否过滤AI绘图作品
 
