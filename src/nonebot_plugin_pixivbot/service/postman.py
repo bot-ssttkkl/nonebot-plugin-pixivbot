@@ -52,33 +52,35 @@ class Postman:
             sio.write(f"「{model.title}」")
             if model.total != 1:
                 sio.write(f"（{model.page + 1}/{model.total}）")
-            sio.write("\n")
 
-            sio.write(f"作者：{model.author}\n"
-                      f"发布时间：{model.create_time}\n")
-            if conf.pixiv_send_illust_link:
-                sio.write(model.link)
-            else:
-                sio.write(f"P站ID：{model.id}")
+            if model.page < 1:
+                sio.write("\n")
 
-            sio.write("\n")
-            if conf.pixiv_send_illust_width_and_height:
-                sio.write(f"插画尺寸：{model.width}*{model.height}\n")
+                sio.write(f"作者：{model.author}\n"
+                        f"发布时间：{model.create_time}\n")
+                if conf.pixiv_send_illust_link:
+                    sio.write(model.link)
+                else:
+                    sio.write(f"P站ID：{model.id}")
 
-            if conf.pixiv_send_illust_total_view:
-                sio.write(f"浏览量：{model.total_view}\n")
+                sio.write("\n")
+                if conf.pixiv_send_illust_width_and_height:
+                    sio.write(f"插画尺寸：{model.width}*{model.height}\n")
 
-            if conf.pixiv_send_illust_total_bookmarks:
-                sio.write(f"收藏量：{model.total_bookmarks}\n")
+                if conf.pixiv_send_illust_total_view:
+                    sio.write(f"浏览量：{model.total_view}\n")
 
-            if conf.pixiv_send_illust_is_bookmarks:
-                sio.write("❤已收藏\n" if model.is_bookmarked else "未收藏\n")
+                if conf.pixiv_send_illust_total_bookmarks:
+                    sio.write(f"收藏量：{model.total_bookmarks}\n")
 
-            if conf.pixiv_send_illust_tags:
-                sio.write("Tags：" + "，".join(
-                    f"{tag.name}({tag.translated_name})" if tag.translated_name and conf.pixiv_tag_translation_enabled else tag.name
-                    for tag in model.tags
-                ))
+                if conf.pixiv_send_illust_is_bookmarks:
+                    sio.write("❤已收藏\n" if model.is_bookmarked else "未收藏\n")
+
+                if conf.pixiv_send_illust_tags:
+                    sio.write("Tags：" + "，".join(
+                        f"{tag.name}({tag.translated_name})" if tag.translated_name and conf.pixiv_tag_translation_enabled else tag.name
+                        for tag in model.tags
+                    ))
 
             msg.append(Text(sio.getvalue()))
         return msg
