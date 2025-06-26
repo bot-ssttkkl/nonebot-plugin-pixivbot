@@ -144,7 +144,7 @@ class RemotePixivRepo(PixivRepo):
 
     @staticmethod
     @rr_cache()  # 因为size足够就不会发生替换，所以缓存用random replacement算法最快
-    def _make_illust_filter(min_view: int = 2 ** 31 - 1, min_bookmark: int = 2 ** 31 - 1):
+    def _make_illust_filter(min_view: int = 0, min_bookmark: int = 0):
         def illust_filter(illust: Illust) -> bool:
             # 标签过滤
             for tag in _conf.pixiv_block_tags:
@@ -269,7 +269,7 @@ class RemotePixivRepo(PixivRepo):
                                                           mapper=lambda x: UserPreview.parse_obj(x), **kwargs):
             for item in page:
                 item: UserPreview
-                item.illusts = list(filter(self._make_illust_filter(0, 0), item.illusts))
+                item.illusts = list(filter(self._make_illust_filter(), item.illusts))
                 yield item
             yield metadata
 
@@ -411,5 +411,12 @@ class RemotePixivRepo(PixivRepo):
         yield PixivRepoMetadata()
         yield content
 
+    async def illust_bookmark_add(self, illust_id: int, **kwargs):
+        logger.debug(f"[remote] illust_bookmark_add {illust_id}")
+        await self._papi.illust_bookmark_add(illust_id, **kwargs)
+    
+    async def illust_bookmark_delete(self, illust_id: int, **kwargs):
+        logger.debug(f"[remote] illust_bookmark_delete {illust_id}")
+        await self._papi.illust_bookmark_delete(illust_id, **kwargs)
 
 __all__ = ("RemotePixivRepo",)

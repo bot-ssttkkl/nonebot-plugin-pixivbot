@@ -32,3 +32,6 @@ help_service = plugin_service.create_subservice("help")
 
 r18_service = plugin_service.create_subservice("r18")
 r18g_service = r18_service.create_subservice("g")
+
+illust_bookmark_add_service = plugin_service.create_subservice("illust_bookmark_add")
+illust_bookmark_delete_service = plugin_service.create_subservice("illust_bookmark_delete")

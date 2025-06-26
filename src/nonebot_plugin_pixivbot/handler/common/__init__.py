@@ -6,8 +6,9 @@ from .random_recommended_illust import RandomRecommendedIllustHandler
 from .random_related_illust import RandomRelatedIllustHandler
 from .random_user_illust import RandomUserIllustHandler
 from .ranking import RankingHandler
+from .illust_bookmark import IllustBookmarkAddHandler, IllustBookmarkDeleteHandler
 
 __all__ = ("RandomBookmarkHandler", "RandomRecommendedIllustHandler",
            "RankingHandler", "RandomIllustHandler",
            "RandomUserIllustHandler", "IllustHandler",
-           "MoreHandler", "RandomRelatedIllustHandler")
+           "MoreHandler", "RandomRelatedIllustHandler", "IllustBookmarkAddHandler", "IllustBookmarkDeleteHandler")

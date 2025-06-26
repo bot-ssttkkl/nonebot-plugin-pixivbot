@@ -5,6 +5,7 @@ from nonebot import logger
 from nonebot_plugin_pixivbot.config import Config
 from nonebot_plugin_pixivbot.data.local_tag import LocalTagRepo
 from nonebot_plugin_pixivbot.data.pixiv_repo import LazyIllust, PixivRepo
+from nonebot_plugin_pixivbot.data.pixiv_repo.remote_repo import RemotePixivRepo
 from nonebot_plugin_pixivbot.enums import RandomIllustMethod, RankingMode
 from nonebot_plugin_pixivbot.global_context import context
 from nonebot_plugin_pixivbot.model import Illust, User
@@ -14,6 +15,7 @@ from nonebot_plugin_pixivbot.utils.errors import BadRequestError, QueryError
 conf = context.require(Config)
 repo = context.require(PixivRepo)
 local_tags = context.require(LocalTagRepo)
+remote_pixiv = context.require(RemotePixivRepo)
 
 
 @context.register_singleton()
@@ -129,6 +131,18 @@ class PixivService:
         illusts = [x async for x in repo.related_illusts(illust_id)]
         illusts = self._handle_r18(illusts, exclude_r18, exclude_r18g)
         return await self._choice_and_load(list(illusts), conf.pixiv_random_related_illust_method, count)
+    
+    async def illust_bookmark_add(self, illust_id: int):
+        if illust_id == 0:
+            raise BadRequestError("你还没有发送过请求")
+        
+        await remote_pixiv.illust_bookmark_add(illust_id)
+    
+    async def illust_bookmark_delete(self, illust_id: int):
+        if illust_id == 0:
+            raise BadRequestError("你还没有发送过请求")
+        
+        await remote_pixiv.illust_bookmark_delete(illust_id)
 
 
 __all__ = ("PixivService",)

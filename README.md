@@ -46,6 +46,8 @@ NoneBot插件，支持发送随机Pixiv插画、画师更新推送、定时订�
     - 示例：来张收藏、来五张收藏
 - **还要**：重复上一次请求
 - **不够色**：获取上一张插画的相关插画
+- **收藏<插画ID>**：收藏id为<插画ID>的插画
+- **取消收藏<插画ID>**：收藏id为<插画ID>的插画
 
 ### 命令语句
 
@@ -124,7 +126,9 @@ nonebot_plugin_pixivbot
 │   ├── random_illust  （来张xx图）
 │   ├── random_recommended_illust  （来张图）
 │   ├── random_related_illust  （不够色）
-│   └── random_user_illust  （来张xx老师的图）
+│   ├── random_user_illust  （来张xx老师的图）
+│   ├── illust_bookmark_add  （收藏xx）
+│   └── illust_bookmark_delete  （取消收藏xx）
 ├── illust_link  （P站链接嗅探）
 ├── schedule
 │   ├── receive  （接收定时推送）
@@ -305,6 +309,8 @@ pixiv_random_bookmark_min_bookmark=0
 pixiv_random_bookmark_min_view=0
 pixiv_random_bookmark_max_page=2147483647
 pixiv_random_bookmark_max_item=2147483647
+
+pixiv_illust_bookmark_manage_enabled=False  # 启用用户收藏或取消收藏插画（收藏/取消收藏）功能
 
 ```
 
