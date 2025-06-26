@@ -152,6 +152,8 @@ class Config(BaseModel):
     pixiv_random_following_illust_max_page: int = 2 ** 31
     pixiv_random_following_illust_max_item: int = 2 ** 31
 
+    pixiv_illust_bookmark_manage_enabled: bool = False
+
     pixiv_watch_interval: int = 600
 
     access_control_reply_on_permission_denied: Optional[str] = None
