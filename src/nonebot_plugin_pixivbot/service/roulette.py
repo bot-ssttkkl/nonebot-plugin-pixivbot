@@ -14,7 +14,7 @@ def uniform(illusts: Sequence[LazyIllust]) -> np.ndarray:
 
 
 def bookmark_proportion(illusts: Sequence[LazyIllust]) -> np.ndarray:
-    # 概率正比于书签数
+    # 概率正比于收藏数
     n = len(illusts)
     p = np.zeros(n)
 

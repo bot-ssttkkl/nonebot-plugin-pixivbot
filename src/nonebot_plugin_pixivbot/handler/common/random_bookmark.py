@@ -57,10 +57,10 @@ class RandomBookmarkHandler(RecordCommonHandler, service=random_bookmark_service
                                                 exclude_r18g=(not await self.is_r18g_allowed()))
 
         await self.post_illusts(illusts,
-                                header="随机书签")
+                                header="随机收藏")
 
 
-@on_regex("^来(.*)?张随机书签$", rule=get_common_query_rule(), priority=5).handle()
+@on_regex("^来(.*)?张收藏$", rule=get_common_query_rule(), priority=5).handle()
 async def _(event: Event,
             session=Depends(extract_session),
             count=ArgCount()):

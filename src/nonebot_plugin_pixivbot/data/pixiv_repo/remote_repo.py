@@ -150,7 +150,7 @@ class RemotePixivRepo(PixivRepo):
             for tag in _conf.pixiv_block_tags:
                 if illust.has_tag(tag):
                     return False
-            # 书签下限过滤
+            # 收藏下限过滤
             if illust.total_bookmarks < min_bookmark:
                 return False
             # 浏览量下限过滤
@@ -236,7 +236,7 @@ class RemotePixivRepo(PixivRepo):
         """
         加载插画
         :param papi_search_func: PixivPy-Async的加载方法
-        :param min_bookmark: 书签数下限
+        :param min_bookmark: 收藏数下限
         :param min_view: 阅读数下限
         :param kwargs: 传给papi_search_func的参数
         :return:

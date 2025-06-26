@@ -42,8 +42,8 @@ NoneBot插件，支持发送随机Pixiv插画、画师更新推送、定时订�
     - 示例：来张Rella老师的图、来五张Rella老师的图
 - **看看图<插画ID>**：查看ID对应的插画
     - 示例：看看图114514
-- **来<数量>张书签**：从书签中随机抽选一张插画（发送者需绑定Pixiv账号，或者在配置中指定默认Pixiv账号）
-    - 示例：来张书签、来五张书签
+- **来<数量>张收藏**：从收藏中随机抽选一张插画（发送者需绑定Pixiv账号，或者在配置中指定默认Pixiv账号）
+    - 示例：来张收藏、来五张收藏
 - **还要**：重复上一次请求
 - **不够色**：获取上一张插画的相关插画
 
@@ -77,7 +77,7 @@ NoneBot插件，支持发送随机Pixiv插画、画师更新推送、定时订�
 - **/pixivbot watch**：查看本群（本用户）的所有更新推送订阅
 - **/pixivbot watch fetch \<id\>**：【调试用命令】立刻手动触发一次指定的更新推送订阅
 - **/pixivbot unwatch \<id\> [..args]**：取消本群（本用户）的指定的更新推送订阅
-- **/pixivbot bind \<pixiv_user_id\>**：绑定Pixiv账号（用于随机书签功能）
+- **/pixivbot bind \<pixiv_user_id\>**：绑定Pixiv账号（用于随机收藏功能）
 - **/pixivbot unbind**：解绑Pixiv账号
 - **/pixivbot invalidate_cache**：清除缓存（只有超级用户能够发送此命令）
 - **/pixivbot**、**/pixivbot help**：查看帮助
@@ -120,7 +120,7 @@ nonebot_plugin_pixivbot
 │   ├── illust  （看看图）
 │   ├── ranking  （看看榜）
 │   ├── more  （还要）
-│   ├── random_bookmark  （来张书签）
+│   ├── random_bookmark  （来张收藏）
 │   ├── random_illust  （来张xx图）
 │   ├── random_recommended_illust  （来张图）
 │   ├── random_related_illust  （不够色）
@@ -271,8 +271,8 @@ pixiv_ranking_fetch_item=150  # 每次从服务器获取的榜单项数（查询
 pixiv_ranking_max_item_per_query=5  # 每次榜单查询最多能查询多少项
 
 pixiv_random_illust_query_enabled=True  # 启用关键字插画随机抽选（来张xx图）功能
-pixiv_random_illust_method=bookmark_proportion  # 随机抽选方法，下同，可选值：bookmark_proportion(概率与书签数成正比), view_proportion(概率与阅读量成正比), timedelta_proportion(概率与投稿时间和现在的时间差成正比), uniform(相等概率)
-pixiv_random_illust_min_bookmark=0  # 过滤掉书签数小于该值的插画，下同
+pixiv_random_illust_method=bookmark_proportion  # 随机抽选方法，下同，可选值：bookmark_proportion(概率与收藏数成正比), view_proportion(概率与阅读量成正比), timedelta_proportion(概率与投稿时间和现在的时间差成正比), uniform(相等概率)
+pixiv_random_illust_min_bookmark=0  # 过滤掉收藏数小于该值的插画，下同
 pixiv_random_illust_min_view=0  # 过滤掉阅读量小于该值的插画，下同
 pixiv_random_illust_max_page=20  # 每次从服务器获取的查询结果页数，下同
 pixiv_random_illust_max_item=500  # 每次从服务器获取的查询结果项数，下同
@@ -298,8 +298,8 @@ pixiv_random_user_illust_min_view=0
 pixiv_random_user_illust_max_page=2147483647
 pixiv_random_user_illust_max_item=2147483647
 
-pixiv_random_bookmark_query_enabled=True  # 启用用户书签随机抽选（来张书签）功能
-pixiv_random_bookmark_user_id=0  # 当QQ用户未绑定Pixiv账号时，从该Pixiv账号的书签内抽选
+pixiv_random_bookmark_query_enabled=True  # 启用用户收藏随机抽选（来张收藏）功能
+pixiv_random_bookmark_user_id=0  # 当QQ用户未绑定Pixiv账号时，从该Pixiv账号的收藏内抽选
 pixiv_random_bookmark_method=uniform
 pixiv_random_bookmark_min_bookmark=0
 pixiv_random_bookmark_min_view=0
