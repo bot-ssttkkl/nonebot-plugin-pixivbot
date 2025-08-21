@@ -54,15 +54,15 @@ NoneBot插件，支持发送随机Pixiv插画、画师更新推送、定时订�
     - \<schedule\>：格式为HH:mm（每日固定时间点推送）或HH:mm*x（间隔时间推送），或者使用cron表达式
     - [..args]：
         - \<type\>为ranking时，接受mode、range
-            - 示例：/pixivbot schedle ranking 12:00 --mode day --range 1-10
+            - 示例：/pixivbot schedule ranking 12:00 --mode day --range 1-10
         - \<type\>为random_bookmark时，接受user
-            - 示例：/pixivbot schedle random_bookmark 01:00*x
-            - 示例：/pixivbot schedle random_bookmark 01:00*x --user 114514
+            - 示例：/pixivbot schedule random_bookmark 01:00*x
+            - 示例：/pixivbot schedule random_bookmark 01:00*x --user 114514
         - \<type\>为random_illust时，接受word（必需）
-            - 示例：/pixivbot schedle random_illust "0 */2 * * * *" --word ロリ
-            - 示例：/pixivbot schedle random_illust "0 */2 * * * *" --word "Hatsune Miku"
+            - 示例：/pixivbot schedule random_illust "0 */2 * * * *" --word ロリ
+            - 示例：/pixivbot schedule random_illust "0 */2 * * * *" --word "Hatsune Miku"
         - \<type\>为random_user_illust时，接受user（必需）
-            - 示例：/pixivbot schedle random_user_illust 01:00*x --user 森倉円
+            - 示例：/pixivbot schedule random_user_illust 01:00*x --user 森倉円
         - \<type\>为random_recommend_illust时，不接受参数
 - **/pixivbot schedule**：查看本群（本用户）的所有定时推送订阅
 - **/pixivbot unschedule \<id\>**：取消本群（本用户）的指定的定时推送订阅
@@ -180,7 +180,7 @@ pixiv_proxy=socks5://127.0.0.1:7890
 
 ### 发送合并转发消息惨遭风控
 
-将`pixiv_onebot_send_forward_message`配置项设为`never`可禁用合并转发
+将`pixiv_send_forward_message`配置项设为`never`可禁用合并转发
 
 ### 内部错误：<class 'sqlalchemy.exc.OperationalError'>(sqlite3.OperationalError) near "ON": syntax error
 
@@ -202,6 +202,7 @@ pixiv_refresh_token=  # 前面获取的REFRESH_TOKEN
 # 数据库配置
 pixiv_sql_conn_url=sqlite+aiosqlite:///pixiv_bot.db  # SQL连接URL，仅支持SQLite与PostgreSQL（通过SQLAlchemy进行连接，必须使用异步的DBAPI）
 pixiv_use_local_cache=True  # 是否启用本地缓存
+pixiv_local_cache_type=file  # 本地缓存类型，可选值：sql, file
 
 # 连接配置
 pixiv_refresh_token=  # 前面获取的REFRESH_TOKEN
@@ -216,6 +217,7 @@ pixiv_query_to_me_only=False  # 只响应关于Bot的查询
 pixiv_command_to_me_only=False  # 只响应关于Bot的命令
 
 pixiv_max_item_per_query=10  # 每个查询最多请求的插画数量
+pixiv_max_page_per_illust=10  # 每个插画最多显示的页数
 
 pixiv_tag_translation_enabled=True  # 启用搜索关键字翻译功能（平时搜索时记录标签翻译，在查询时判断是否存在对应中日翻译）
 
@@ -230,8 +232,8 @@ pixiv_watch_interval=600  # 更新推送的查询间隔（单位：秒）
 
 # 插画压缩
 pixiv_compression_enabled=False  # 启用插画压缩
-pixiv_compression_max_size=  # 插画压缩最大尺寸
-pixiv_compression_quantity=  # 插画压缩品质（0到100）
+pixiv_compression_max_size=1200  # 插画压缩最大尺寸
+pixiv_compression_quantity=0.8  # 插画压缩品质（0到1的浮点数）
 
 # 缓存过期时间/删除时间（单位：秒）
 pixiv_download_cache_expires_in=604800  # 默认值：7天
@@ -258,12 +260,13 @@ pixiv_more_enabled=True  # 启用重复上一次请求（还要）功能
 pixiv_query_expires_in=600  # 上一次请求的过期时间（单位：秒）
 
 pixiv_illust_query_enabled=True  # 启用插画查询（看看图）功能
+pixiv_illust_sniffer_enabled=True  # 启用Pixiv链接嗅探功能
 
 pixiv_ranking_query_enabled=True  # 启用榜单查询（看看榜）功能
 pixiv_ranking_default_mode=day  # 默认查询的榜单，可选值：day, week, month, day_male, day_female, week_original, week_rookie, day_manga
 pixiv_ranking_default_range=[1, 3]  # 默认查询的榜单范围
 pixiv_ranking_fetch_item=150  # 每次从服务器获取的榜单项数（查询的榜单范围必须在这个数目内）
-pixiv_ranking_max_item_per_query=5  # 每次榜单查询最多能查询多少项
+pixiv_ranking_max_item_per_query=10  # 每次榜单查询最多能查询多少项
 
 pixiv_random_illust_query_enabled=True  # 启用关键字插画随机抽选（来张xx图）功能
 pixiv_random_illust_method=bookmark_proportion  # 随机抽选方法，下同，可选值：bookmark_proportion(概率与书签数成正比), view_proportion(概率与阅读量成正比), timedelta_proportion(概率与投稿时间和现在的时间差成正比), uniform(相等概率)
@@ -294,12 +297,23 @@ pixiv_random_user_illust_max_page=2147483647
 pixiv_random_user_illust_max_item=2147483647
 
 pixiv_random_bookmark_query_enabled=True  # 启用用户书签随机抽选（来张私家车）功能
-pixiv_random_bookmark_user_id=0  # 当QQ用户未绑定Pixiv账号时，从该Pixiv账号的书签内抽选
+pixiv_random_bookmark_user_id=  # 当QQ用户未绑定Pixiv账号时，从该Pixiv账号的书签内抽选（留空表示不使用默认账号）
 pixiv_random_bookmark_method=uniform
 pixiv_random_bookmark_min_bookmark=0
 pixiv_random_bookmark_min_view=0
 pixiv_random_bookmark_max_page=2147483647
 pixiv_random_bookmark_max_item=2147483647
+
+pixiv_random_following_illust_query_enabled=True  # 启用关注用户插画随机抽选功能
+pixiv_random_following_illust_method=timedelta_proportion  # 随机抽选方法
+pixiv_random_following_illust_min_bookmark=0  # 过滤掉书签数小于该值的插画
+pixiv_random_following_illust_min_view=0  # 过滤掉阅读量小于该值的插画
+pixiv_random_following_illust_max_page=2147483647  # 每次从服务器获取的查询结果页数
+pixiv_random_following_illust_max_item=2147483647  # 每次从服务器获取的查询结果项数
+
+# 权限控制回复设置
+access_control_reply_on_permission_denied=  # 权限被拒绝时的回复消息（留空则不回复）
+access_control_reply_on_rate_limited=  # 被限流时的回复消息（留空则不回复）
 
 ```
 
