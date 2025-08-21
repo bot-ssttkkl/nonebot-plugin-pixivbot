@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar, AsyncIterable
+from datetime import datetime, timedelta, timezone
 
 from apscheduler.triggers.base import BaseTrigger
 from nonebot import logger, Bot
@@ -12,6 +13,7 @@ from ssttkkl_nonebot_utils.platform.func_manager import UnsupportedBotError
 from ..data.interval_task_repo import IntervalTaskRepo
 from ..model.interval_task import IntervalTask
 from ..utils.lifecycler import on_bot_connect, on_bot_disconnect
+from ..data.watch_task import WatchTaskRepo
 
 T = TypeVar("T", bound=IntervalTask)
 
@@ -30,6 +32,9 @@ class IntervalTaskWorker(ABC, Generic[T]):
             async for task in self.repo.get_by_bot(bot.self_id):
                 try:
                     self._add_job(task)
+                    # 初始化任务时将checkpoint设为当前时间
+                    task.checkpoint = datetime.now(timezone.utc)
+                    await WatchTaskRepo.update(self, task)
                 except Exception as e:
                     logger.opt(exception=e).error(f"[{self.tag}] error occurred when adding job for task \"{task}\"")
 

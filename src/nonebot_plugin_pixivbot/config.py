@@ -148,6 +148,7 @@ class Config(BaseModel):
     pixiv_random_following_illust_max_item: int = 2 ** 31
 
     pixiv_watch_interval: int = 600
+    pixiv_watch_fetch_count: int = 3
 
     access_control_reply_on_permission_denied: Optional[str] = None
     access_control_reply_on_rate_limited: Optional[str] = None
