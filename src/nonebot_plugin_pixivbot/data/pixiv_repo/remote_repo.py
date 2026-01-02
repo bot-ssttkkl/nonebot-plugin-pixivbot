@@ -144,7 +144,9 @@ class RemotePixivRepo(PixivRepo):
 
     @staticmethod
     @rr_cache()  # 因为size足够就不会发生替换，所以缓存用random replacement算法最快
-    def _make_illust_filter(min_view: int = 2 ** 31 - 1, min_bookmark: int = 2 ** 31 - 1):
+    # 不懂为什么这么写, 会过滤掉所有作品, 返回的值为空导致获取不到任何作品
+    # def _make_illust_filter(min_view: int = 2 ** 31 - 1, min_bookmark: int = 2 ** 31 - 1):
+    def _make_illust_filter(min_view: int = 0, min_bookmark: int = 0):
         def illust_filter(illust: Illust) -> bool:
             # 标签过滤
             for tag in _conf.pixiv_block_tags:

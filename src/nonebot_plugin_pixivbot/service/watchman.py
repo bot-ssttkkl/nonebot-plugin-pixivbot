@@ -46,8 +46,10 @@ class Watchman(IntervalTaskWorker[WatchTask]):
         finally:
             # 保存checkpoint，避免一次异常后下一次重复推送
             # 但是会存在丢失推送的问题
-            item.checkpoint = datetime.now(timezone.utc)
-            await self.repo.update(item)
+            # 注释掉此操作, 避免检查间隔太小时checkpoint一直大于作品时间
+            # item.checkpoint = datetime.now(timezone.utc)
+            # await self.repo.update(item)
+            pass
 
     def _make_job_trigger(self, item: WatchTask) -> IntervalTrigger:
         hasher = self._trigger_hasher_mapper[item.type]

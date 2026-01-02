@@ -23,8 +23,10 @@ class IllustLinkHandler(IllustHandler, service=illust_link_service):
         return conf.pixiv_illust_sniffer_enabled
 
 
-@on_regex(r"^(http://|https://)?(www.)?pixiv\.net/artworks/([1-9][0-9]*)/?$", rule=get_common_query_rule(),
-          priority=5).handle()
+# @on_regex(r"^(http://|https://)?(www.)?pixiv\.net/artworks/([1-9][0-9]*)/?$", rule=get_common_query_rule(),
+#           priority=5).handle()
+# 在ios的pixiv app中分享/复制作品得到的链接中是带en的 适配一下
+@on_regex(r"^(http://|https://)?(www.)?pixiv\.net(?:\/[a-z]{2})?/artworks/([1-9][0-9]*)/?$", rule=get_common_query_rule(), priority=5).handle()
 async def _(event: Event,
             matched_groups=RegexGroup(),
             session=Depends(extract_session)):
