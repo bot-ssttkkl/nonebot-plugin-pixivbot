@@ -1,6 +1,5 @@
 from typing import Sequence
 
-from nonebot import on_regex
 from nonebot.internal.adapter import Event
 from nonebot.internal.params import Depends
 from nonebot.params import RegexGroup
@@ -8,7 +7,7 @@ from nonebot_plugin_session import extract_session
 
 from .base import CommonHandler
 from ..pkg_context import context
-from ..utils import get_common_query_rule
+from ..utils import on_nl_regex
 from ...config import Config
 from ...plugin_service import illust_service
 from ...service.pixiv_service import PixivService
@@ -39,7 +38,7 @@ class IllustHandler(CommonHandler, service=illust_service):
         await self.post_illust(illust)
 
 
-@on_regex(r"^看看图\s*([1-9][0-9]*)$", rule=get_common_query_rule(), priority=5).handle()
+@on_nl_regex(r"^看看图\s*([1-9][0-9]*)$", priority=5).handle()
 async def _(event: Event,
             session=Depends(extract_session),
             matched_groups=RegexGroup()):

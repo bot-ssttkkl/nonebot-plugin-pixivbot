@@ -1,6 +1,5 @@
 from typing import Sequence
 
-from nonebot import on_regex
 from nonebot.internal.adapter import Event
 from nonebot.internal.params import Depends
 from nonebot_plugin_session import extract_session
@@ -8,7 +7,7 @@ from nonebot_plugin_session import extract_session
 from .base import RecordCommonHandler
 from ..pkg_context import context
 from ..recorder import Recorder
-from ..utils import get_common_query_rule
+from ..utils import on_nl_regex
 from ...config import Config
 from ...plugin_service import random_related_illust_service
 from ...service.pixiv_service import PixivService
@@ -45,7 +44,7 @@ class RandomRelatedIllustHandler(RecordCommonHandler, service=random_related_ill
                                 header=f"这是您点的[{illust_id}]的相关图片")
 
 
-@on_regex("^不够色$", rule=get_common_query_rule(), priority=1, block=True).handle()
+@on_nl_regex("^不够色$", priority=1, block=True).handle()
 async def _(event: Event,
             session=Depends(extract_session)):
     await RandomRelatedIllustHandler(session, event).handle()

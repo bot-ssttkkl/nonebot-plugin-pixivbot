@@ -1,6 +1,5 @@
 from typing import Sequence
 
-from nonebot import on_regex
 from nonebot.internal.adapter import Event
 from nonebot.internal.params import Depends
 from nonebot.params import RegexGroup
@@ -8,7 +7,7 @@ from nonebot_plugin_session import extract_session
 
 from .base import RecordCommonHandler
 from ..pkg_context import context
-from ..utils import get_common_query_rule, ArgCount
+from ..utils import on_nl_regex, ArgCount
 from ...config import Config
 from ...plugin_service import random_illust_service
 from ...service.pixiv_service import PixivService
@@ -40,7 +39,7 @@ class RandomIllustHandler(RecordCommonHandler, service=random_illust_service):
                                 header=f"这是您点的{word}图")
 
 
-@on_regex("^来(.*)?张(.+)图$", rule=get_common_query_rule(), priority=5).handle()
+@on_nl_regex("^来(.*)?张(.+)图$", priority=5).handle()
 async def _(event: Event,
             matched_groups=RegexGroup(),
             session=Depends(extract_session),

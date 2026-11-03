@@ -1,7 +1,6 @@
 from typing import Sequence
 from typing import Union
 
-from nonebot import on_regex
 from nonebot.internal.adapter import Event
 from nonebot.internal.params import Depends
 from nonebot.params import RegexGroup
@@ -10,7 +9,7 @@ from nonebot_plugin_session import extract_session
 from nonebot_plugin_pixivbot.plugin_service import random_user_illust_service
 from .base import RecordCommonHandler
 from ..pkg_context import context
-from ..utils import get_common_query_rule, ArgCount
+from ..utils import on_nl_regex, ArgCount
 from ...config import Config
 from ...service.pixiv_service import PixivService
 
@@ -46,7 +45,7 @@ class RandomUserIllustHandler(RecordCommonHandler, service=random_user_illust_se
                                 header=f"这是您点的{userinfo.name}({userinfo.id})老师的图")
 
 
-@on_regex("^来(.*)?张(.+)老师的图$", rule=get_common_query_rule(), priority=4, block=True).handle()
+@on_nl_regex("^来(.*)?张(.+)老师的图$", priority=4, block=True).handle()
 async def _(event: Event,
             matched_groups=RegexGroup(),
             session=Depends(extract_session),

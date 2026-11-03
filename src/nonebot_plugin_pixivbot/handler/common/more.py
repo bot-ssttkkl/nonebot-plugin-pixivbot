@@ -1,4 +1,3 @@
-from nonebot import on_regex
 from nonebot.internal.adapter import Event
 from nonebot.internal.params import Depends
 from nonebot_plugin_session import extract_session
@@ -6,7 +5,7 @@ from nonebot_plugin_session import extract_session
 from .base import CommonHandler
 from ..pkg_context import context
 from ..recorder import Recorder
-from ..utils import get_common_query_rule, ArgCount
+from ..utils import on_nl_regex, ArgCount
 from ...config import Config
 from ...plugin_service import more_service
 from ...utils.errors import BadRequestError
@@ -33,7 +32,7 @@ class MoreHandler(CommonHandler, service=more_service):
         await handler.handle(*req.args, **{**req.kwargs, "count": count})
 
 
-@on_regex("^还要((.*)张)?$", rule=get_common_query_rule(), priority=1, block=True).handle()
+@on_nl_regex("^还要((.*)张)?$", priority=1, block=True).handle()
 async def _(event: Event,
             session=Depends(extract_session),
             count=ArgCount(1)):
