@@ -2,7 +2,6 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
-from nonebot import on_regex
 from nonebot.internal.adapter import Event
 from nonebot.internal.params import Depends
 from nonebot.params import RegexGroup
@@ -10,7 +9,7 @@ from nonebot_plugin_session import extract_session
 
 from .base import CommonHandler
 from ..pkg_context import context
-from ..utils import get_common_query_rule
+from ..utils import on_nl_regex
 from ...config import Config
 from ...enums import RankingMode
 from ...plugin_service import ranking_service
@@ -98,7 +97,7 @@ class RankingHandler(CommonHandler, service=ranking_service):
                                 number=range[0])
 
 
-@on_regex(r"^看看(.*)?榜\s*(.*)?$", rule=get_common_query_rule(), priority=4, block=True).handle()
+@on_nl_regex(r"^看看(.*)?榜\s*(.*)?$", priority=4, block=True).handle()
 async def on_match(event: Event,
                    matched_groups=RegexGroup(),
                    session=Depends(extract_session)):

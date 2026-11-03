@@ -1,13 +1,12 @@
 from typing import Sequence
 
-from nonebot import on_regex
 from nonebot.internal.adapter import Event
 from nonebot.internal.params import Depends
 from nonebot_plugin_session import extract_session
 
 from .base import RecordCommonHandler
 from ..pkg_context import context
-from ..utils import get_common_query_rule, ArgCount
+from ..utils import on_nl_regex, ArgCount
 from ...config import Config
 from ...plugin_service import random_bookmark_service
 from ...service.pixiv_account_binder import PixivAccountBinder
@@ -60,7 +59,7 @@ class RandomBookmarkHandler(RecordCommonHandler, service=random_bookmark_service
                                 header="这是您点的私家车")
 
 
-@on_regex("^来(.*)?张私家车$", rule=get_common_query_rule(), priority=5).handle()
+@on_nl_regex("^来(.*)?张私家车$", priority=5).handle()
 async def _(event: Event,
             session=Depends(extract_session),
             count=ArgCount()):

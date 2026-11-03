@@ -1,7 +1,7 @@
 from .utils.nonebot import default_command_start
 
 usage = f"""
-常规语句：
+常规语句（也可以带命令前缀发送）：
 - 看看榜<范围>：查看pixiv榜单
 - 来张图：从推荐插画随机抽选一张插画
 - 来张<关键字>图：搜索关键字，从搜索结果随机抽选一张插画

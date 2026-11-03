@@ -44,7 +44,7 @@ class Compressor:
             ratio = min(self.max_size / w,
                         self.max_size / h)
             img_cp = img.resize(
-                (int(ratio * w), int(ratio * h)), Image.ANTIALIAS)
+                (int(ratio * w), int(ratio * h)), Image.Resampling.LANCZOS)
         else:
             img_cp = img.copy()
         img_cp = img_cp.convert("RGB")
